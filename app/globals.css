@@ -5,6 +5,7 @@
   --line: #d9ded6;
   --panel: #ffffff;
   --panel-soft: #eef3ef;
+  --blue: #2563eb;
   --green: #255f53;
   --green-ink: #0f342c;
   --amber: #a75c25;
@@ -135,7 +136,7 @@ h2 {
   border-radius: 8px;
   display: grid;
   gap: 12px;
-  grid-template-columns: 1.35fr 2fr 1fr auto;
+  grid-template-columns: 2fr 1fr auto;
   margin-bottom: 16px;
   padding: 14px;
 }
@@ -166,9 +167,9 @@ h2 {
 }
 
 .tab.active {
-  background: var(--panel);
-  color: var(--green-ink);
-  box-shadow: 0 6px 18px rgba(31, 39, 34, 0.08);
+  background: var(--blue);
+  color: white;
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.2);
 }
 
 .tab span {
@@ -186,6 +187,11 @@ h2 {
   min-width: 28px;
   padding: 3px 7px;
   text-align: center;
+}
+
+.tab.active strong {
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
 }
 
 .controls label {
@@ -237,6 +243,14 @@ h2 {
   top: 18px;
 }
 
+.event-list-heading {
+  padding: 4px 2px 8px;
+}
+
+.event-list-heading h2 {
+  font-size: 1.1rem;
+}
+
 .event-card {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -281,9 +295,44 @@ h2 {
   min-width: 0;
 }
 
+.event-detail {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px;
+}
+
+.event-detail h2 {
+  font-size: 1.55rem;
+  margin-bottom: 6px;
+}
+
+.event-totals {
+  align-items: flex-end;
+  display: grid;
+  gap: 6px;
+  text-align: right;
+}
+
+.event-totals span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.event-totals strong {
+  font-size: 1.35rem;
+}
+
+.table-panel > .tabs {
+  margin: 16px 18px;
+}
+
 .table-heading {
   align-items: center;
   border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
   display: flex;
   justify-content: space-between;
   gap: 18px;
@@ -308,7 +357,11 @@ table {
 }
 
 .entries-table {
-  min-width: 720px;
+  min-width: 560px;
+}
+
+.empty-state {
+  padding: 32px 18px;
 }
 
 th,
