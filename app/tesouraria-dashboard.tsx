@@ -11,6 +11,7 @@ type DashboardProps = {
 };
 
 type ModalMode = "create-event" | "edit-event" | "add-entry" | "add-exit" | null;
+type SectionMode = "eventos" | "contas";
 
 type EventForm = {
   nome: string;
@@ -113,6 +114,14 @@ function optionalBoolean(value: "" | "sim" | "nao") {
   return null;
 }
 
+function isTransferencia(value: string | null) {
+  return value
+    ?.normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim() === "transferencia";
+}
+
 function numericAmount(value: string) {
   const normalized = value.trim().replace(",", ".");
   if (!normalized) return null;
@@ -146,6 +155,7 @@ async function supabaseWrite(resource: string, options: RequestInit) {
 
 export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
   const router = useRouter();
+  const [sectionMode, setSectionMode] = useState<SectionMode>("eventos");
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"entrada" | "saida">("entrada");
   const [pago, setPago] = useState<"todos" | "sim" | "nao">("todos");
@@ -156,8 +166,16 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const accountEvent = useMemo(() => {
+    return eventos.find((event) => event.slug === "contas") ?? null;
+  }, [eventos]);
+
+  const eventOnlyList = useMemo(() => {
+    return eventos.filter((event) => event.slug !== "contas");
+  }, [eventos]);
+
   const totals = useMemo(() => {
-    return eventos.reduce(
+    return eventOnlyList.reduce(
       (acc, event) => {
         acc.entradas += Number(event.total_entradas ?? 0);
         acc.saidas += Number(event.total_saidas ?? 0);
@@ -168,14 +186,14 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
       },
       { entradas: 0, saidas: 0, aPagamento: 0, movimentos: 0, isentos: 0 }
     );
-  }, [eventos]);
+  }, [eventOnlyList]);
 
   const orderedEventos = useMemo(() => {
-    return [...eventos].sort((a, b) => {
+    return [...eventOnlyList].sort((a, b) => {
       const balanceDelta = Number(b.saldo ?? 0) - Number(a.saldo ?? 0);
       return balanceDelta || a.ordem_folha - b.ordem_folha;
     });
-  }, [eventos]);
+  }, [eventOnlyList]);
 
   const selectedEvent = useMemo(() => {
     return orderedEventos.find((event) => event.slug === selectedSlug) ?? orderedEventos[0] ?? null;
@@ -220,9 +238,53 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
     });
   }, [activeTab, eventMovimentos, normalizedQuery, pago]);
 
+  const accountEntries = useMemo(() => {
+    return movimentos.filter((movimento) => movimento.evento_slug === "contas" && movimento.tipo === "entrada");
+  }, [movimentos]);
+
+  const accountTransferSaidas = useMemo(() => {
+    return movimentos.filter(
+      (movimento) =>
+        movimento.evento_slug !== "contas" && movimento.tipo === "saida" && isTransferencia(movimento.tipo_pagamento)
+    );
+  }, [movimentos]);
+
+  const accountCounts = useMemo(() => {
+    return {
+      entradas: accountEntries.length,
+      saidas: accountTransferSaidas.length,
+      totalEntradas: accountEntries.reduce((sum, movimento) => sum + Number(movimento.montante ?? 0), 0),
+      totalSaidas: accountTransferSaidas.reduce((sum, movimento) => sum + Number(movimento.montante ?? 0), 0)
+    };
+  }, [accountEntries, accountTransferSaidas]);
+
+  const filteredAccountMovimentos = useMemo(() => {
+    const source = activeTab === "entrada" ? accountEntries : accountTransferSaidas;
+    return source.filter((movimento) => {
+      const matchesQuery =
+        !normalizedQuery ||
+        movimento.item.toLowerCase().includes(normalizedQuery) ||
+        movimento.evento_nome.toLowerCase().includes(normalizedQuery) ||
+        movimento.numero_fatura?.toLowerCase().includes(normalizedQuery);
+      const matchesPago =
+        activeTab === "entrada" ||
+        pago === "todos" ||
+        (pago === "sim" && movimento.pago === true) ||
+        (pago === "nao" && movimento.pago === false);
+      return matchesQuery && matchesPago;
+    });
+  }, [accountEntries, accountTransferSaidas, activeTab, normalizedQuery, pago]);
+
   const resetFilters = () => {
     setQuery("");
     setPago("todos");
+  };
+
+  const switchSection = (mode: SectionMode) => {
+    setSectionMode(mode);
+    setActiveTab("entrada");
+    setPago("todos");
+    setQuery("");
   };
 
   const openCreateEvent = () => {
@@ -370,31 +432,60 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
       </section>
 
       <section className="management-menu" aria-label="Gestão de eventos">
-        <label>
-          Evento
-          <select
-            value={selectedEvent?.slug ?? ""}
-            onChange={(event) => {
-              setSelectedSlug(event.target.value);
-              setActiveTab("entrada");
-              setPago("todos");
-            }}
+        <div className="section-tabs" role="tablist" aria-label="Área principal">
+          <button
+            aria-selected={sectionMode === "eventos"}
+            className={sectionMode === "eventos" ? "section-tab active" : "section-tab"}
+            onClick={() => switchSection("eventos")}
+            role="tab"
+            type="button"
           >
-            {orderedEventos.map((event) => (
-              <option key={event.slug} value={event.slug}>
-                {event.nome}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="menu-actions">
-          <button type="button" onClick={openCreateEvent}>
-            Novo evento
+            Eventos
           </button>
-          <button disabled={!selectedEvent} type="button" onClick={openEditEvent}>
-            Editar evento
+          <button
+            aria-selected={sectionMode === "contas"}
+            className={sectionMode === "contas" ? "section-tab active" : "section-tab"}
+            onClick={() => switchSection("contas")}
+            role="tab"
+            type="button"
+          >
+            Contas
           </button>
         </div>
+        {sectionMode === "eventos" ? (
+          <>
+            <label>
+              Evento
+              <select
+                value={selectedEvent?.slug ?? ""}
+                onChange={(event) => {
+                  setSelectedSlug(event.target.value);
+                  setActiveTab("entrada");
+                  setPago("todos");
+                }}
+              >
+                {orderedEventos.map((event) => (
+                  <option key={event.slug} value={event.slug}>
+                    {event.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="menu-actions">
+              <button type="button" onClick={openCreateEvent}>
+                Novo evento
+              </button>
+              <button disabled={!selectedEvent} type="button" onClick={openEditEvent}>
+                Editar evento
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="account-menu-summary">
+            <span>Conta Q26</span>
+            <strong>{formatMoney(accountCounts.totalEntradas - accountCounts.totalSaidas)}</strong>
+          </div>
+        )}
       </section>
 
       {saveMessage ? <section className="notice">{saveMessage}</section> : null}
@@ -402,22 +493,45 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
       {error ? <section className="notice">Não consegui ligar ao Supabase. {error}</section> : null}
 
       <section className="metrics" aria-label="Resumo financeiro">
-        <article>
-          <span>Entradas</span>
-          <strong>{formatMoney(totals.entradas)}</strong>
-        </article>
-        <article>
-          <span>Saídas</span>
-          <strong>{formatMoney(totals.saidas)}</strong>
-        </article>
-        <article>
-          <span>Saldo</span>
-          <strong>{formatMoney(totals.entradas - totals.saidas)}</strong>
-        </article>
-        <article>
-          <span>Eventos isentos</span>
-          <strong>{totals.isentos}</strong>
-        </article>
+        {sectionMode === "eventos" ? (
+          <>
+            <article>
+              <span>Entradas</span>
+              <strong>{formatMoney(totals.entradas)}</strong>
+            </article>
+            <article>
+              <span>Saídas</span>
+              <strong>{formatMoney(totals.saidas)}</strong>
+            </article>
+            <article>
+              <span>Saldo</span>
+              <strong>{formatMoney(totals.entradas - totals.saidas)}</strong>
+            </article>
+            <article>
+              <span>Eventos isentos</span>
+              <strong>{totals.isentos}</strong>
+            </article>
+          </>
+        ) : (
+          <>
+            <article>
+              <span>Entradas na conta</span>
+              <strong>{formatMoney(accountCounts.totalEntradas)}</strong>
+            </article>
+            <article>
+              <span>Saídas Transferência</span>
+              <strong>{formatMoney(accountCounts.totalSaidas)}</strong>
+            </article>
+            <article>
+              <span>Saldo em conta</span>
+              <strong>{formatMoney(accountCounts.totalEntradas - accountCounts.totalSaidas)}</strong>
+            </article>
+            <article>
+              <span>Movimentos</span>
+              <strong>{accountCounts.entradas + accountCounts.saidas}</strong>
+            </article>
+          </>
+        )}
       </section>
 
       <section className="controls" aria-label="Filtros">
@@ -446,6 +560,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
         </button>
       </section>
 
+      {sectionMode === "eventos" ? (
       <section className="workspace">
         <aside className="event-list" aria-label="Eventos e categorias">
           <div className="event-list-heading">
@@ -593,6 +708,99 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
           )}
         </section>
       </section>
+      ) : (
+        <section className="account-panel" aria-label="Contas Q26">
+          <div className="event-detail">
+            <div>
+              <p className="eyebrow">Contas</p>
+              <h2>Conta Q26</h2>
+              <span className="event-meta">
+                {accountEvent ? "Movimentos da folha Contas e despesas por Transferência" : "Sem folha Contas carregada"}
+              </span>
+            </div>
+            <div className="event-totals">
+              <span>Saldo em conta</span>
+              <strong className={accountCounts.totalEntradas - accountCounts.totalSaidas >= 0 ? "positive" : "negative"}>
+                {formatMoney(accountCounts.totalEntradas - accountCounts.totalSaidas)}
+              </strong>
+            </div>
+          </div>
+
+          <div className="tabs" role="tablist" aria-label="Movimentos da conta">
+            <button
+              aria-selected={activeTab === "entrada"}
+              className={activeTab === "entrada" ? "tab active" : "tab"}
+              onClick={() => setActiveTab("entrada")}
+              role="tab"
+              type="button"
+            >
+              <span>Entradas</span>
+              <strong>{accountCounts.entradas}</strong>
+            </button>
+            <button
+              aria-selected={activeTab === "saida"}
+              className={activeTab === "saida" ? "tab active" : "tab"}
+              onClick={() => setActiveTab("saida")}
+              role="tab"
+              type="button"
+            >
+              <span>Saídas</span>
+              <strong>{accountCounts.saidas}</strong>
+            </button>
+          </div>
+
+          <div className="table-heading">
+            <div>
+              <p className="eyebrow">{activeTab === "entrada" ? "Entradas na conta" : "Saídas por Transferência"}</p>
+              <h2>{filteredAccountMovimentos.length} registos</h2>
+            </div>
+            <span>
+              {formatMoney(activeTab === "entrada" ? accountCounts.totalEntradas : accountCounts.totalSaidas)}
+            </span>
+          </div>
+
+          <div className="table-wrap">
+            <table className={activeTab === "entrada" ? "entries-table" : "outgoing-table"}>
+              <thead>
+                {activeTab === "entrada" ? (
+                  <tr>
+                    <th>Item</th>
+                    <th>Montante</th>
+                  </tr>
+                ) : (
+                  <tr>
+                    <th>Evento</th>
+                    <th>Item</th>
+                    <th>Data</th>
+                    <th>Montante</th>
+                    <th>Fatura C/NIF</th>
+                    <th>Pago</th>
+                  </tr>
+                )}
+              </thead>
+              <tbody>
+                {filteredAccountMovimentos.map((movimento) => (
+                  activeTab === "entrada" ? (
+                    <tr key={movimento.id}>
+                      <td className="item-cell">{movimento.item}</td>
+                      <td className="money">{formatMoney(movimento.montante)}</td>
+                    </tr>
+                  ) : (
+                    <tr key={movimento.id}>
+                      <td>{movimento.evento_nome}</td>
+                      <td className="item-cell">{movimento.item}</td>
+                      <td>{formatDate(movimento.data_pagamento)}</td>
+                      <td className="money">{formatMoney(movimento.montante)}</td>
+                      <td>{movimento.fatura_com_nif === null ? "—" : movimento.fatura_com_nif ? "Sim" : "Não"}</td>
+                      <td>{movimento.pago === null ? "—" : movimento.pago ? "Sim" : "Não"}</td>
+                    </tr>
+                  )
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {modalMode ? (
         <div className="modal-backdrop" role="presentation">
