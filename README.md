@@ -28,13 +28,15 @@ As passwords da folha `Utilizadores` não foram exportadas. Para acesso real à 
 
 ## 2. Variáveis de ambiente
 
-Cria `.env.local` a partir de `.env.example`:
+As variáveis públicas da Supabase já estão incluídas em `.env.development` e `.env.production`, por isso o projeto pode correr localmente e fazer build no Vercel sem configurares as variáveis no painel da Vercel.
+
+Se quiseres sobrepor localmente, cria `.env.local` a partir de `.env.example`:
 
 ```bash
 cp .env.example .env.local
 ```
 
-No Vercel, adiciona as mesmas variáveis em Project Settings > Environment Variables:
+Opcionalmente, também podes adicionar as mesmas variáveis em Vercel > Project Settings > Environment Variables:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://ushhacwtmpmwmvpaitdx.supabase.co
