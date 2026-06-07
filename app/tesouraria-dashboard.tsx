@@ -1,12 +1,33 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import type { EventoResumo, MovimentoDetalhe } from "./supabase-data";
 
 type DashboardProps = {
   eventos: EventoResumo[];
   movimentos: MovimentoDetalhe[];
   error: string | null;
+};
+
+type ModalMode = "create-event" | "edit-event" | "add-entry" | "add-exit" | null;
+
+type EventForm = {
+  nome: string;
+  data_inicio: string;
+  data_fim: string;
+  isento_texto: string;
+  tipo: "evento" | "categoria";
+};
+
+type MovementForm = {
+  item: string;
+  montante: string;
+  data_pagamento: string;
+  numero_fatura: string;
+  fatura_com_nif: "" | "sim" | "nao";
+  tipo_pagamento: string;
+  pago: "" | "sim" | "nao";
 };
 
 const moneyFormatter = new Intl.NumberFormat("pt-PT", {
@@ -20,6 +41,28 @@ const dateFormatter = new Intl.DateTimeFormat("pt-PT", {
   month: "2-digit",
   year: "numeric"
 });
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ushhacwtmpmwmvpaitdx.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB";
+
+const emptyEventForm: EventForm = {
+  nome: "",
+  data_inicio: "",
+  data_fim: "",
+  isento_texto: "",
+  tipo: "evento"
+};
+
+const emptyMovementForm: MovementForm = {
+  item: "",
+  montante: "",
+  data_pagamento: "",
+  numero_fatura: "",
+  fatura_com_nif: "",
+  tipo_pagamento: "",
+  pago: "sim"
+};
 
 function formatMoney(value: number | null | undefined) {
   return moneyFormatter.format(Number(value ?? 0));
@@ -36,11 +79,76 @@ function movementLabel(tipo: MovimentoDetalhe["tipo"]) {
   return "A pagamento";
 }
 
+function slugify(value: string) {
+  return (
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "evento"
+  );
+}
+
+function nextAvailableSlug(name: string, existingSlugs: string[]) {
+  const base = slugify(name);
+  let slug = base;
+  let counter = 2;
+  while (existingSlugs.includes(slug)) {
+    slug = `${base}-${counter}`;
+    counter += 1;
+  }
+  return slug;
+}
+
+function optionalBoolean(value: "" | "sim" | "nao") {
+  if (value === "sim") return true;
+  if (value === "nao") return false;
+  return null;
+}
+
+function numericAmount(value: string) {
+  const normalized = value.trim().replace(",", ".");
+  if (!normalized) return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function manualOrigin(prefix: string) {
+  const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}`;
+  return `app_${prefix}_${id}`;
+}
+
+async function supabaseWrite(resource: string, options: RequestInit) {
+  const response = await fetch(`${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${resource}`, {
+    ...options,
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+      ...options.headers
+    }
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`${response.status} ${response.statusText}: ${body}`);
+  }
+
+  return response.json();
+}
+
 export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"entrada" | "saida">("entrada");
   const [pago, setPago] = useState<"todos" | "sim" | "nao">("todos");
   const [selectedSlug, setSelectedSlug] = useState<string>("");
+  const [modalMode, setModalMode] = useState<ModalMode>(null);
+  const [eventForm, setEventForm] = useState<EventForm>(emptyEventForm);
+  const [movementForm, setMovementForm] = useState<MovementForm>(emptyMovementForm);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const totals = useMemo(() => {
     return eventos.reduce(
@@ -110,6 +218,135 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
     setPago("todos");
   };
 
+  const openCreateEvent = () => {
+    setSaveMessage(null);
+    setEventForm(emptyEventForm);
+    setModalMode("create-event");
+  };
+
+  const openEditEvent = () => {
+    if (!selectedEvent) return;
+    setSaveMessage(null);
+    setEventForm({
+      nome: selectedEvent.nome,
+      data_inicio: selectedEvent.data_inicio ?? "",
+      data_fim: selectedEvent.data_fim ?? "",
+      isento_texto: selectedEvent.isento_texto ?? "",
+      tipo: selectedEvent.tipo
+    });
+    setModalMode("edit-event");
+  };
+
+  const openMovementForm = (mode: "add-entry" | "add-exit") => {
+    if (!selectedEvent) return;
+    setSaveMessage(null);
+    setMovementForm(emptyMovementForm);
+    setActiveTab(mode === "add-entry" ? "entrada" : "saida");
+    setModalMode(mode);
+  };
+
+  const closeModal = () => {
+    if (isSaving) return;
+    setModalMode(null);
+  };
+
+  const saveEvent = async () => {
+    const name = eventForm.nome.trim();
+    if (!name) throw new Error("Indica o nome do evento.");
+
+    const payload = {
+      nome: name,
+      folha_excel: modalMode === "create-event" ? name : undefined,
+      slug:
+        modalMode === "create-event"
+          ? nextAvailableSlug(name, eventos.map((event) => event.slug))
+          : undefined,
+      ordem_folha: modalMode === "create-event" ? Math.max(0, ...eventos.map((event) => event.ordem_folha)) + 1 : undefined,
+      data_texto: eventForm.data_inicio ? `Data: ${eventForm.data_inicio}` : null,
+      data_inicio: eventForm.data_inicio || null,
+      data_fim: eventForm.data_fim || eventForm.data_inicio || null,
+      isento_texto: eventForm.isento_texto.trim() || null,
+      tipo: eventForm.tipo
+    };
+
+    if (modalMode === "create-event") {
+      await supabaseWrite("eventos", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      return;
+    }
+
+    if (!selectedEvent) throw new Error("Escolhe um evento para editar.");
+    await supabaseWrite(`eventos?id=eq.${selectedEvent.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        nome: payload.nome,
+        data_texto: payload.data_texto,
+        data_inicio: payload.data_inicio,
+        data_fim: payload.data_fim,
+        isento_texto: payload.isento_texto,
+        tipo: payload.tipo
+      })
+    });
+  };
+
+  const saveMovement = async () => {
+    if (!selectedEvent) throw new Error("Escolhe um evento antes de adicionar dados.");
+    const item = movementForm.item.trim();
+    const amount = numericAmount(movementForm.montante);
+    if (!item) throw new Error("Indica o item.");
+    if (amount === null) throw new Error("Indica um montante válido.");
+
+    const tipo = modalMode === "add-entry" ? "entrada" : "saida";
+    const payload = {
+      evento_id: selectedEvent.id,
+      tipo,
+      item,
+      data_pagamento: modalMode === "add-entry" ? null : movementForm.data_pagamento || null,
+      montante: amount,
+      numero_fatura: modalMode === "add-entry" ? null : movementForm.numero_fatura.trim() || null,
+      fatura_com_nif: modalMode === "add-entry" ? null : optionalBoolean(movementForm.fatura_com_nif),
+      tipo_pagamento: modalMode === "add-entry" ? null : movementForm.tipo_pagamento.trim() || null,
+      pago: modalMode === "add-entry" ? null : optionalBoolean(movementForm.pago),
+      origem_tabela: manualOrigin(tipo),
+      origem_linha: 1,
+      raw: {
+        origem: "app",
+        evento: selectedEvent.nome,
+        item,
+        montante: amount
+      }
+    };
+
+    await supabaseWrite("movimentos", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!modalMode) return;
+    setIsSaving(true);
+    setSaveMessage(null);
+
+    try {
+      if (modalMode === "create-event" || modalMode === "edit-event") {
+        await saveEvent();
+      } else {
+        await saveMovement();
+      }
+      setModalMode(null);
+      setSaveMessage("Guardado com sucesso.");
+      router.refresh();
+    } catch (caught) {
+      setSaveMessage(caught instanceof Error ? caught.message : "Não foi possível guardar.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <main className="shell">
       <section className="topbar">
@@ -122,6 +359,42 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
           Supabase
         </div>
       </section>
+
+      <section className="management-menu" aria-label="Gestão de eventos">
+        <label>
+          Evento
+          <select
+            value={selectedEvent?.slug ?? ""}
+            onChange={(event) => {
+              setSelectedSlug(event.target.value);
+              setActiveTab("entrada");
+              setPago("todos");
+            }}
+          >
+            {orderedEventos.map((event) => (
+              <option key={event.slug} value={event.slug}>
+                {event.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="menu-actions">
+          <button type="button" onClick={openCreateEvent}>
+            Novo evento
+          </button>
+          <button disabled={!selectedEvent} type="button" onClick={openEditEvent}>
+            Editar evento
+          </button>
+          <button disabled={!selectedEvent} type="button" onClick={() => openMovementForm("add-entry")}>
+            Adicionar entrada
+          </button>
+          <button disabled={!selectedEvent} type="button" onClick={() => openMovementForm("add-exit")}>
+            Adicionar saída
+          </button>
+        </div>
+      </section>
+
+      {saveMessage ? <section className="notice">{saveMessage}</section> : null}
 
       {error ? <section className="notice">Não consegui ligar ao Supabase. {error}</section> : null}
 
@@ -303,6 +576,173 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
           )}
         </section>
       </section>
+
+      {modalMode ? (
+        <div className="modal-backdrop" role="presentation">
+          <form className="modal" onSubmit={handleSubmit}>
+            <div className="modal-heading">
+              <div>
+                <p className="eyebrow">Gestão</p>
+                <h2>
+                  {modalMode === "create-event"
+                    ? "Novo evento"
+                    : modalMode === "edit-event"
+                      ? "Editar evento"
+                      : modalMode === "add-entry"
+                        ? "Adicionar entrada"
+                        : "Adicionar saída"}
+                </h2>
+              </div>
+              <button aria-label="Fechar" className="icon-button" onClick={closeModal} type="button">
+                ×
+              </button>
+            </div>
+
+            {modalMode === "create-event" || modalMode === "edit-event" ? (
+              <div className="form-grid">
+                <label className="full">
+                  Nome
+                  <input
+                    required
+                    value={eventForm.nome}
+                    onChange={(event) => setEventForm((current) => ({ ...current, nome: event.target.value }))}
+                  />
+                </label>
+                <label>
+                  Data início
+                  <input
+                    type="date"
+                    value={eventForm.data_inicio}
+                    onChange={(event) => setEventForm((current) => ({ ...current, data_inicio: event.target.value }))}
+                  />
+                </label>
+                <label>
+                  Data fim
+                  <input
+                    type="date"
+                    value={eventForm.data_fim}
+                    onChange={(event) => setEventForm((current) => ({ ...current, data_fim: event.target.value }))}
+                  />
+                </label>
+                <label>
+                  Tipo
+                  <select
+                    value={eventForm.tipo}
+                    onChange={(event) =>
+                      setEventForm((current) => ({ ...current, tipo: event.target.value as EventForm["tipo"] }))
+                    }
+                  >
+                    <option value="evento">Evento</option>
+                    <option value="categoria">Categoria</option>
+                  </select>
+                </label>
+                <label>
+                  Isento
+                  <input
+                    value={eventForm.isento_texto}
+                    onChange={(event) => setEventForm((current) => ({ ...current, isento_texto: event.target.value }))}
+                    placeholder="N.Isento"
+                  />
+                </label>
+              </div>
+            ) : (
+              <div className="form-grid">
+                <label className="full">
+                  Item
+                  <input
+                    required
+                    value={movementForm.item}
+                    onChange={(event) => setMovementForm((current) => ({ ...current, item: event.target.value }))}
+                  />
+                </label>
+                <label>
+                  Montante
+                  <input
+                    inputMode="decimal"
+                    required
+                    value={movementForm.montante}
+                    onChange={(event) => setMovementForm((current) => ({ ...current, montante: event.target.value }))}
+                    placeholder="0,00"
+                  />
+                </label>
+                {modalMode === "add-exit" ? (
+                  <>
+                    <label>
+                      Data pagamento
+                      <input
+                        type="date"
+                        value={movementForm.data_pagamento}
+                        onChange={(event) =>
+                          setMovementForm((current) => ({ ...current, data_pagamento: event.target.value }))
+                        }
+                      />
+                    </label>
+                    <label>
+                      Tipo pagamento
+                      <input
+                        value={movementForm.tipo_pagamento}
+                        onChange={(event) =>
+                          setMovementForm((current) => ({ ...current, tipo_pagamento: event.target.value }))
+                        }
+                        placeholder="Dinheiro"
+                      />
+                    </label>
+                    <label>
+                      Nº Fatura
+                      <input
+                        value={movementForm.numero_fatura}
+                        onChange={(event) =>
+                          setMovementForm((current) => ({ ...current, numero_fatura: event.target.value }))
+                        }
+                      />
+                    </label>
+                    <label>
+                      Fatura C/NIF
+                      <select
+                        value={movementForm.fatura_com_nif}
+                        onChange={(event) =>
+                          setMovementForm((current) => ({
+                            ...current,
+                            fatura_com_nif: event.target.value as MovementForm["fatura_com_nif"]
+                          }))
+                        }
+                      >
+                        <option value="">—</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                      </select>
+                    </label>
+                    <label>
+                      Pago
+                      <select
+                        value={movementForm.pago}
+                        onChange={(event) =>
+                          setMovementForm((current) => ({ ...current, pago: event.target.value as MovementForm["pago"] }))
+                        }
+                      >
+                        <option value="">—</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                      </select>
+                    </label>
+                  </>
+                ) : null}
+              </div>
+            )}
+
+            {saveMessage ? <p className="form-message">{saveMessage}</p> : null}
+
+            <div className="modal-actions">
+              <button className="secondary-button" onClick={closeModal} type="button">
+                Cancelar
+              </button>
+              <button disabled={isSaving} type="submit">
+                {isSaving ? "A guardar..." : "Guardar"}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </main>
   );
 }

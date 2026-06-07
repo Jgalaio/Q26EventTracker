@@ -5,6 +5,7 @@ Este projeto converte o ficheiro Excel `Tesouraria Q26.xlsm` para:
 - `supabase/schema.sql`: tabelas, views e políticas de leitura.
 - `supabase/seed.sql`: importação dos 34 eventos/categorias e 551 movimentos.
 - `supabase/optional_excel_support.sql`: tabelas opcionais para histórico e CSVs auxiliares.
+- `supabase/enable_public_writes.sql`: permissões para o menu criar/editar eventos e movimentos.
 - `data/*.csv`: exportações auditáveis, incluindo histórico Excel e utilizadores sem passwords.
 - App Next.js pronta para Vercel.
 
@@ -23,6 +24,12 @@ Depois corre:
 ```
 
 Se também quiseres guardar o histórico de alterações do Excel no Supabase, corre `supabase/optional_excel_support.sql` e importa os CSVs auxiliares pela Table Editor.
+
+Para ativar os botões do menu superior (`Novo evento`, `Editar evento`, `Adicionar entrada`, `Adicionar saída`), corre também:
+
+```sql
+-- supabase/enable_public_writes.sql
+```
 
 As passwords da folha `Utilizadores` não foram exportadas. Para acesso real à app, cria utilizadores no Supabase Auth ou protege o projeto no Vercel.
 
@@ -80,4 +87,4 @@ Depois liga esse repositório ao Vercel. O Vercel faz deploy automático quando 
 
 ## Nota de segurança
 
-O `schema.sql` cria políticas de leitura pública para a publishable key conseguir mostrar o dashboard sem login. Se a tesouraria não deve ficar pública, remove as políticas `Leitura publica eventos` e `Leitura publica movimentos` e substitui por políticas apenas para `authenticated`.
+O `schema.sql` cria políticas de leitura pública para a publishable key conseguir mostrar o dashboard sem login. O `enable_public_writes.sql` também permite escrita pública. Se a tesouraria não deve ficar pública, usa Supabase Auth e substitui políticas `anon` por políticas apenas para `authenticated`.
