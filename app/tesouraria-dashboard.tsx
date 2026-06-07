@@ -554,6 +554,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                         <th>Montante</th>
                         <th>Pagamento</th>
                         <th>Fatura</th>
+                        <th>Fatura C/NIF</th>
                         <th>Pago</th>
                       </tr>
                     )}
@@ -575,6 +576,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                           <td className="money">{formatMoney(movimento.montante)}</td>
                           <td>{movimento.tipo_pagamento ?? "—"}</td>
                           <td>{movimento.numero_fatura ?? "—"}</td>
+                          <td>{movimento.fatura_com_nif === null ? "—" : movimento.fatura_com_nif ? "Sim" : "Não"}</td>
                           <td>{movimento.pago === null ? "—" : movimento.pago ? "Sim" : "Não"}</td>
                         </tr>
                       )
@@ -698,13 +700,17 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                     </label>
                     <label>
                       Tipo pagamento
-                      <input
+                      <select
                         value={movementForm.tipo_pagamento}
                         onChange={(event) =>
                           setMovementForm((current) => ({ ...current, tipo_pagamento: event.target.value }))
                         }
-                        placeholder="Dinheiro"
-                      />
+                      >
+                        <option value="">—</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                        <option value="C. Q26">C. Q26</option>
+                        <option value="Transferencia">Transferencia</option>
+                      </select>
                     </label>
                     <label>
                       Nº Fatura
