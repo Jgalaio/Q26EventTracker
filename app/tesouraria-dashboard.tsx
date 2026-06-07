@@ -38,7 +38,7 @@ function movementLabel(tipo: MovimentoDetalhe["tipo"]) {
 
 export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
   const [query, setQuery] = useState("");
-  const [tipo, setTipo] = useState<"todos" | MovimentoDetalhe["tipo"]>("todos");
+  const [activeTab, setActiveTab] = useState<"entrada" | "saida">("entrada");
   const [pago, setPago] = useState<"todos" | "sim" | "nao">("todos");
   const [selectedSlug, setSelectedSlug] = useState<string>("todos");
 
@@ -56,22 +56,37 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
   }, [eventos]);
 
   const normalizedQuery = query.trim().toLowerCase();
+  const tabCounts = useMemo(() => {
+    return movimentos.reduce(
+      (acc, movimento) => {
+        if (movimento.tipo === "entrada") {
+          acc.entradas += 1;
+        } else {
+          acc.saidas += 1;
+        }
+        return acc;
+      },
+      { entradas: 0, saidas: 0 }
+    );
+  }, [movimentos]);
+
   const filteredMovimentos = useMemo(() => {
     return movimentos.filter((movimento) => {
+      const matchesTab = activeTab === "entrada" ? movimento.tipo === "entrada" : movimento.tipo !== "entrada";
       const matchesQuery =
         !normalizedQuery ||
         movimento.item.toLowerCase().includes(normalizedQuery) ||
         movimento.evento_nome.toLowerCase().includes(normalizedQuery) ||
         movimento.numero_fatura?.toLowerCase().includes(normalizedQuery);
-      const matchesTipo = tipo === "todos" || movimento.tipo === tipo;
       const matchesPago =
+        activeTab === "entrada" ||
         pago === "todos" ||
         (pago === "sim" && movimento.pago === true) ||
         (pago === "nao" && movimento.pago === false);
       const matchesEvent = selectedSlug === "todos" || movimento.evento_slug === selectedSlug;
-      return matchesQuery && matchesTipo && matchesPago && matchesEvent;
+      return matchesTab && matchesQuery && matchesPago && matchesEvent;
     });
-  }, [movimentos, normalizedQuery, pago, selectedSlug, tipo]);
+  }, [activeTab, movimentos, normalizedQuery, pago, selectedSlug]);
 
   const orderedEventos = useMemo(() => {
     return [...eventos].sort((a, b) => {
@@ -82,7 +97,6 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
 
   const resetFilters = () => {
     setQuery("");
-    setTipo("todos");
     setPago("todos");
     setSelectedSlug("todos");
   };
@@ -122,6 +136,28 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
       </section>
 
       <section className="controls" aria-label="Filtros">
+        <div className="tabs" role="tablist" aria-label="Tipo de movimento">
+          <button
+            aria-selected={activeTab === "entrada"}
+            className={activeTab === "entrada" ? "tab active" : "tab"}
+            onClick={() => setActiveTab("entrada")}
+            role="tab"
+            type="button"
+          >
+            <span>Entradas</span>
+            <strong>{tabCounts.entradas}</strong>
+          </button>
+          <button
+            aria-selected={activeTab === "saida"}
+            className={activeTab === "saida" ? "tab active" : "tab"}
+            onClick={() => setActiveTab("saida")}
+            role="tab"
+            type="button"
+          >
+            <span>Saídas</span>
+            <strong>{tabCounts.saidas}</strong>
+          </button>
+        </div>
         <label>
           Pesquisa
           <input
@@ -131,17 +167,12 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
           />
         </label>
         <label>
-          Tipo
-          <select value={tipo} onChange={(event) => setTipo(event.target.value as typeof tipo)}>
-            <option value="todos">Todos</option>
-            <option value="entrada">Entradas</option>
-            <option value="saida">Saídas</option>
-            <option value="a_pagamento">A pagamento</option>
-          </select>
-        </label>
-        <label>
           Pago
-          <select value={pago} onChange={(event) => setPago(event.target.value as typeof pago)}>
+          <select
+            disabled={activeTab === "entrada"}
+            value={pago}
+            onChange={(event) => setPago(event.target.value as typeof pago)}
+          >
             <option value="todos">Todos</option>
             <option value="sim">Sim</option>
             <option value="nao">Não</option>
@@ -183,40 +214,56 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
         <section className="table-panel" aria-label="Movimentos">
           <div className="table-heading">
             <div>
-              <p className="eyebrow">Movimentos</p>
+              <p className="eyebrow">{activeTab === "entrada" ? "Entradas" : "Saídas"}</p>
               <h2>{filteredMovimentos.length} registos</h2>
             </div>
             <span>{formatMoney(filteredMovimentos.reduce((sum, item) => sum + Number(item.montante ?? 0), 0))}</span>
           </div>
 
           <div className="table-wrap">
-            <table>
+            <table className={activeTab === "entrada" ? "entries-table" : "outgoing-table"}>
               <thead>
-                <tr>
-                  <th>Evento</th>
-                  <th>Tipo</th>
-                  <th>Item</th>
-                  <th>Data</th>
-                  <th>Montante</th>
-                  <th>Pagamento</th>
-                  <th>Fatura</th>
-                  <th>Pago</th>
-                </tr>
+                {activeTab === "entrada" ? (
+                  <tr>
+                    <th>Evento</th>
+                    <th>Item</th>
+                    <th>Montante</th>
+                  </tr>
+                ) : (
+                  <tr>
+                    <th>Evento</th>
+                    <th>Tipo</th>
+                    <th>Item</th>
+                    <th>Data</th>
+                    <th>Montante</th>
+                    <th>Pagamento</th>
+                    <th>Fatura</th>
+                    <th>Pago</th>
+                  </tr>
+                )}
               </thead>
               <tbody>
                 {filteredMovimentos.map((movimento) => (
-                  <tr key={movimento.id}>
-                    <td>{movimento.evento_nome}</td>
-                    <td>
-                      <span className={`pill ${movimento.tipo}`}>{movementLabel(movimento.tipo)}</span>
-                    </td>
-                    <td className="item-cell">{movimento.item}</td>
-                    <td>{formatDate(movimento.data_pagamento)}</td>
-                    <td className="money">{formatMoney(movimento.montante)}</td>
-                    <td>{movimento.tipo_pagamento ?? "—"}</td>
-                    <td>{movimento.numero_fatura ?? "—"}</td>
-                    <td>{movimento.pago === null ? "—" : movimento.pago ? "Sim" : "Não"}</td>
-                  </tr>
+                  activeTab === "entrada" ? (
+                    <tr key={movimento.id}>
+                      <td>{movimento.evento_nome}</td>
+                      <td className="item-cell">{movimento.item}</td>
+                      <td className="money">{formatMoney(movimento.montante)}</td>
+                    </tr>
+                  ) : (
+                    <tr key={movimento.id}>
+                      <td>{movimento.evento_nome}</td>
+                      <td>
+                        <span className={`pill ${movimento.tipo}`}>{movementLabel(movimento.tipo)}</span>
+                      </td>
+                      <td className="item-cell">{movimento.item}</td>
+                      <td>{formatDate(movimento.data_pagamento)}</td>
+                      <td className="money">{formatMoney(movimento.montante)}</td>
+                      <td>{movimento.tipo_pagamento ?? "—"}</td>
+                      <td>{movimento.numero_fatura ?? "—"}</td>
+                      <td>{movimento.pago === null ? "—" : movimento.pago ? "Sim" : "Não"}</td>
+                    </tr>
+                  )
                 ))}
               </tbody>
             </table>

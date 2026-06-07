@@ -135,9 +135,57 @@ h2 {
   border-radius: 8px;
   display: grid;
   gap: 12px;
-  grid-template-columns: 2fr 1fr 1fr auto;
+  grid-template-columns: 1.35fr 2fr 1fr auto;
   margin-bottom: 16px;
   padding: 14px;
+}
+
+.tabs {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 42px;
+  padding: 4px;
+}
+
+.tab {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  min-width: 0;
+  padding: 8px 10px;
+}
+
+.tab.active {
+  background: var(--panel);
+  color: var(--green-ink);
+  box-shadow: 0 6px 18px rgba(31, 39, 34, 0.08);
+}
+
+.tab span {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab strong {
+  background: #dfe8e1;
+  border-radius: 999px;
+  color: var(--green-ink);
+  font-size: 0.78rem;
+  min-width: 28px;
+  padding: 3px 7px;
+  text-align: center;
 }
 
 .controls label {
@@ -154,6 +202,12 @@ h2 {
   min-height: 42px;
   min-width: 0;
   padding: 0 11px;
+}
+
+.controls select:disabled {
+  color: #9aa39b;
+  cursor: not-allowed;
+  opacity: 0.68;
 }
 
 .controls button {
@@ -251,6 +305,10 @@ table {
   border-collapse: collapse;
   min-width: 1020px;
   width: 100%;
+}
+
+.entries-table {
+  min-width: 720px;
 }
 
 th,
