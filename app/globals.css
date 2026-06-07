@@ -385,6 +385,33 @@ h2 {
   font-size: 1.35rem;
 }
 
+.event-side {
+  align-items: flex-end;
+  display: grid;
+  gap: 12px;
+}
+
+.event-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.event-actions button {
+  background: var(--green);
+  border: 0;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  min-height: 40px;
+  padding: 0 13px;
+}
+
+.event-actions button:first-child {
+  background: var(--blue);
+}
+
 .table-panel > .tabs {
   margin: 16px 18px;
 }
@@ -592,6 +619,18 @@ td {
   .event-totals {
     align-items: flex-start;
     text-align: left;
+  }
+
+  .event-side {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .event-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+    width: 100%;
   }
 
   .form-grid {

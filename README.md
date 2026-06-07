@@ -5,7 +5,7 @@ Este projeto converte o ficheiro Excel `Tesouraria Q26.xlsm` para:
 - `supabase/schema.sql`: tabelas, views e políticas de leitura.
 - `supabase/seed.sql`: importação dos 34 eventos/categorias e 551 movimentos.
 - `supabase/optional_excel_support.sql`: tabelas opcionais para histórico e CSVs auxiliares.
-- `supabase/enable_public_writes.sql`: permissões para o menu criar/editar eventos e movimentos.
+- `supabase/enable_public_writes.sql`: adiciona o campo `isento` e dá permissões ao menu para criar/editar eventos e movimentos.
 - `data/*.csv`: exportações auditáveis, incluindo histórico Excel e utilizadores sem passwords.
 - App Next.js pronta para Vercel.
 
@@ -25,7 +25,7 @@ Depois corre:
 
 Se também quiseres guardar o histórico de alterações do Excel no Supabase, corre `supabase/optional_excel_support.sql` e importa os CSVs auxiliares pela Table Editor.
 
-Para ativar os botões do menu superior (`Novo evento`, `Editar evento`, `Adicionar entrada`, `Adicionar saída`), corre também:
+Para ativar os formulários (`Novo evento`, `Editar evento`, `Adicionar entrada`, `Adicionar saída`) e guardar a opção `Isento: Sim/Não`, corre também:
 
 ```sql
 -- supabase/enable_public_writes.sql

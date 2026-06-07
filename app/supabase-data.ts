@@ -7,6 +7,7 @@ export type EventoResumo = {
   data_texto: string | null;
   data_inicio: string | null;
   data_fim: string | null;
+  isento?: boolean | null;
   isento_texto: string | null;
   tipo: "evento" | "categoria";
   total_entradas: number;

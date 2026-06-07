@@ -16,7 +16,7 @@ type EventForm = {
   nome: string;
   data_inicio: string;
   data_fim: string;
-  isento_texto: string;
+  isento: "sim" | "nao";
   tipo: "evento" | "categoria";
 };
 
@@ -50,7 +50,7 @@ const emptyEventForm: EventForm = {
   nome: "",
   data_inicio: "",
   data_fim: "",
-  isento_texto: "",
+  isento: "nao",
   tipo: "evento"
 };
 
@@ -77,6 +77,12 @@ function movementLabel(tipo: MovimentoDetalhe["tipo"]) {
   if (tipo === "entrada") return "Entrada";
   if (tipo === "saida") return "Saída";
   return "A pagamento";
+}
+
+function isEventIsento(event: EventoResumo) {
+  if (typeof event.isento === "boolean") return event.isento;
+  const value = event.isento_texto?.trim().toLowerCase();
+  return value === "sim";
 }
 
 function slugify(value: string) {
@@ -157,9 +163,10 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
         acc.saidas += Number(event.total_saidas ?? 0);
         acc.aPagamento += Number(event.total_a_pagamento ?? 0);
         acc.movimentos += Number(event.total_movimentos ?? 0);
+        if (isEventIsento(event)) acc.isentos += 1;
         return acc;
       },
-      { entradas: 0, saidas: 0, aPagamento: 0, movimentos: 0 }
+      { entradas: 0, saidas: 0, aPagamento: 0, movimentos: 0, isentos: 0 }
     );
   }, [eventos]);
 
@@ -231,7 +238,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
       nome: selectedEvent.nome,
       data_inicio: selectedEvent.data_inicio ?? "",
       data_fim: selectedEvent.data_fim ?? "",
-      isento_texto: selectedEvent.isento_texto ?? "",
+      isento: isEventIsento(selectedEvent) ? "sim" : "nao",
       tipo: selectedEvent.tipo
     });
     setModalMode("edit-event");
@@ -265,7 +272,8 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
       data_texto: eventForm.data_inicio ? `Data: ${eventForm.data_inicio}` : null,
       data_inicio: eventForm.data_inicio || null,
       data_fim: eventForm.data_fim || eventForm.data_inicio || null,
-      isento_texto: eventForm.isento_texto.trim() || null,
+      isento: eventForm.isento === "sim",
+      isento_texto: eventForm.isento === "sim" ? "Sim" : "Não",
       tipo: eventForm.tipo
     };
 
@@ -285,6 +293,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
         data_texto: payload.data_texto,
         data_inicio: payload.data_inicio,
         data_fim: payload.data_fim,
+        isento: payload.isento,
         isento_texto: payload.isento_texto,
         tipo: payload.tipo
       })
@@ -385,12 +394,6 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
           <button disabled={!selectedEvent} type="button" onClick={openEditEvent}>
             Editar evento
           </button>
-          <button disabled={!selectedEvent} type="button" onClick={() => openMovementForm("add-entry")}>
-            Adicionar entrada
-          </button>
-          <button disabled={!selectedEvent} type="button" onClick={() => openMovementForm("add-exit")}>
-            Adicionar saída
-          </button>
         </div>
       </section>
 
@@ -412,8 +415,8 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
           <strong>{formatMoney(totals.entradas - totals.saidas)}</strong>
         </article>
         <article>
-          <span>Movimentos</span>
-          <strong>{totals.movimentos}</strong>
+          <span>Eventos isentos</span>
+          <strong>{totals.isentos}</strong>
         </article>
       </section>
 
@@ -480,13 +483,25 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                   <h2>{selectedEvent.nome}</h2>
                   <span className="event-meta">
                     {selectedEvent.tipo === "evento" ? formatDate(selectedEvent.data_inicio) : selectedEvent.folha_excel}
+                    {" · Isento: "}
+                    {isEventIsento(selectedEvent) ? "Sim" : "Não"}
                   </span>
                 </div>
-                <div className="event-totals">
-                  <span>Saldo</span>
-                  <strong className={Number(selectedEvent.saldo) >= 0 ? "positive" : "negative"}>
-                    {formatMoney(selectedEvent.saldo)}
-                  </strong>
+                <div className="event-side">
+                  <div className="event-totals">
+                    <span>Saldo</span>
+                    <strong className={Number(selectedEvent.saldo) >= 0 ? "positive" : "negative"}>
+                      {formatMoney(selectedEvent.saldo)}
+                    </strong>
+                  </div>
+                  <div className="event-actions">
+                    <button type="button" onClick={() => openMovementForm("add-entry")}>
+                      Adicionar entrada
+                    </button>
+                    <button type="button" onClick={() => openMovementForm("add-exit")}>
+                      Adicionar saída
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -638,11 +653,15 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                 </label>
                 <label>
                   Isento
-                  <input
-                    value={eventForm.isento_texto}
-                    onChange={(event) => setEventForm((current) => ({ ...current, isento_texto: event.target.value }))}
-                    placeholder="N.Isento"
-                  />
+                  <select
+                    value={eventForm.isento}
+                    onChange={(event) =>
+                      setEventForm((current) => ({ ...current, isento: event.target.value as EventForm["isento"] }))
+                    }
+                  >
+                    <option value="nao">Não</option>
+                    <option value="sim">Sim</option>
+                  </select>
                 </label>
               </div>
             ) : (

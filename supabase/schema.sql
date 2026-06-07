@@ -19,10 +19,14 @@ create table if not exists public.eventos (
   data_texto text,
   data_inicio date,
   data_fim date,
+  isento boolean not null default false,
   isento_texto text,
   tipo text not null check (tipo in ('evento', 'categoria')),
   created_at timestamptz not null default now()
 );
+
+alter table public.eventos
+add column if not exists isento boolean not null default false;
 
 create table if not exists public.movimentos (
   id uuid primary key default gen_random_uuid(),
@@ -47,7 +51,9 @@ create index if not exists movimentos_evento_id_idx on public.movimentos(evento_
 create index if not exists movimentos_tipo_idx on public.movimentos(tipo);
 create index if not exists movimentos_data_pagamento_idx on public.movimentos(data_pagamento);
 
-create or replace view public.eventos_resumo as
+drop view if exists public.eventos_resumo;
+
+create view public.eventos_resumo as
 select
   e.id,
   e.slug,
@@ -57,6 +63,7 @@ select
   e.data_texto,
   e.data_inicio,
   e.data_fim,
+  e.isento,
   e.isento_texto,
   e.tipo,
   coalesce(sum(m.montante) filter (where m.tipo = 'entrada'), 0)::numeric(12,2) as total_entradas,
