@@ -1,0 +1,35 @@
+slug,nome,folha_excel,ordem_folha,data_texto,data_inicio,data_fim,isento_texto,tipo
+contas,Contas,Contas,8,,,,,categoria
+decoracao,Decoraçao,Decoraçao,9,,,,,categoria
+notas-de-credito,Notas De Credito,Notas De Credito,10,,,,,categoria
+novadis,Novadis,Novadis,11,,,,,categoria
+caspiadas,Caspiadas,Caspiadas,12,,,,,categoria
+sedeconsumiveis,SedeConsumiveis,SedeConsumiveis,13,,,,,categoria
+sededespesas,SedeDespesas,SedeDespesas,14,,,,N.Isento,categoria
+peditorio,Peditorio,Peditorio,15,Data:  __/__/____,,,N.Isento,categoria
+donativospub,DonAtivosPub,DonAtivosPub,16,,,,,categoria
+festatemp,FestaTemp,FestaTemp,17,Data:  __/__/____,,,N.Isento,categoria
+almajudasq25,AlmAjudasQ25,AlmAjudasQ25,18,,,,,categoria
+feira-dos-santos,Feira dos Santos,Feira dos Santos,19,,,,Isento,categoria
+sabores-outono,Sabores Outono,Sabores Outono,20,,,,Isento,categoria
+arroz-doce-nov25,Arroz Doce Nov25,Arroz Doce Nov25,21,,,,,categoria
+noite-de-fados,Noite De Fados,Noite De Fados,22,,,,N.Isento,categoria
+gdp,GDP,GDP,23,,,,N.Isento,categoria
+jantar-prof,Jantar Prof,Jantar Prof,24,,,,N.Isento,categoria
+pda,PDA,PDA,25,,,,Isento,categoria
+btt,BTT,BTT,26,,,,Isento,categoria
+carnaval,Carnaval,Carnaval,27,Data:  14/02/2026,2026-02-14,2026-02-14,N.Isento,evento
+dia-da-mulher,Dia Da Mulher,Dia Da Mulher,28,Data:  07/03/2026,2026-03-07,2026-03-07,Isento,evento
+arroz-doce-mar26,Arroz Doce Mar26,Arroz Doce Mar26,29,Data:  14/03/2026,2026-03-14,2026-03-14,N.Isento,evento
+festival-do-bacalhau,Festival do Bacalhau,Festival do Bacalhau,30,Data:  19/04/2026,2026-04-19,2026-04-19,N.Isento,evento
+caminhadgens,CaminhaDgens,CaminhaDgens,31,Data:  12/04/2026,2026-04-12,2026-04-12,N.Isento,evento
+festa-do-vinho,Festa Do Vinho,Festa Do Vinho,32,Data:  01/05/2026,2026-05-01,2026-05-01,N.Isento,evento
+rota-das-quintas,Rota Das Quintas,Rota Das Quintas,33,Data:  17/05/2026,2026-05-17,2026-05-17,N.Isento,evento
+petisarte,PetisArte,PetisArte,34,Data:  23/05/2026,2026-05-23,2026-05-23,N.Isento,evento
+arroz-doce-maio26,Arroz Doce Maio26,Arroz Doce Maio26,35,Data:  30/05/2026,2026-05-30,2026-05-30,N.Isento,evento
+a-beira-rio-1fds,A  Beira Rio 1FDS,A  Beira Rio 1FDS,36,Data:  0607/06/2026,2026-06-06,2026-06-07,Isento,evento
+dia-do-quarentao,Dia do Quarentao,Dia do Quarentao,37,Data:  10/06/2026,2026-06-10,2026-06-10,,evento
+festas-da-cidade,Festas Da Cidade,Festas Da Cidade,38,Data: 18_21/06/2026,2026-06-18,2026-06-21,Isento,evento
+artevel,ArtEvel,ArtEvel,39,Data:  __/__/____,,,,categoria
+a-beira-rio-2fds,A Beira Rio 2FDS,A Beira Rio 2FDS,40,Data:  1819/07/2026,2026-07-18,2026-07-19,,evento
+a-beira-rio-3fds,A Beira Rio 3FDS,A Beira Rio 3FDS,41,Data:  0809/08/2026,2026-08-08,2026-08-09,,evento

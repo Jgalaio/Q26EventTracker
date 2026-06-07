@@ -1,0 +1,14 @@
+{
+  "events": 34,
+  "movements": 551,
+  "movement_totals": {
+    "entrada": 135,
+    "saida": 408,
+    "a_pagamento": 8
+  },
+  "amount_totals": {
+    "entrada": 101162.34,
+    "saida": 47643.57,
+    "a_pagamento": 0
+  }
+}
