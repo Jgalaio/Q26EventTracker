@@ -9,7 +9,7 @@ Este projeto converte o ficheiro Excel `Tesouraria Q26.xlsm` para:
 - `data/*.csv`: exportações auditáveis, incluindo histórico Excel e utilizadores sem passwords.
 - App Next.js pronta para Vercel.
 
-A interface tem duas áreas principais: `Eventos`, onde escolhes cada evento e geres entradas/saídas, e `Contas`, onde entram os movimentos da folha Contas e as saídas são somadas automaticamente a partir das despesas dos eventos pagas por Transferencia.
+A interface tem duas áreas principais: `Eventos`, onde escolhes cada evento e geres entradas/saídas, e `Contas`, onde entram os movimentos da folha Contas e as saídas são somadas automaticamente a partir das despesas dos eventos pagas por Transferencia ou C. Q26.
 
 ## 1. Criar a base de dados
 

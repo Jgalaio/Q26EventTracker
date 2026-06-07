@@ -114,12 +114,15 @@ function optionalBoolean(value: "" | "sim" | "nao") {
   return null;
 }
 
-function isTransferencia(value: string | null) {
-  return value
+function isContaPayment(value: string | null) {
+  const normalized = value
     ?.normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .trim() === "transferencia";
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return normalized === "transferencia" || normalized === "c. q26" || normalized === "c q26";
 }
 
 function numericAmount(value: string) {
@@ -242,24 +245,24 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
     return movimentos.filter((movimento) => movimento.evento_slug === "contas" && movimento.tipo === "entrada");
   }, [movimentos]);
 
-  const accountTransferSaidas = useMemo(() => {
+  const accountSaidas = useMemo(() => {
     return movimentos.filter(
       (movimento) =>
-        movimento.evento_slug !== "contas" && movimento.tipo === "saida" && isTransferencia(movimento.tipo_pagamento)
+        movimento.evento_slug !== "contas" && movimento.tipo === "saida" && isContaPayment(movimento.tipo_pagamento)
     );
   }, [movimentos]);
 
   const accountCounts = useMemo(() => {
     return {
       entradas: accountEntries.length,
-      saidas: accountTransferSaidas.length,
+      saidas: accountSaidas.length,
       totalEntradas: accountEntries.reduce((sum, movimento) => sum + Number(movimento.montante ?? 0), 0),
-      totalSaidas: accountTransferSaidas.reduce((sum, movimento) => sum + Number(movimento.montante ?? 0), 0)
+      totalSaidas: accountSaidas.reduce((sum, movimento) => sum + Number(movimento.montante ?? 0), 0)
     };
-  }, [accountEntries, accountTransferSaidas]);
+  }, [accountEntries, accountSaidas]);
 
   const filteredAccountMovimentos = useMemo(() => {
-    const source = activeTab === "entrada" ? accountEntries : accountTransferSaidas;
+    const source = activeTab === "entrada" ? accountEntries : accountSaidas;
     return source.filter((movimento) => {
       const matchesQuery =
         !normalizedQuery ||
@@ -273,7 +276,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
         (pago === "nao" && movimento.pago === false);
       return matchesQuery && matchesPago;
     });
-  }, [accountEntries, accountTransferSaidas, activeTab, normalizedQuery, pago]);
+  }, [accountEntries, accountSaidas, activeTab, normalizedQuery, pago]);
 
   const resetFilters = () => {
     setQuery("");
@@ -519,7 +522,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
               <strong>{formatMoney(accountCounts.totalEntradas)}</strong>
             </article>
             <article>
-              <span>Saídas Transferência</span>
+              <span>Saídas Conta Q26</span>
               <strong>{formatMoney(accountCounts.totalSaidas)}</strong>
             </article>
             <article>
@@ -715,7 +718,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
               <p className="eyebrow">Contas</p>
               <h2>Conta Q26</h2>
               <span className="event-meta">
-                {accountEvent ? "Movimentos da folha Contas e despesas por Transferência" : "Sem folha Contas carregada"}
+                {accountEvent ? "Movimentos da folha Contas e despesas por Transferência ou C. Q26" : "Sem folha Contas carregada"}
               </span>
             </div>
             <div className="event-totals">
@@ -751,7 +754,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
 
           <div className="table-heading">
             <div>
-              <p className="eyebrow">{activeTab === "entrada" ? "Entradas na conta" : "Saídas por Transferência"}</p>
+              <p className="eyebrow">{activeTab === "entrada" ? "Entradas na conta" : "Saídas Conta Q26"}</p>
               <h2>{filteredAccountMovimentos.length} registos</h2>
             </div>
             <span>
@@ -773,6 +776,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                     <th>Item</th>
                     <th>Data</th>
                     <th>Montante</th>
+                    <th>Pagamento</th>
                     <th>Fatura C/NIF</th>
                     <th>Pago</th>
                   </tr>
@@ -791,6 +795,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                       <td className="item-cell">{movimento.item}</td>
                       <td>{formatDate(movimento.data_pagamento)}</td>
                       <td className="money">{formatMoney(movimento.montante)}</td>
+                      <td>{movimento.tipo_pagamento ?? "—"}</td>
                       <td>{movimento.fatura_com_nif === null ? "—" : movimento.fatura_com_nif ? "Sim" : "Não"}</td>
                       <td>{movimento.pago === null ? "—" : movimento.pago ? "Sim" : "Não"}</td>
                     </tr>
