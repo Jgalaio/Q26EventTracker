@@ -10,7 +10,7 @@ type DashboardProps = {
   error: string | null;
 };
 
-type ModalMode = "create-event" | "edit-event" | "add-entry" | "add-exit" | null;
+type ModalMode = "create-event" | "edit-event" | "add-entry" | "add-exit" | "edit-entry" | "edit-exit" | null;
 type SectionMode = "eventos" | "contas";
 
 type EventForm = {
@@ -114,6 +114,12 @@ function optionalBoolean(value: "" | "sim" | "nao") {
   return null;
 }
 
+function booleanToForm(value: boolean | null): "" | "sim" | "nao" {
+  if (value === true) return "sim";
+  if (value === false) return "nao";
+  return "";
+}
+
 function isContaPayment(value: string | null) {
   const normalized = value
     ?.normalize("NFD")
@@ -153,7 +159,8 @@ async function supabaseWrite(resource: string, options: RequestInit) {
     throw new Error(`${response.status} ${response.statusText}: ${body}`);
   }
 
-  return response.json();
+  const body = await response.text();
+  return body ? JSON.parse(body) : null;
 }
 
 export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
@@ -166,6 +173,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [eventForm, setEventForm] = useState<EventForm>(emptyEventForm);
   const [movementForm, setMovementForm] = useState<MovementForm>(emptyMovementForm);
+  const [selectedMovement, setSelectedMovement] = useState<MovimentoDetalhe | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -292,6 +300,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
 
   const openCreateEvent = () => {
     setSaveMessage(null);
+    setSelectedMovement(null);
     setEventForm(emptyEventForm);
     setModalMode("create-event");
   };
@@ -299,6 +308,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
   const openEditEvent = () => {
     if (!selectedEvent) return;
     setSaveMessage(null);
+    setSelectedMovement(null);
     setEventForm({
       nome: selectedEvent.nome,
       data_inicio: selectedEvent.data_inicio ?? "",
@@ -312,14 +322,32 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
   const openMovementForm = (mode: "add-entry" | "add-exit") => {
     if (!selectedEvent) return;
     setSaveMessage(null);
+    setSelectedMovement(null);
     setMovementForm(emptyMovementForm);
     setActiveTab(mode === "add-entry" ? "entrada" : "saida");
     setModalMode(mode);
   };
 
+  const openEditMovement = (movimento: MovimentoDetalhe) => {
+    setSaveMessage(null);
+    setSelectedMovement(movimento);
+    setMovementForm({
+      item: movimento.item,
+      montante: movimento.montante === null ? "" : String(movimento.montante),
+      data_pagamento: movimento.data_pagamento ?? "",
+      numero_fatura: movimento.numero_fatura ?? "",
+      fatura_com_nif: booleanToForm(movimento.fatura_com_nif),
+      tipo_pagamento: movimento.tipo_pagamento ?? "",
+      pago: booleanToForm(movimento.pago)
+    });
+    setActiveTab(movimento.tipo === "entrada" ? "entrada" : "saida");
+    setModalMode(movimento.tipo === "entrada" ? "edit-entry" : "edit-exit");
+  };
+
   const closeModal = () => {
     if (isSaving) return;
     setModalMode(null);
+    setSelectedMovement(null);
   };
 
   const saveEvent = async () => {
@@ -366,38 +394,83 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
   };
 
   const saveMovement = async () => {
-    if (!selectedEvent) throw new Error("Escolhe um evento antes de adicionar dados.");
+    const isEditing = modalMode === "edit-entry" || modalMode === "edit-exit";
+    const isEntryMode = modalMode === "add-entry" || modalMode === "edit-entry";
+    const movementToEdit = isEditing ? selectedMovement : null;
+    if (!isEditing && !selectedEvent) throw new Error("Escolhe um evento antes de adicionar dados.");
+    if (isEditing && !movementToEdit) throw new Error("Escolhe uma linha para editar.");
+
     const item = movementForm.item.trim();
     const amount = numericAmount(movementForm.montante);
     if (!item) throw new Error("Indica o item.");
     if (amount === null) throw new Error("Indica um montante válido.");
 
-    const tipo = modalMode === "add-entry" ? "entrada" : "saida";
+    const tipo = movementToEdit ? movementToEdit.tipo : isEntryMode ? "entrada" : "saida";
     const payload = {
-      evento_id: selectedEvent.id,
+      evento_id: isEditing ? undefined : selectedEvent?.id,
       tipo,
       item,
-      data_pagamento: modalMode === "add-entry" ? null : movementForm.data_pagamento || null,
+      data_pagamento: isEntryMode ? null : movementForm.data_pagamento || null,
       montante: amount,
-      numero_fatura: modalMode === "add-entry" ? null : movementForm.numero_fatura.trim() || null,
-      fatura_com_nif: modalMode === "add-entry" ? null : optionalBoolean(movementForm.fatura_com_nif),
-      tipo_pagamento: modalMode === "add-entry" ? null : movementForm.tipo_pagamento.trim() || null,
-      pago: modalMode === "add-entry" ? null : optionalBoolean(movementForm.pago),
-      origem_tabela: manualOrigin(tipo),
-      origem_linha: 1,
+      numero_fatura: isEntryMode ? null : movementForm.numero_fatura.trim() || null,
+      fatura_com_nif: isEntryMode ? null : optionalBoolean(movementForm.fatura_com_nif),
+      tipo_pagamento: isEntryMode ? null : movementForm.tipo_pagamento.trim() || null,
+      pago: isEntryMode ? null : optionalBoolean(movementForm.pago),
+      origem_tabela: movementToEdit ? movementToEdit.origem_tabela : manualOrigin(tipo),
+      origem_linha: movementToEdit ? movementToEdit.origem_linha : 1,
       raw: {
+        ...(movementToEdit ? movementToEdit.raw : {}),
         origem: "app",
-        evento: selectedEvent.nome,
+        evento: movementToEdit ? movementToEdit.evento_nome : selectedEvent?.nome,
         item,
         montante: amount
       }
     };
+
+    if (movementToEdit) {
+      await supabaseWrite(`movimentos?id=eq.${movementToEdit.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      });
+      return;
+    }
 
     await supabaseWrite("movimentos", {
       method: "POST",
       body: JSON.stringify(payload)
     });
   };
+
+  const deleteMovement = async (movimento: MovimentoDetalhe) => {
+    if (sectionMode === "contas" && activeTab === "saida") return;
+    const confirmed = window.confirm(`Apagar "${movimento.item}"?`);
+    if (!confirmed) return;
+
+    setIsSaving(true);
+    setSaveMessage(null);
+    try {
+      await supabaseWrite(`movimentos?id=eq.${movimento.id}`, {
+        method: "DELETE"
+      });
+      setSaveMessage("Registo apagado.");
+      router.refresh();
+    } catch (caught) {
+      setSaveMessage(caught instanceof Error ? caught.message : "Não foi possível apagar.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const renderMovementActions = (movimento: MovimentoDetalhe) => (
+    <div className="row-actions">
+      <button type="button" onClick={() => openEditMovement(movimento)}>
+        Editar
+      </button>
+      <button className="danger-button" disabled={isSaving} type="button" onClick={() => deleteMovement(movimento)}>
+        Apagar
+      </button>
+    </div>
+  );
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -412,6 +485,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
         await saveMovement();
       }
       setModalMode(null);
+      setSelectedMovement(null);
       setSaveMessage("Guardado com sucesso.");
       router.refresh();
     } catch (caught) {
@@ -663,6 +737,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                       <tr>
                         <th>Item</th>
                         <th>Montante</th>
+                        <th>Ações</th>
                       </tr>
                     ) : (
                       <tr>
@@ -674,6 +749,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                         <th>Fatura</th>
                         <th>Fatura C/NIF</th>
                         <th>Pago</th>
+                        <th>Ações</th>
                       </tr>
                     )}
                   </thead>
@@ -683,6 +759,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                         <tr key={movimento.id}>
                           <td className="item-cell">{movimento.item}</td>
                           <td className="money">{formatMoney(movimento.montante)}</td>
+                          <td>{renderMovementActions(movimento)}</td>
                         </tr>
                       ) : (
                         <tr key={movimento.id}>
@@ -696,6 +773,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                           <td>{movimento.numero_fatura ?? "—"}</td>
                           <td>{movimento.fatura_com_nif === null ? "—" : movimento.fatura_com_nif ? "Sim" : "Não"}</td>
                           <td>{movimento.pago === null ? "—" : movimento.pago ? "Sim" : "Não"}</td>
+                          <td>{renderMovementActions(movimento)}</td>
                         </tr>
                       )
                     ))}
@@ -769,6 +847,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                   <tr>
                     <th>Item</th>
                     <th>Montante</th>
+                    <th>Ações</th>
                   </tr>
                 ) : (
                   <tr>
@@ -788,6 +867,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                     <tr key={movimento.id}>
                       <td className="item-cell">{movimento.item}</td>
                       <td className="money">{formatMoney(movimento.montante)}</td>
+                      <td>{renderMovementActions(movimento)}</td>
                     </tr>
                   ) : (
                     <tr key={movimento.id}>
@@ -820,7 +900,11 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                       ? "Editar evento"
                       : modalMode === "add-entry"
                         ? "Adicionar entrada"
-                        : "Adicionar saída"}
+                        : modalMode === "add-exit"
+                          ? "Adicionar saída"
+                          : modalMode === "edit-entry"
+                            ? "Editar entrada"
+                            : "Editar saída"}
                 </h2>
               </div>
               <button aria-label="Fechar" className="icon-button" onClick={closeModal} type="button">
@@ -899,7 +983,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                     placeholder="0,00"
                   />
                 </label>
-                {modalMode === "add-exit" ? (
+                {modalMode === "add-exit" || modalMode === "edit-exit" ? (
                   <>
                     <label>
                       Data pagamento
