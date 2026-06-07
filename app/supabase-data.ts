@@ -42,13 +42,12 @@ type FetchResult<T> = {
   error: string | null;
 };
 
-async function fetchSupabase<T>(resource: string, query: string): Promise<FetchResult<T>> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const FALLBACK_SUPABASE_URL = "https://ushhacwtmpmwmvpaitdx.supabase.co";
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB";
 
-  if (!supabaseUrl || !publishableKey) {
-    return { data: [], error: "Faltam as variáveis NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY." };
-  }
+async function fetchSupabase<T>(resource: string, query: string): Promise<FetchResult<T>> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || FALLBACK_SUPABASE_URL;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_PUBLISHABLE_KEY;
 
   const endpoint = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/${resource}?${query}`;
   const response = await fetch(endpoint, {
