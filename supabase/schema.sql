@@ -47,6 +47,7 @@ create table if not exists public.movimentos (
   fatura_com_nif boolean,
   tipo_pagamento text,
   pago boolean,
+  contabilizar_totais boolean not null default true,
   origem_tabela text not null,
   origem_linha integer not null,
   formula_montante text,
@@ -57,6 +58,9 @@ create table if not exists public.movimentos (
 
 alter table public.movimentos
 add column if not exists descricao text;
+
+alter table public.movimentos
+add column if not exists contabilizar_totais boolean not null default true;
 
 create index if not exists movimentos_evento_id_idx on public.movimentos(evento_id);
 create index if not exists movimentos_tipo_idx on public.movimentos(tipo);
@@ -207,6 +211,7 @@ select
   m.fatura_com_nif,
   m.tipo_pagamento,
   m.pago,
+  m.contabilizar_totais,
   m.origem_tabela,
   m.origem_linha,
   m.formula_montante,

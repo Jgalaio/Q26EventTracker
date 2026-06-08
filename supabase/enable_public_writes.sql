@@ -13,6 +13,9 @@ add column if not exists contabilizar_totais boolean not null default true;
 alter table public.movimentos
 add column if not exists descricao text;
 
+alter table public.movimentos
+add column if not exists contabilizar_totais boolean not null default true;
+
 update public.eventos
 set isento = isento or lower(coalesce(isento_texto, '')) = 'sim';
 
@@ -168,6 +171,7 @@ select
   m.fatura_com_nif,
   m.tipo_pagamento,
   m.pago,
+  m.contabilizar_totais,
   m.origem_tabela,
   m.origem_linha,
   m.formula_montante,

@@ -83,6 +83,10 @@ function isEventCounted(event: EventoResumo) {
   return event.slug !== "decoracao";
 }
 
+function isMovementCounted(movimento: MovimentoDetalhe) {
+  return movimento.contabilizar_totais !== false;
+}
+
 function emptySummary(): Summary {
   return {
     entradas: 0,
@@ -192,15 +196,19 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
 
   const totals = useMemo(() => {
     return finalizeSummary(
-      visibleEvents.filter((item) => reportScope === "evento" || isEventCounted(item.event)).reduce((summary, item) => {
-        summary.entradas += item.summary.entradas;
-        summary.saidas += item.summary.saidas;
-        summary.aPagamento += item.summary.aPagamento;
-        summary.faturado += item.summary.faturado;
-        summary.naoFaturado += item.summary.naoFaturado;
-        summary.pagoQ26 += item.summary.pagoQ26;
-        summary.transferencias += item.summary.transferencias;
-        summary.dinheiro += item.summary.dinheiro;
+      visibleEvents.reduce((summary, item) => {
+        if (reportScope === "evento") {
+          item.movimentos.forEach((movimento) => {
+            addMovimento(summary, movimento);
+          });
+          return summary;
+        }
+
+        if (!isEventCounted(item.event)) return summary;
+
+        item.movimentos.filter(isMovementCounted).forEach((movimento) => {
+          addMovimento(summary, movimento);
+        });
         return summary;
       }, emptySummary())
     );
@@ -213,7 +221,10 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
   const accountSaidas = useMemo(() => {
     return movimentos.filter(
       (movimento) =>
-        movimento.evento_slug !== "contas" && movimento.tipo === "saida" && isContaPayment(movimento.tipo_pagamento)
+        movimento.evento_slug !== "contas" &&
+        movimento.tipo === "saida" &&
+        isMovementCounted(movimento) &&
+        isContaPayment(movimento.tipo_pagamento)
     );
   }, [movimentos]);
 

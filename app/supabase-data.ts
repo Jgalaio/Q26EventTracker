@@ -33,6 +33,7 @@ export type MovimentoDetalhe = {
   fatura_com_nif: boolean | null;
   tipo_pagamento: string | null;
   pago: boolean | null;
+  contabilizar_totais?: boolean | null;
   origem_tabela: string;
   origem_linha: number;
   formula_montante: string | null;
@@ -75,7 +76,7 @@ export async function getTesourariaData() {
     fetchSupabase<EventoResumo>("eventos_resumo", "select=*&order=ordem_folha.asc"),
     fetchSupabase<MovimentoDetalhe>(
       "movimentos_detalhe",
-      "select=*&order=data_pagamento.desc.nullslast,evento_nome.asc,item.asc&limit=2000"
+      "select=*&order=data_pagamento.desc.nullslast,evento_nome.asc,item.asc&limit=10000"
     )
   ]);
 

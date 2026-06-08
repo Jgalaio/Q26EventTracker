@@ -350,6 +350,36 @@ h2 {
   resize: vertical;
 }
 
+.form-grid label.checkbox-field,
+.table-checkbox {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.form-grid label.checkbox-field {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  min-height: 42px;
+  padding: 0 11px;
+}
+
+.form-grid label.checkbox-field input,
+.table-checkbox input {
+  accent-color: var(--blue);
+  min-height: auto;
+  width: auto;
+}
+
+.table-checkbox {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .justification-field {
   color: var(--muted);
   display: grid;
@@ -1638,7 +1668,7 @@ table {
 }
 
 .outgoing-table {
-  min-width: 1380px;
+  min-width: 1480px;
 }
 
 .entries-table tbody tr:nth-child(odd) td,

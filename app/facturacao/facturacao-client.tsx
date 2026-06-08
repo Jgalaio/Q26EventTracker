@@ -48,8 +48,17 @@ function parseAmount(value: string) {
   return Number(normalized);
 }
 
+function isMovementCounted(movimento: MovimentoDetalhe) {
+  return movimento.contabilizar_totais !== false;
+}
+
 function isFaturadaDespesa(movimento: MovimentoDetalhe) {
-  return movimento.tipo === "saida" && movimento.fatura_com_nif === true && movimento.evento_slug !== "contas";
+  return (
+    movimento.tipo === "saida" &&
+    movimento.fatura_com_nif === true &&
+    movimento.evento_slug !== "contas" &&
+    isMovementCounted(movimento)
+  );
 }
 
 function movementAmount(movimento: MovimentoDetalhe) {

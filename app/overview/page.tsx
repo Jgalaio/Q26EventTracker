@@ -68,6 +68,10 @@ function isEventCounted(event: EventoResumo) {
   return event.slug !== "decoracao";
 }
 
+function isMovementCounted(movimento: MovimentoDetalhe) {
+  return movimento.contabilizar_totais !== false;
+}
+
 function summarizeEvent(event: EventoResumo, movimentos: MovimentoDetalhe[]): OverviewRow {
   const summary = finalizeSummary(
     movimentos.reduce((acc, movimento) => {
@@ -103,14 +107,9 @@ export default async function OverviewPage() {
 
   const totals = finalizeSummary(
     rows.filter((row) => row.contabilizarTotais).reduce((acc, row) => {
-      acc.entradas += row.entradas;
-      acc.saidas += row.saidas;
-      acc.aPagamento += row.aPagamento;
-      acc.faturado += row.faturado;
-      acc.naoFaturado += row.naoFaturado;
-      acc.pagoQ26 += row.pagoQ26;
-      acc.transferencias += row.transferencias;
-      acc.dinheiro += row.dinheiro;
+      row.movimentos.filter(isMovementCounted).forEach((movimento) => {
+        addMovimento(acc, movimento);
+      });
       return acc;
     }, emptySummary())
   );
@@ -121,7 +120,10 @@ export default async function OverviewPage() {
   const accountSaidas = movimentos
     .filter(
       (movimento) =>
-        movimento.evento_slug !== "contas" && movimento.tipo === "saida" && isContaPayment(movimento.tipo_pagamento)
+        movimento.evento_slug !== "contas" &&
+        movimento.tipo === "saida" &&
+        isMovementCounted(movimento) &&
+        isContaPayment(movimento.tipo_pagamento)
     )
     .reduce((sum, movimento) => sum + Number(movimento.montante ?? 0), 0);
   const accountBalance = accountEntradas - accountSaidas;

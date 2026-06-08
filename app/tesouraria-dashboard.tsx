@@ -40,6 +40,7 @@ type MovementForm = {
   fatura_com_nif: "" | "sim" | "nao";
   tipo_pagamento: string;
   pago: "" | "sim" | "nao";
+  contabilizar_totais: boolean;
 };
 
 type FinancialSummary = {
@@ -81,7 +82,8 @@ const emptyMovementForm: MovementForm = {
   numero_fatura: "",
   fatura_com_nif: "",
   tipo_pagamento: "",
-  pago: "sim"
+  pago: "sim",
+  contabilizar_totais: true
 };
 
 function formatMoney(value: number | null | undefined) {
@@ -108,6 +110,10 @@ function isEventIsento(event: EventoResumo) {
 function isEventCounted(event: EventoResumo) {
   if (typeof event.contabilizar_totais === "boolean") return event.contabilizar_totais;
   return event.slug !== "decoracao";
+}
+
+function isMovementCounted(movimento: MovimentoDetalhe) {
+  return movimento.contabilizar_totais !== false;
 }
 
 function slugify(value: string) {
@@ -250,18 +256,28 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
   }, [eventos]);
 
   const totals = useMemo(() => {
-    return eventOnlyList.filter(isEventCounted).reduce(
-      (acc, event) => {
-        acc.entradas += Number(event.total_entradas ?? 0);
-        acc.saidas += Number(event.total_saidas ?? 0);
-        acc.aPagamento += Number(event.total_a_pagamento ?? 0);
-        acc.movimentos += Number(event.total_movimentos ?? 0);
-        if (isEventIsento(event)) acc.isentos += 1;
-        return acc;
-      },
-      { entradas: 0, saidas: 0, aPagamento: 0, movimentos: 0, isentos: 0 }
+    const eventStatus = new Map(
+      eventOnlyList.map((event) => [event.slug, { counted: isEventCounted(event), isento: isEventIsento(event) }])
     );
-  }, [eventOnlyList]);
+    const summary = { entradas: 0, saidas: 0, aPagamento: 0, movimentos: 0, isentos: 0 };
+
+    eventStatus.forEach((status) => {
+      if (status.counted && status.isento) summary.isentos += 1;
+    });
+
+    movimentos.forEach((movimento) => {
+      const status = eventStatus.get(movimento.evento_slug);
+      if (!status?.counted || !isMovementCounted(movimento)) return;
+
+      const amount = Number(movimento.montante ?? 0);
+      if (movimento.tipo === "entrada") summary.entradas += amount;
+      if (movimento.tipo === "saida") summary.saidas += amount;
+      if (movimento.tipo === "a_pagamento") summary.aPagamento += amount;
+      summary.movimentos += 1;
+    });
+
+    return summary;
+  }, [eventOnlyList, movimentos]);
 
   const orderedEventos = useMemo(() => {
     return [...eventOnlyList].sort((a, b) => {
@@ -332,7 +348,10 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
   const accountSaidas = useMemo(() => {
     return movimentos.filter(
       (movimento) =>
-        movimento.evento_slug !== "contas" && movimento.tipo === "saida" && isContaPayment(movimento.tipo_pagamento)
+        movimento.evento_slug !== "contas" &&
+        movimento.tipo === "saida" &&
+        isMovementCounted(movimento) &&
+        isContaPayment(movimento.tipo_pagamento)
     );
   }, [movimentos]);
 
@@ -430,7 +449,8 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
       numero_fatura: movimento.numero_fatura ?? "",
       fatura_com_nif: booleanToForm(movimento.fatura_com_nif),
       tipo_pagamento: movimento.tipo_pagamento ?? "",
-      pago: booleanToForm(movimento.pago)
+      pago: booleanToForm(movimento.pago),
+      contabilizar_totais: isMovementCounted(movimento)
     });
     setJustification("");
     setActiveTab(movimento.tipo === "entrada" ? "entrada" : "saida");
@@ -541,6 +561,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
       fatura_com_nif: isEntryMode ? null : optionalBoolean(movementForm.fatura_com_nif),
       tipo_pagamento: isEntryMode ? null : movementForm.tipo_pagamento.trim() || null,
       pago: isEntryMode ? null : optionalBoolean(movementForm.pago),
+      contabilizar_totais: isEntryMode ? true : movementForm.contabilizar_totais,
       origem_tabela: movementToEdit ? movementToEdit.origem_tabela : manualOrigin(tipo),
       origem_linha: movementToEdit ? movementToEdit.origem_linha : 1,
       raw: {
@@ -549,7 +570,8 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
         evento: movementToEdit ? movementToEdit.evento_nome : selectedEvent?.nome,
         item,
         descricao: isEntryMode ? null : movementForm.descricao.trim() || null,
-        montante: amount
+        montante: amount,
+        contabilizar_totais: isEntryMode ? true : movementForm.contabilizar_totais
       }
     };
 
@@ -597,6 +619,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
       fatura_com_nif: isEntryMode ? null : optionalBoolean(quickMovementForm.fatura_com_nif),
       tipo_pagamento: isEntryMode ? null : quickMovementForm.tipo_pagamento.trim() || null,
       pago: isEntryMode ? null : optionalBoolean(quickMovementForm.pago),
+      contabilizar_totais: isEntryMode ? true : quickMovementForm.contabilizar_totais,
       origem_tabela: manualOrigin(tipo),
       origem_linha: 1,
       raw: {
@@ -605,7 +628,8 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
         evento: selectedEvent.nome,
         item,
         descricao: isEntryMode ? null : quickMovementForm.descricao.trim() || null,
-        montante: amount
+        montante: amount,
+        contabilizar_totais: isEntryMode ? true : quickMovementForm.contabilizar_totais
       }
     };
 
@@ -1064,6 +1088,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                         <th>Fatura</th>
                         <th>Fatura C/NIF</th>
                         <th>Pago</th>
+                        <th>Totais gerais</th>
                         <th>Ações</th>
                       </tr>
                     )}
@@ -1206,6 +1231,22 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                             </select>
                           </td>
                           <td>
+                            <label className="table-checkbox" title="Contabilizar esta saída nos totais gerais">
+                              <input
+                                aria-label="Contabilizar nos totais gerais"
+                                checked={quickMovementForm.contabilizar_totais}
+                                type="checkbox"
+                                onChange={(event) =>
+                                  setQuickMovementForm((current) => ({
+                                    ...current,
+                                    contabilizar_totais: event.target.checked
+                                  }))
+                                }
+                              />
+                              <span>{quickMovementForm.contabilizar_totais ? "Sim" : "Não"}</span>
+                            </label>
+                          </td>
+                          <td>
                             <div className="row-actions">
                               <button disabled={isSaving} type="button" onClick={saveQuickMovement}>
                                 Guardar
@@ -1238,6 +1279,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                           <td>{movimento.numero_fatura ?? "—"}</td>
                           <td>{movimento.fatura_com_nif === null ? "—" : movimento.fatura_com_nif ? "Sim" : "Não"}</td>
                           <td>{movimento.pago === null ? "—" : movimento.pago ? "Sim" : "Não"}</td>
+                          <td>{isMovementCounted(movimento) ? "Sim" : "Não"}</td>
                           <td>{renderMovementActions(movimento)}</td>
                         </tr>
                       )
@@ -1536,6 +1578,16 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                         <option value="sim">Sim</option>
                         <option value="nao">Não</option>
                       </select>
+                    </label>
+                    <label className="checkbox-field full">
+                      <input
+                        checked={movementForm.contabilizar_totais}
+                        type="checkbox"
+                        onChange={(event) =>
+                          setMovementForm((current) => ({ ...current, contabilizar_totais: event.target.checked }))
+                        }
+                      />
+                      <span>Contabilizar esta saída nos totais gerais</span>
                     </label>
                   </>
                 ) : null}
