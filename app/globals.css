@@ -1194,8 +1194,18 @@ table {
   min-width: 1260px;
 }
 
+.entries-table tbody tr:nth-child(odd) td,
+.outgoing-table tbody tr:nth-child(odd) td {
+  background: #ffffff;
+}
+
+.entries-table tbody tr:nth-child(even) td,
+.outgoing-table tbody tr:nth-child(even) td {
+  background: #f6f9f6;
+}
+
 .inline-add-row td {
-  background: #f9fbff;
+  background: #f9fbff !important;
 }
 
 .inline-add-row input,
