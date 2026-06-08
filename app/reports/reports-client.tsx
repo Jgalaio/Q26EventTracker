@@ -153,8 +153,8 @@ function eventPie(summary: Summary) {
     saidasPercent,
     background:
       total > 0
-        ? `conic-gradient(#4276c8 0 ${entradasPercent}%, #f07c35 ${entradasPercent}% 100%)`
-        : "conic-gradient(#d9ded6 0 100%)"
+        ? `conic-gradient(#1f66e5 0 ${entradasPercent}%, #93b7f4 ${entradasPercent}% 100%)`
+        : "conic-gradient(#d8e5ff 0 100%)"
   };
 }
 

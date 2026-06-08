@@ -456,15 +456,23 @@ h2 {
 }
 
 .report-page {
-  background: #ffffff;
-  border: 1px solid #dce2e8;
-  box-shadow: 0 22px 60px rgba(39, 50, 70, 0.12);
-  color: #58708d;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.88), rgba(247, 250, 255, 0.9)),
+    url("/report-background.png") center / cover no-repeat;
+  border: 1px solid #4b82ee;
+  box-shadow: 0 22px 60px rgba(30, 92, 210, 0.16);
+  color: #375d93;
   display: grid;
   gap: 24px;
   min-height: 1120px;
   padding: 34px 38px;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
   width: min(100%, 930px);
+}
+
+.report-page .eyebrow {
+  color: #1f66e5;
 }
 
 .report-front-page {
@@ -491,7 +499,7 @@ h2 {
 
 .report-logo-card {
   align-content: center;
-  background: #4168dc;
+  background: linear-gradient(145deg, #1f66e5, #5d91f2);
   color: white;
   display: grid;
   gap: 7px;
@@ -536,25 +544,25 @@ h2 {
 }
 
 .report-title-block h2 {
-  color: #4f6888;
+  color: #1f4f9d;
   font-size: 1.45rem;
   font-weight: 500;
 }
 
 .report-title-block p {
-  color: #6a86a6;
+  color: #4f7ec7;
   font-size: 0.92rem;
   margin: 2px 0 12px;
 }
 
 .report-title-block span,
 .report-title-block strong {
-  color: #507095;
+  color: #275ba8;
   font-size: 0.9rem;
 }
 
 .report-authors {
-  color: #58708d;
+  color: #416da8;
   font-size: 0.72rem;
   margin: 0;
   padding-left: 48px;
@@ -575,7 +583,8 @@ h2 {
 }
 
 .report-cover-chart {
-  border: 1px solid #d9dee5;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid #c4d8ff;
   display: grid;
   gap: 10px;
   grid-template-columns: 68px minmax(0, 1fr);
@@ -584,7 +593,7 @@ h2 {
 }
 
 .cover-chart-scale {
-  color: #6c809b;
+  color: #5c82bd;
   display: flex;
   flex-direction: column;
   font-size: 0.62rem;
@@ -595,8 +604,8 @@ h2 {
 
 .cover-chart-bars {
   align-items: end;
-  border-bottom: 1px solid #c6cdd5;
-  border-left: 1px solid #d6dce4;
+  border-bottom: 1px solid #aac8ff;
+  border-left: 1px solid #d4e3ff;
   display: grid;
   gap: 18px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -613,7 +622,7 @@ h2 {
 }
 
 .cover-bar-column small {
-  color: #55708d;
+  color: #315f9d;
   font-size: 0.64rem;
   min-height: 28px;
 }
@@ -633,7 +642,7 @@ h2 {
 }
 
 .cover-bar span {
-  color: #4d6686;
+  color: #25569a;
   font-size: 0.62rem;
   font-weight: 700;
   position: absolute;
@@ -644,30 +653,30 @@ h2 {
 .cover-bar-blue {
   background: repeating-linear-gradient(
     0deg,
-    #4276c8,
-    #4276c8 3px,
-    #b8cff5 4px,
-    #b8cff5 6px
+    #1f66e5,
+    #1f66e5 3px,
+    #a8c8ff 4px,
+    #a8c8ff 6px
   );
 }
 
 .cover-bar-orange {
   background: repeating-linear-gradient(
     0deg,
-    #f07c35,
-    #f07c35 3px,
-    #ffd1af 4px,
-    #ffd1af 6px
+    #5d91f2,
+    #5d91f2 3px,
+    #cfe0ff 4px,
+    #cfe0ff 6px
   );
 }
 
 .cover-bar-yellow {
   background: repeating-linear-gradient(
     0deg,
-    #ffc228,
-    #ffc228 3px,
-    #ffe8a0 4px,
-    #ffe8a0 6px
+    #93b7f4,
+    #93b7f4 3px,
+    #e5efff 4px,
+    #e5efff 6px
   );
 }
 
@@ -676,35 +685,35 @@ h2 {
 }
 
 .report-cover-summary article {
-  border-bottom: 1px solid #cbd4df;
+  border-bottom: 1px solid #c4d8ff;
   display: grid;
   gap: 4px;
   padding: 8px 0 11px;
 }
 
 .report-cover-summary span {
-  color: #5e7898;
+  color: #315f9d;
   font-size: 0.9rem;
 }
 
 .report-cover-summary small {
-  color: #2c69c5;
+  color: #1f66e5;
   font-size: 0.68rem;
 }
 
 .report-cover-summary strong {
-  color: #5c7fa7;
+  color: #25569a;
   font-size: 1.45rem;
   font-weight: 500;
   overflow-wrap: anywhere;
 }
 
 .report-cover-summary strong.negative {
-  color: var(--red);
+  color: #274b92;
 }
 
 .report-cover-summary strong.positive {
-  color: #3f7f35;
+  color: #1f66e5;
 }
 
 .report-cover-accounts {
@@ -715,7 +724,7 @@ h2 {
 }
 
 .report-cover-accounts article {
-  border-bottom: 1px solid #cbd4df;
+  border-bottom: 1px solid #c4d8ff;
   display: grid;
   gap: 5px;
   min-width: 0;
@@ -723,13 +732,13 @@ h2 {
 }
 
 .report-cover-accounts span {
-  color: #3267ad;
+  color: #1f66e5;
   font-size: 0.76rem;
   overflow-wrap: anywhere;
 }
 
 .report-cover-accounts strong {
-  color: #5f7fa1;
+  color: #315f9d;
   font-size: 0.95rem;
   font-weight: 500;
   overflow-wrap: anywhere;
@@ -737,8 +746,8 @@ h2 {
 
 .report-cover-note {
   align-self: end;
-  background: #030303;
-  color: #ffff00;
+  background: #1f66e5;
+  color: #ffffff;
   font-size: 0.68rem;
   font-weight: 800;
   margin-top: 10px;
@@ -748,7 +757,7 @@ h2 {
 
 .report-section-heading {
   align-items: center;
-  border-bottom: 2px solid var(--green);
+  border-bottom: 2px solid #1f66e5;
   display: flex;
   gap: 18px;
   justify-content: space-between;
@@ -756,12 +765,12 @@ h2 {
 }
 
 .report-section-heading h2 {
-  color: var(--ink);
+  color: #1f4f9d;
   font-size: 1.75rem;
 }
 
 .report-section-heading strong {
-  color: var(--green-ink);
+  color: #1f4f9d;
   font-size: 1.65rem;
 }
 
@@ -772,8 +781,8 @@ h2 {
 }
 
 .report-summary article {
-  background: #fbfcfa;
-  border: 1px solid var(--line);
+  background: rgba(248, 251, 255, 0.88);
+  border: 1px solid #c4d8ff;
   border-radius: 8px;
   min-height: 78px;
   padding: 12px;
@@ -793,9 +802,18 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.report-page .positive {
+  color: #1f66e5;
+}
+
+.report-page .negative {
+  color: #274b92;
+}
+
 .report-overview-bars {
   align-self: start;
-  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid #c4d8ff;
   border-radius: 8px;
   display: grid;
   gap: 9px;
@@ -804,7 +822,7 @@ h2 {
 
 .report-chart-heading {
   align-items: center;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid #c4d8ff;
   display: flex;
   gap: 16px;
   justify-content: space-between;
@@ -812,7 +830,7 @@ h2 {
 }
 
 .report-chart-heading h3 {
-  color: var(--ink);
+  color: #1f4f9d;
   font-size: 1.05rem;
   margin: 0;
 }
@@ -826,7 +844,7 @@ h2 {
 
 .report-chart-legend span {
   align-items: center;
-  color: #58708d;
+  color: #375d93;
   display: inline-flex;
   font-size: 0.72rem;
   font-weight: 700;
@@ -852,7 +870,7 @@ h2 {
 }
 
 .horizontal-chart-row > strong {
-  color: #4f6888;
+  color: #275ba8;
   font-size: 0.66rem;
   line-height: 1.15;
   overflow-wrap: anywhere;
@@ -873,7 +891,7 @@ h2 {
 }
 
 .horizontal-bar-cell em {
-  color: #58708d;
+  color: #416da8;
   font-size: 0.58rem;
   font-style: normal;
   font-weight: 700;
@@ -889,30 +907,31 @@ h2 {
 }
 
 .bar-blue-solid {
-  background: #4276c8;
+  background: #1f66e5;
 }
 
 .bar-orange-solid {
-  background: #f07c35;
+  background: #5d91f2;
 }
 
 .bar-green-solid {
-  background: #3f7f35;
+  background: #93b7f4;
 }
 
 .bar-red-solid {
-  background: #a93434;
+  background: #274b92;
 }
 
 .report-event {
-  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid #c4d8ff;
   border-radius: 8px;
   overflow: hidden;
 }
 
 .report-event-heading {
   align-items: center;
-  background: var(--panel-soft);
+  background: rgba(229, 239, 255, 0.9);
   display: flex;
   gap: 16px;
   justify-content: space-between;
@@ -920,12 +939,13 @@ h2 {
 }
 
 .report-event-heading h3 {
+  color: #1f4f9d;
   font-size: 1.25rem;
   margin: 0;
 }
 
 .report-event-heading strong {
-  color: var(--green-ink);
+  color: #1f4f9d;
   font-size: 1.25rem;
 }
 
@@ -944,6 +964,23 @@ h2 {
   min-width: 720px;
 }
 
+.report-page th {
+  background: rgba(229, 239, 255, 0.92);
+  color: #1f4f9d;
+}
+
+.report-page td {
+  border-bottom-color: #d8e5ff;
+}
+
+.report-table tbody tr:nth-child(even) td {
+  background: rgba(247, 250, 255, 0.72);
+}
+
+.report-table tbody tr:nth-child(odd) td {
+  background: rgba(255, 255, 255, 0.72);
+}
+
 .report-empty {
   color: var(--muted);
   font-weight: 700;
@@ -952,7 +989,7 @@ h2 {
 
 .report-event-pie {
   align-items: center;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid #c4d8ff;
   display: flex;
   gap: 20px;
   justify-content: flex-end;
@@ -979,7 +1016,7 @@ h2 {
 }
 
 .pie-chart span {
-  color: #4f6888;
+  color: #1f4f9d;
   font-size: 1rem;
   font-weight: 800;
   position: relative;
@@ -993,7 +1030,7 @@ h2 {
 
 .pie-legend span {
   align-items: center;
-  color: #58708d;
+  color: #375d93;
   display: inline-flex;
   font-size: 0.86rem;
   font-weight: 700;
@@ -1007,11 +1044,11 @@ h2 {
 }
 
 .pie-blue {
-  background: #4276c8;
+  background: #1f66e5;
 }
 
 .pie-orange {
-  background: #f07c35;
+  background: #93b7f4;
 }
 
 .controls {
