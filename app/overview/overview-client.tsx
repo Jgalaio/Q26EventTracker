@@ -1,0 +1,300 @@
+"use client";
+
+import { Fragment, useState } from "react";
+import Link from "next/link";
+import { ROLE_LABELS, canAccessAdmin, canWrite, type AuthSession } from "../auth-types";
+import type { MovimentoDetalhe } from "../supabase-data";
+
+type Summary = {
+  entradas: number;
+  saidas: number;
+  aPagamento: number;
+  lucro: number;
+  faturado: number;
+  naoFaturado: number;
+  pagoQ26: number;
+  transferencias: number;
+  dinheiro: number;
+};
+
+export type OverviewRow = Summary & {
+  nome: string;
+  slug: string;
+  movimentos: MovimentoDetalhe[];
+};
+
+type OverviewClientProps = {
+  rows: OverviewRow[];
+  totals: Summary;
+  error: string | null;
+  session: AuthSession;
+};
+
+const moneyFormatter = new Intl.NumberFormat("pt-PT", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 2
+});
+
+const dateFormatter = new Intl.DateTimeFormat("pt-PT", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric"
+});
+
+function formatMoney(value: number | null | undefined) {
+  return moneyFormatter.format(Number(value ?? 0));
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "-";
+  return dateFormatter.format(new Date(`${value}T00:00:00`));
+}
+
+function movementLabel(tipo: MovimentoDetalhe["tipo"]) {
+  if (tipo === "entrada") return "Entrada";
+  if (tipo === "saida") return "Saída";
+  return "A pagamento";
+}
+
+function chartHeight(value: number, maxValue: number) {
+  if (value <= 0 || maxValue <= 0) return "0%";
+  return `${Math.max(8, (value / maxValue) * 100)}%`;
+}
+
+export function OverviewClient({ rows, totals, error, session }: OverviewClientProps) {
+  const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
+  const chartItems = [
+    { label: "Entradas Totais", value: totals.entradas, className: "bar-blue" },
+    { label: "Saídas Totais", value: totals.saidas, className: "bar-orange" },
+    { label: "A Pagamento Total", value: totals.aPagamento, className: "bar-muted" }
+  ];
+  const chartMax = Math.max(...chartItems.map((item) => item.value), 1);
+
+  return (
+    <main className="shell overview-shell">
+      <section className="topbar">
+        <div>
+          <p className="eyebrow">Q26</p>
+          <h1>OverView</h1>
+        </div>
+        <div className="top-actions">
+          {canAccessAdmin(session.role) ? (
+            <Link className="nav-button secondary-nav-button" href="/admin">
+              Admin
+            </Link>
+          ) : null}
+          {canWrite(session.role) ? (
+            <Link className="nav-button" href="/">
+              Tesouraria
+            </Link>
+          ) : null}
+          <div className="user-chip">
+            <span>{session.username}</span>
+            <strong>{ROLE_LABELS[session.role]}</strong>
+          </div>
+          <form action="/api/logout" method="post">
+            <button className="logout-button" type="submit">
+              Sair
+            </button>
+          </form>
+          <div className="status">
+            <span className="status-dot" />
+            Supabase
+          </div>
+        </div>
+      </section>
+
+      {error ? <section className="notice">Não consegui ligar ao Supabase. {error}</section> : null}
+
+      <section className="overview-layout" aria-label="Resumo geral">
+        <div className="overview-card-grid">
+          <article>
+            <span>Resumo Totais</span>
+            <small>Entradas Totais</small>
+            <strong className="value-blue">{formatMoney(totals.entradas)}</strong>
+          </article>
+          <article>
+            <span>Resumo Faturados</span>
+            <small>Faturados Totais</small>
+            <strong className="value-green">{formatMoney(totals.faturado)}</strong>
+          </article>
+          <article>
+            <span>Saídas Totais</span>
+            <small>Despesas totais</small>
+            <strong className="value-blue">{formatMoney(totals.saidas)}</strong>
+          </article>
+          <article>
+            <span>Não Faturados Totais</span>
+            <small>Fatura C/NIF: Não</small>
+            <strong className="value-red">{formatMoney(totals.naoFaturado)}</strong>
+          </article>
+          <article>
+            <span>A Pagamento Total</span>
+            <small>Valores pendentes</small>
+            <strong className="value-blue">{formatMoney(totals.aPagamento)}</strong>
+          </article>
+          <article>
+            <span>Pago Conta Q26</span>
+            <small>C. Q26</small>
+            <strong className="value-purple">{formatMoney(totals.pagoQ26)}</strong>
+          </article>
+          <article>
+            <span>Saldo Total</span>
+            <small>Lucro final</small>
+            <strong className={totals.lucro >= 0 ? "value-green" : "value-red"}>{formatMoney(totals.lucro)}</strong>
+          </article>
+          <article>
+            <span>Transferencias</span>
+            <small>Pagas por transferencia</small>
+            <strong className="value-green">{formatMoney(totals.transferencias)}</strong>
+          </article>
+        </div>
+
+        <section className="chart-panel" aria-label="Gráfico de barras dos totais">
+          <div className="chart-heading">
+            <div>
+              <p className="eyebrow">Gráfico</p>
+              <h2>Totais gerais</h2>
+            </div>
+          </div>
+          <div className="bar-chart" aria-label="Entradas, saídas e a pagamento">
+            {chartItems.map((item) => (
+              <div className="bar-column" key={item.label}>
+                <div className="bar-track">
+                  <div className={`chart-bar ${item.className}`} style={{ height: chartHeight(item.value, chartMax) }}>
+                    <span>{formatMoney(item.value)}</span>
+                  </div>
+                </div>
+                <strong>{item.label}</strong>
+              </div>
+            ))}
+          </div>
+          <div className="chart-legend">
+            {chartItems.map((item) => (
+              <span key={item.label}>
+                <i className={item.className} />
+                {item.label}
+              </span>
+            ))}
+          </div>
+        </section>
+      </section>
+
+      <section className="overview-table-panel" aria-label="Resumo por evento">
+        <div className="table-heading">
+          <div>
+            <p className="eyebrow">Eventos</p>
+            <h2>Panorama por evento</h2>
+          </div>
+          <span>{rows.length} eventos</span>
+        </div>
+        <div className="table-wrap overview-table-wrap">
+          <table className="overview-table">
+            <thead>
+              <tr>
+                <th>Evento</th>
+                <th>Entradas</th>
+                <th>Saídas</th>
+                <th>A Pagamento</th>
+                <th>Lucro</th>
+                <th>Faturado</th>
+                <th>Não Faturado</th>
+                <th>Pag. C.Q26</th>
+                <th>Transferencias</th>
+                <th>Dinheiro</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => {
+                const isExpanded = expandedSlug === row.slug;
+                return (
+                  <Fragment key={row.slug}>
+                    <tr className={isExpanded ? "overview-summary-row expanded" : "overview-summary-row"}>
+                      <td className="item-cell">
+                        <button
+                          aria-expanded={isExpanded}
+                          className="overview-event-toggle"
+                          onClick={() => setExpandedSlug(isExpanded ? null : row.slug)}
+                          type="button"
+                        >
+                          <span>{isExpanded ? "-" : "+"}</span>
+                          {row.nome}
+                        </button>
+                      </td>
+                      <td className="money">{formatMoney(row.entradas)}</td>
+                      <td className="money">{formatMoney(row.saidas)}</td>
+                      <td className="money">{formatMoney(row.aPagamento)}</td>
+                      <td className={row.lucro >= 0 ? "money positive" : "money negative"}>{formatMoney(row.lucro)}</td>
+                      <td className="money">{formatMoney(row.faturado)}</td>
+                      <td className="money">{formatMoney(row.naoFaturado)}</td>
+                      <td className="money">{formatMoney(row.pagoQ26)}</td>
+                      <td className="money">{formatMoney(row.transferencias)}</td>
+                      <td className="money">{formatMoney(row.dinheiro)}</td>
+                    </tr>
+                    {isExpanded ? (
+                      <tr className="overview-expanded-row">
+                        <td colSpan={10}>
+                          <div className="overview-movements">
+                            <div className="overview-movements-heading">
+                              <strong>{row.nome}</strong>
+                              <span>{row.movimentos.length} movimentos</span>
+                            </div>
+                            <table className="overview-detail-table">
+                              <thead>
+                                <tr>
+                                  <th>Tipo</th>
+                                  <th>Item</th>
+                                  <th>Data</th>
+                                  <th>Montante</th>
+                                  <th>Pagamento</th>
+                                  <th>Fatura</th>
+                                  <th>Fatura C/NIF</th>
+                                  <th>Pago</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {row.movimentos.length ? (
+                                  row.movimentos.map((movimento) => (
+                                    <tr key={movimento.id}>
+                                      <td>
+                                        <span className={`pill ${movimento.tipo}`}>{movementLabel(movimento.tipo)}</span>
+                                      </td>
+                                      <td className="item-cell">{movimento.item}</td>
+                                      <td>{formatDate(movimento.data_pagamento)}</td>
+                                      <td className="money">{formatMoney(movimento.montante)}</td>
+                                      <td>{movimento.tipo_pagamento ?? "-"}</td>
+                                      <td>{movimento.numero_fatura ?? "-"}</td>
+                                      <td>
+                                        {movimento.fatura_com_nif === null
+                                          ? "-"
+                                          : movimento.fatura_com_nif
+                                            ? "Sim"
+                                            : "Não"}
+                                      </td>
+                                      <td>{movimento.pago === null ? "-" : movimento.pago ? "Sim" : "Não"}</td>
+                                    </tr>
+                                  ))
+                                ) : (
+                                  <tr>
+                                    <td className="empty-movement-row" colSpan={8}>
+                                      Sem movimentos neste evento.
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  );
+}

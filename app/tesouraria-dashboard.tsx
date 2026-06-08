@@ -3,12 +3,14 @@
 import { useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ROLE_LABELS, canAccessAdmin, canDelete, canWrite, type AuthSession } from "./auth-types";
 import type { EventoResumo, MovimentoDetalhe } from "./supabase-data";
 
 type DashboardProps = {
   eventos: EventoResumo[];
   movimentos: MovimentoDetalhe[];
   error: string | null;
+  session: AuthSession;
 };
 
 type ModalMode = "create-event" | "edit-event" | "add-entry" | "add-exit" | "edit-entry" | "edit-exit" | null;
@@ -43,10 +45,6 @@ const dateFormatter = new Intl.DateTimeFormat("pt-PT", {
   month: "2-digit",
   year: "numeric"
 });
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ushhacwtmpmwmvpaitdx.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB";
 
 const emptyEventForm: EventForm = {
   nome: "",
@@ -148,28 +146,29 @@ function manualOrigin(prefix: string) {
   return `app_${prefix}_${id}`;
 }
 
-async function supabaseWrite(resource: string, options: RequestInit) {
-  const response = await fetch(`${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${resource}`, {
+async function appWrite(resource: string, options: RequestInit) {
+  const response = await fetch(`/api/${resource}`, {
     ...options,
     headers: {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
       "Content-Type": "application/json",
-      Prefer: "return=representation",
       ...options.headers
     }
   });
 
   if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`${response.status} ${response.statusText}: ${body}`);
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? `${response.status} ${response.statusText}`);
   }
 
   const body = await response.text();
   return body ? JSON.parse(body) : null;
 }
 
-export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
+export function Dashboard({ eventos, movimentos, error, session }: DashboardProps) {
   const router = useRouter();
+  const mayWrite = canWrite(session.role);
+  const mayDelete = canDelete(session.role);
+  const mayAccessAdmin = canAccessAdmin(session.role);
   const [sectionMode, setSectionMode] = useState<SectionMode>("eventos");
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"entrada" | "saida">("entrada");
@@ -178,6 +177,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [eventForm, setEventForm] = useState<EventForm>(emptyEventForm);
   const [movementForm, setMovementForm] = useState<MovementForm>(emptyMovementForm);
+  const [justification, setJustification] = useState("");
   const [selectedMovement, setSelectedMovement] = useState<MovimentoDetalhe | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -335,14 +335,16 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
   };
 
   const openCreateEvent = () => {
+    if (!mayWrite) return;
     setSaveMessage(null);
     setSelectedMovement(null);
     setEventForm(emptyEventForm);
+    setJustification("");
     setModalMode("create-event");
   };
 
   const openEditEvent = () => {
-    if (!selectedEvent) return;
+    if (!selectedEvent || !mayWrite) return;
     setSaveMessage(null);
     setSelectedMovement(null);
     setEventForm({
@@ -352,19 +354,22 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
       isento: isEventIsento(selectedEvent) ? "sim" : "nao",
       tipo: selectedEvent.tipo
     });
+    setJustification("");
     setModalMode("edit-event");
   };
 
   const openMovementForm = (mode: "add-entry" | "add-exit") => {
-    if (!selectedEvent) return;
+    if (!selectedEvent || !mayWrite) return;
     setSaveMessage(null);
     setSelectedMovement(null);
     setMovementForm(emptyMovementForm);
+    setJustification("");
     setActiveTab(mode === "add-entry" ? "entrada" : "saida");
     setModalMode(mode);
   };
 
   const openEditMovement = (movimento: MovimentoDetalhe) => {
+    if (!mayWrite) return;
     setSaveMessage(null);
     setSelectedMovement(movimento);
     setMovementForm({
@@ -376,6 +381,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
       tipo_pagamento: movimento.tipo_pagamento ?? "",
       pago: booleanToForm(movimento.pago)
     });
+    setJustification("");
     setActiveTab(movimento.tipo === "entrada" ? "entrada" : "saida");
     setModalMode(movimento.tipo === "entrada" ? "edit-entry" : "edit-exit");
   };
@@ -384,6 +390,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
     if (isSaving) return;
     setModalMode(null);
     setSelectedMovement(null);
+    setJustification("");
   };
 
   const saveEvent = async () => {
@@ -407,7 +414,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
     };
 
     if (modalMode === "create-event") {
-      await supabaseWrite("eventos", {
+      await appWrite("eventos", {
         method: "POST",
         body: JSON.stringify(payload)
       });
@@ -415,7 +422,8 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
     }
 
     if (!selectedEvent) throw new Error("Escolhe um evento para editar.");
-    await supabaseWrite(`eventos?id=eq.${selectedEvent.id}`, {
+    if (session.role === "operator" && !justification.trim()) throw new Error("Indica a justificação da alteração.");
+    await appWrite(`eventos/${selectedEvent.id}`, {
       method: "PATCH",
       body: JSON.stringify({
         nome: payload.nome,
@@ -424,7 +432,8 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
         data_fim: payload.data_fim,
         isento: payload.isento,
         isento_texto: payload.isento_texto,
-        tipo: payload.tipo
+        tipo: payload.tipo,
+        justification
       })
     });
   };
@@ -440,6 +449,9 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
     const amount = numericAmount(movementForm.montante);
     if (!item) throw new Error("Indica o item.");
     if (amount === null) throw new Error("Indica um montante válido.");
+    if (session.role === "operator" && isEditing && !justification.trim()) {
+      throw new Error("Indica a justificação da alteração.");
+    }
 
     const tipo = movementToEdit ? movementToEdit.tipo : isEntryMode ? "entrada" : "saida";
     const payload = {
@@ -464,20 +476,24 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
     };
 
     if (movementToEdit) {
-      await supabaseWrite(`movimentos?id=eq.${movementToEdit.id}`, {
+      await appWrite(`movimentos/${movementToEdit.id}`, {
         method: "PATCH",
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          ...payload,
+          justification
+        })
       });
       return;
     }
 
-    await supabaseWrite("movimentos", {
+    await appWrite("movimentos", {
       method: "POST",
       body: JSON.stringify(payload)
     });
   };
 
   const deleteMovement = async (movimento: MovimentoDetalhe) => {
+    if (!mayDelete) return;
     if (sectionMode === "contas" && activeTab === "saida") return;
     const confirmed = window.confirm(`Apagar "${movimento.item}"?`);
     if (!confirmed) return;
@@ -485,7 +501,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
     setIsSaving(true);
     setSaveMessage(null);
     try {
-      await supabaseWrite(`movimentos?id=eq.${movimento.id}`, {
+      await appWrite(`movimentos/${movimento.id}`, {
         method: "DELETE"
       });
       setSaveMessage("Registo apagado.");
@@ -499,12 +515,16 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
 
   const renderMovementActions = (movimento: MovimentoDetalhe) => (
     <div className="row-actions">
-      <button type="button" onClick={() => openEditMovement(movimento)}>
-        Editar
-      </button>
-      <button className="danger-button" disabled={isSaving} type="button" onClick={() => deleteMovement(movimento)}>
-        Apagar
-      </button>
+      {mayWrite ? (
+        <button type="button" onClick={() => openEditMovement(movimento)}>
+          Editar
+        </button>
+      ) : null}
+      {mayDelete ? (
+        <button className="danger-button" disabled={isSaving} type="button" onClick={() => deleteMovement(movimento)}>
+          Apagar
+        </button>
+      ) : null}
     </div>
   );
 
@@ -522,6 +542,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
       }
       setModalMode(null);
       setSelectedMovement(null);
+      setJustification("");
       setSaveMessage("Guardado com sucesso.");
       router.refresh();
     } catch (caught) {
@@ -539,9 +560,23 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
           <h1>Tesouraria</h1>
         </div>
         <div className="top-actions">
+          {mayAccessAdmin ? (
+            <Link className="nav-button secondary-nav-button" href="/admin">
+              Admin
+            </Link>
+          ) : null}
           <Link className="nav-button" href="/overview">
             OverView
           </Link>
+          <div className="user-chip">
+            <span>{session.username}</span>
+            <strong>{ROLE_LABELS[session.role]}</strong>
+          </div>
+          <form action="/api/logout" method="post">
+            <button className="logout-button" type="submit">
+              Sair
+            </button>
+          </form>
           <div className="status">
             <span className="status-dot" />
             Supabase
@@ -592,9 +627,11 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
         </label>
         <div className="menu-actions">
           {sectionMode === "eventos" ? (
-            <button type="button" onClick={openCreateEvent}>
-              Novo evento
-            </button>
+            mayWrite ? (
+              <button type="button" onClick={openCreateEvent}>
+                Novo evento
+              </button>
+            ) : null
           ) : (
             <div className="account-menu-summary">
               <span>Conta Q26</span>
@@ -701,15 +738,19 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                     </strong>
                   </div>
                   <div className="event-actions">
-                    <button type="button" onClick={() => openMovementForm("add-entry")}>
-                      Adicionar entrada
-                    </button>
-                    <button type="button" onClick={() => openMovementForm("add-exit")}>
-                      Adicionar saída
-                    </button>
-                    <button className="secondary-event-button" disabled={!selectedEvent} type="button" onClick={openEditEvent}>
-                      Editar evento
-                    </button>
+                    {mayWrite ? (
+                      <>
+                        <button type="button" onClick={() => openMovementForm("add-entry")}>
+                          Adicionar entrada
+                        </button>
+                        <button type="button" onClick={() => openMovementForm("add-exit")}>
+                          Adicionar saída
+                        </button>
+                        <button className="secondary-event-button" disabled={!selectedEvent} type="button" onClick={openEditEvent}>
+                          Editar evento
+                        </button>
+                      </>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -1113,6 +1154,19 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                 ) : null}
               </div>
             )}
+
+            {session.role === "operator" &&
+            (modalMode === "edit-event" || modalMode === "edit-entry" || modalMode === "edit-exit") ? (
+              <label className="justification-field">
+                Justificação da alteração
+                <textarea
+                  required
+                  value={justification}
+                  onChange={(event) => setJustification(event.target.value)}
+                  placeholder="Indica o motivo antes de gravar"
+                />
+              </label>
+            ) : null}
 
             {saveMessage ? <p className="form-message">{saveMessage}</p> : null}
 

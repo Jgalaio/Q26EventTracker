@@ -11,7 +11,15 @@ Este projeto converte o ficheiro Excel `Tesouraria Q26.xlsm` para:
 
 A interface tem duas áreas principais: `Eventos`, onde escolhes cada evento e geres entradas/saídas, e `Contas`, onde entram os movimentos da folha Contas e as saídas são somadas automaticamente a partir das despesas dos eventos pagas por Transferencia ou C. Q26.
 
-A página `/overview` mostra o panorama geral da tesouraria, com cartões de totais, gráfico de barras e resumo por evento.
+A página `/overview` mostra o panorama geral da tesouraria, com cartões de totais, gráfico de barras e resumo por evento. Clicar num evento abre os movimentos desse evento em cascata.
+
+O sistema de login tem três roles:
+
+- `Admin`: acesso total, incluindo apagar registos e abrir `/admin`.
+- `Operator`: pode adicionar e alterar; ao alterar tem de indicar uma justificação.
+- `View`: pode apenas consultar `/overview`.
+
+As passwords não ficam gravadas em texto claro no projeto. Para sessões mais seguras em produção, define também `Q26_AUTH_SECRET` nas variáveis de ambiente do Vercel.
 
 ## 1. Criar a base de dados
 
@@ -54,6 +62,7 @@ Opcionalmente, também podes adicionar as mesmas variáveis em Vercel > Project 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://ushhacwtmpmwmvpaitdx.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB
+Q26_AUTH_SECRET=troca-este-valor-por-um-segredo-longo
 ```
 
 ## 3. Correr localmente

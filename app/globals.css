@@ -32,7 +32,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -110,6 +111,46 @@ h2 {
   text-decoration: none;
 }
 
+.secondary-nav-button {
+  background: var(--green);
+}
+
+.user-chip {
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 8px;
+  min-height: 39px;
+  padding: 0 13px;
+}
+
+.user-chip span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.user-chip strong {
+  color: var(--green-ink);
+  font-size: 0.82rem;
+}
+
+.top-actions form {
+  margin: 0;
+}
+
+.logout-button {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 39px;
+  padding: 0 14px;
+}
+
 .notice {
   background: #fff4df;
   border: 1px solid #e0c58f;
@@ -117,6 +158,69 @@ h2 {
   color: #5f4216;
   margin-bottom: 18px;
   padding: 14px 16px;
+}
+
+.login-shell {
+  align-items: center;
+  display: grid;
+  min-height: 100vh;
+  padding: 22px;
+}
+
+.login-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 18px;
+  margin: 0 auto;
+  padding: 24px;
+  width: min(440px, 100%);
+}
+
+.login-card h1 {
+  font-size: 2.7rem;
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-form label {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.84rem;
+  gap: 7px;
+}
+
+.auth-form input {
+  background: #fbfcfa;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.auth-form button {
+  background: var(--blue);
+  border: 0;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 44px;
+}
+
+.auth-error {
+  background: #f8e8e5;
+  border: 1px solid #e2b8b2;
+  border-radius: 8px;
+  color: var(--red);
+  margin: 0;
+  padding: 12px;
 }
 
 .management-menu {
@@ -179,7 +283,8 @@ h2 {
 .management-menu select,
 .management-menu input,
 .form-grid input,
-.form-grid select {
+.form-grid select,
+.justification-field textarea {
   background: #fbfcfa;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -187,6 +292,19 @@ h2 {
   min-height: 42px;
   min-width: 0;
   padding: 0 11px;
+}
+
+.justification-field {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.84rem;
+  gap: 7px;
+}
+
+.justification-field textarea {
+  min-height: 92px;
+  padding: 11px;
+  resize: vertical;
 }
 
 .menu-actions {
@@ -753,6 +871,43 @@ td {
   color: var(--ink);
 }
 
+.admin-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  min-height: 150px;
+  padding: 18px;
+}
+
+.admin-card span {
+  color: var(--muted);
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.admin-card strong {
+  display: block;
+  font-size: 1.45rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-card p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin: 12px 0 0;
+}
+
 .overview-shell {
   max-width: 1600px;
 }
@@ -922,6 +1077,71 @@ td {
   min-width: 1320px;
 }
 
+.overview-summary-row.expanded td {
+  background: #f7faf8;
+}
+
+.overview-event-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 9px;
+  padding: 0;
+  text-align: left;
+}
+
+.overview-event-toggle span {
+  align-items: center;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--green-ink);
+  display: inline-flex;
+  flex: 0 0 25px;
+  font-weight: 700;
+  height: 25px;
+  justify-content: center;
+}
+
+.overview-expanded-row > td {
+  background: #fbfcfa;
+  padding: 0;
+}
+
+.overview-movements {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0;
+}
+
+.overview-movements-heading {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 14px 16px;
+}
+
+.overview-movements-heading span {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.overview-detail-table {
+  min-width: 1040px;
+}
+
+.empty-movement-row {
+  color: var(--muted);
+  font-weight: 700;
+  text-align: center;
+}
+
 @media (max-width: 980px) {
   .metrics,
   .management-menu,
@@ -935,6 +1155,10 @@ td {
   }
 
   .overview-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1042,6 +1266,10 @@ td {
   }
 
   .event-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-grid {
     grid-template-columns: 1fr;
   }
 }
