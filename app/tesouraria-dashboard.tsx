@@ -327,6 +327,10 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
     };
   }, [accountEntries, accountSaidas]);
 
+  const eventProfit = totals.entradas - totals.saidas;
+  const accountBalance = accountCounts.totalEntradas - accountCounts.totalSaidas;
+  const profitWithBankBalance = eventProfit + accountBalance;
+
   const filteredAccountMovimentos = useMemo(() => {
     const source = activeTab === "entrada" ? accountEntries : accountSaidas;
     return source.filter((movimento) => {
@@ -722,7 +726,7 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
           ) : (
             <div className="account-menu-summary">
               <span>Conta Q26</span>
-              <strong>{formatMoney(accountCounts.totalEntradas - accountCounts.totalSaidas)}</strong>
+              <strong>{formatMoney(accountBalance)}</strong>
             </div>
           )}
           <button className="secondary-menu-button" type="button" onClick={resetFilters}>
@@ -748,7 +752,11 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
             </article>
             <article>
               <span>Saldo</span>
-              <strong>{formatMoney(totals.entradas - totals.saidas)}</strong>
+              <strong>{formatMoney(eventProfit)}</strong>
+            </article>
+            <article>
+              <span>Lucro + Saldo Conta</span>
+              <strong>{formatMoney(profitWithBankBalance)}</strong>
             </article>
             <article>
               <span>Eventos isentos</span>
@@ -767,7 +775,7 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
             </article>
             <article>
               <span>Saldo em conta</span>
-              <strong>{formatMoney(accountCounts.totalEntradas - accountCounts.totalSaidas)}</strong>
+              <strong>{formatMoney(accountBalance)}</strong>
             </article>
             <article>
               <span>Movimentos</span>
