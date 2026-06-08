@@ -136,6 +136,23 @@ function chartHeight(value: number, maxValue: number) {
   return `${Math.max(9, (value / maxValue) * 100)}%`;
 }
 
+function eventPie(summary: Summary) {
+  const entradas = Math.max(0, summary.entradas);
+  const saidas = Math.max(0, summary.saidas);
+  const total = entradas + saidas;
+  const entradasPercent = total > 0 ? Math.round((entradas / total) * 100) : 0;
+  const saidasPercent = total > 0 ? 100 - entradasPercent : 0;
+
+  return {
+    entradasPercent,
+    saidasPercent,
+    background:
+      total > 0
+        ? `conic-gradient(#4276c8 0 ${entradasPercent}%, #f07c35 ${entradasPercent}% 100%)`
+        : "conic-gradient(#d9ded6 0 100%)"
+  };
+}
+
 export function ReportsClient({ eventos, movimentos, error, session, generatedAt }: ReportsClientProps) {
   const eventList = useMemo(() => {
     return eventos
@@ -165,10 +182,6 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
     return selectedEvent ? [selectedEvent] : [];
   }, [reportEvents, reportScope, selectedEvent]);
 
-  const countedEventSlugs = useMemo(() => {
-    return new Set(reportEvents.filter((item) => isEventCounted(item.event)).map((item) => item.event.slug));
-  }, [reportEvents]);
-
   const totals = useMemo(() => {
     return finalizeSummary(
       visibleEvents.filter((item) => reportScope === "evento" || isEventCounted(item.event)).reduce((summary, item) => {
@@ -190,21 +203,21 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
   }, [movimentos]);
 
   const accountSaidas = useMemo(() => {
-    const source =
-      reportScope === "geral"
-        ? movimentos.filter((movimento) => countedEventSlugs.has(movimento.evento_slug))
-        : visibleEvents.flatMap((item) => item.movimentos);
-    return source.filter(
+    return movimentos.filter(
       (movimento) =>
         movimento.evento_slug !== "contas" && movimento.tipo === "saida" && isContaPayment(movimento.tipo_pagamento)
     );
-  }, [countedEventSlugs, movimentos, reportScope, visibleEvents]);
+  }, [movimentos]);
 
   const accountTotals = useMemo(() => {
     const entradas = accountEntries.reduce((sum, movimento) => sum + Number(movimento.montante ?? 0), 0);
     const saidas = accountSaidas.reduce((sum, movimento) => sum + Number(movimento.montante ?? 0), 0);
     return { entradas, saidas, saldo: entradas - saidas };
   }, [accountEntries, accountSaidas]);
+
+  const decorationSummary = useMemo(() => {
+    return reportEvents.find((item) => item.event.slug === "decoracao")?.summary ?? emptySummary();
+  }, [reportEvents]);
 
   const chartItems = [
     { label: "Entradas Totais", value: totals.entradas, className: "cover-bar-blue" },
@@ -355,31 +368,17 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
                 <small>Lucro final</small>
                 <strong className={totals.lucro >= 0 ? "positive" : "negative"}>{formatMoney(totals.lucro)}</strong>
               </article>
-              <article>
-                <span>Faturado</span>
-                <small>Fatura C/NIF: Sim</small>
-                <strong>{formatMoney(totals.faturado)}</strong>
-              </article>
-              <article>
-                <span>Não Faturado</span>
-                <small>Fatura C/NIF: Não</small>
-                <strong>{formatMoney(totals.naoFaturado)}</strong>
-              </article>
             </section>
           </div>
 
           <section className="report-cover-accounts" aria-label="Resumo de contas">
             <article>
               <span>Contas #1 "Mealheiro Q26"</span>
-              <strong>{formatMoney(accountTotals.saldo)}</strong>
+              <strong>{formatMoney(decorationSummary.lucro)}</strong>
             </article>
             <article>
               <span>Contas #2 "Associação"</span>
-              <strong>{formatMoney(accountTotals.entradas)}</strong>
-            </article>
-            <article>
-              <span>Saídas C. Q26 / Transferência</span>
-              <strong>{formatMoney(accountTotals.saidas)}</strong>
+              <strong>{formatMoney(accountTotals.saldo)}</strong>
             </article>
           </section>
 
@@ -407,80 +406,90 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
               <strong>{formatMoney(totals.saidas)}</strong>
             </article>
             <article>
-              <span>Faturado</span>
-              <strong>{formatMoney(totals.faturado)}</strong>
+              <span>A pagamento</span>
+              <strong>{formatMoney(totals.aPagamento)}</strong>
             </article>
             <article>
-              <span>Não faturado</span>
-              <strong>{formatMoney(totals.naoFaturado)}</strong>
-            </article>
-            <article>
-              <span>C. Q26</span>
-              <strong>{formatMoney(totals.pagoQ26)}</strong>
-            </article>
-            <article>
-              <span>Transferência</span>
-              <strong>{formatMoney(totals.transferencias)}</strong>
+              <span>Saldo</span>
+              <strong className={totals.lucro >= 0 ? "positive" : "negative"}>{formatMoney(totals.lucro)}</strong>
             </article>
           </div>
-
-          {visibleEvents.length ? (
-            visibleEvents.map((item) => (
-              <section className="report-event" key={item.event.slug}>
-                <div className="report-event-heading">
-                  <div>
-                    <p className="eyebrow">{item.event.tipo === "evento" ? "Evento" : "Categoria"}</p>
-                    <h3>{item.event.nome}</h3>
-                    {!isEventCounted(item.event) ? <span className="event-status-badge detail">Só registo</span> : null}
-                  </div>
-                  <strong>{formatMoney(item.summary.lucro)}</strong>
-                </div>
-                <div className="report-event-totals">
-                  <span>Entradas {formatMoney(item.summary.entradas)}</span>
-                  <span>Saídas {formatMoney(item.summary.saidas)}</span>
-                  <span>Faturado {formatMoney(item.summary.faturado)}</span>
-                  <span>Não faturado {formatMoney(item.summary.naoFaturado)}</span>
-                </div>
-                <div className="report-table-wrap">
-                  <table className="report-table">
-                    <thead>
-                      <tr>
-                        <th>Tipo</th>
-                        <th>Item</th>
-                        <th>Data</th>
-                        <th>Montante</th>
-                        <th>Pagamento</th>
-                        <th>Fatura C/NIF</th>
-                        <th>Pago</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {item.movimentos.length ? (
-                        item.movimentos.map((movimento) => (
-                          <tr key={movimento.id}>
-                            <td>{movementLabel(movimento.tipo)}</td>
-                            <td className="item-cell">{movimento.item}</td>
-                            <td>{formatDate(movimento.data_pagamento)}</td>
-                            <td className="money">{formatMoney(movimento.montante)}</td>
-                            <td>{movimento.tipo_pagamento ?? "-"}</td>
-                            <td>{movimento.fatura_com_nif === null ? "-" : movimento.fatura_com_nif ? "Sim" : "Não"}</td>
-                            <td>{movimento.pago === null ? "-" : movimento.pago ? "Sim" : "Não"}</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={7}>Sem movimentos.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            ))
-          ) : (
-            <p className="report-empty">Ainda não há eventos para mostrar no relatório.</p>
-          )}
         </article>
+
+        {visibleEvents.length ? (
+          visibleEvents.map((item) => {
+            const pie = eventPie(item.summary);
+
+            return (
+              <article className="report-page report-event-page" key={item.event.slug}>
+                <section className="report-event">
+                  <div className="report-event-heading">
+                    <div>
+                      <p className="eyebrow">{item.event.tipo === "evento" ? "Evento" : "Categoria"}</p>
+                      <h3>{item.event.nome}</h3>
+                      {!isEventCounted(item.event) ? <span className="event-status-badge detail">Só registo</span> : null}
+                    </div>
+                    <strong>{formatMoney(item.summary.lucro)}</strong>
+                  </div>
+                  <div className="report-event-totals">
+                    <span>Entradas {formatMoney(item.summary.entradas)}</span>
+                    <span>Saídas {formatMoney(item.summary.saidas)}</span>
+                    <span>A pagamento {formatMoney(item.summary.aPagamento)}</span>
+                    <span>Saldo {formatMoney(item.summary.lucro)}</span>
+                  </div>
+                  <div className="report-table-wrap">
+                    <table className="report-table">
+                      <thead>
+                        <tr>
+                          <th>Tipo</th>
+                          <th>Item</th>
+                          <th>Data</th>
+                          <th>Montante</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {item.movimentos.length ? (
+                          item.movimentos.map((movimento) => (
+                            <tr key={movimento.id}>
+                              <td>{movementLabel(movimento.tipo)}</td>
+                              <td className="item-cell">{movimento.item}</td>
+                              <td>{formatDate(movimento.data_pagamento)}</td>
+                              <td className="money">{formatMoney(movimento.montante)}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={4}>Sem movimentos.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+
+                <section className="report-event-pie" aria-label={`Entradas versus despesas de ${item.event.nome}`}>
+                  <div className="pie-chart" style={{ background: pie.background }}>
+                    <span>{pie.entradasPercent}%</span>
+                  </div>
+                  <div className="pie-legend">
+                    <span>
+                      <i className="pie-blue" />
+                      Entradas {pie.entradasPercent}%
+                    </span>
+                    <span>
+                      <i className="pie-orange" />
+                      Despesas {pie.saidasPercent}%
+                    </span>
+                  </div>
+                </section>
+              </article>
+            );
+          })
+        ) : (
+          <article className="report-page report-detail-page">
+            <p className="report-empty">Ainda não há eventos para mostrar no relatório.</p>
+          </article>
+        )}
       </section>
     </main>
   );

@@ -472,6 +472,11 @@ h2 {
   grid-template-rows: auto auto auto auto 1fr;
 }
 
+.report-event-page {
+  align-content: stretch;
+  grid-template-rows: 1fr auto;
+}
+
 .report-front-header {
   align-items: start;
   display: grid;
@@ -700,7 +705,7 @@ h2 {
 .report-cover-accounts {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0 54px;
 }
 
@@ -758,7 +763,7 @@ h2 {
 .report-summary {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .report-summary article {
@@ -820,13 +825,77 @@ h2 {
 }
 
 .report-table {
-  min-width: 980px;
+  min-width: 720px;
 }
 
 .report-empty {
   color: var(--muted);
   font-weight: 700;
   margin: 0;
+}
+
+.report-event-pie {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 20px;
+  justify-content: flex-end;
+  padding-top: 18px;
+}
+
+.pie-chart {
+  align-items: center;
+  border-radius: 50%;
+  display: flex;
+  height: 128px;
+  justify-content: center;
+  position: relative;
+  width: 128px;
+}
+
+.pie-chart::after {
+  background: white;
+  border-radius: 50%;
+  content: "";
+  height: 62px;
+  position: absolute;
+  width: 62px;
+}
+
+.pie-chart span {
+  color: #4f6888;
+  font-size: 1rem;
+  font-weight: 800;
+  position: relative;
+  z-index: 1;
+}
+
+.pie-legend {
+  display: grid;
+  gap: 8px;
+}
+
+.pie-legend span {
+  align-items: center;
+  color: #58708d;
+  display: inline-flex;
+  font-size: 0.86rem;
+  font-weight: 700;
+  gap: 8px;
+}
+
+.pie-legend i {
+  display: inline-block;
+  height: 12px;
+  width: 12px;
+}
+
+.pie-blue {
+  background: #4276c8;
+}
+
+.pie-orange {
+  background: #f07c35;
 }
 
 .controls {
@@ -1913,7 +1982,7 @@ td {
   }
 
   .report-event {
-    break-inside: avoid;
+    break-inside: auto;
   }
 
   th {
