@@ -348,6 +348,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
   const eventProfit = totals.entradas - totals.saidas;
   const accountBalance = accountCounts.totalEntradas - accountCounts.totalSaidas;
   const profitWithQ25Balance = eventProfit + q25Balance;
+  const cashValue = profitWithQ25Balance - accountBalance;
 
   const filteredAccountMovimentos = useMemo(() => {
     const source = activeTab === "entrada" ? accountEntries : accountSaidas;
@@ -819,6 +820,10 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
             <article>
               <span>Lucro + Montante Q25</span>
               <strong>{formatMoney(profitWithQ25Balance)}</strong>
+            </article>
+            <article>
+              <span>Valor Dinheiro</span>
+              <strong>{formatMoney(cashValue)}</strong>
             </article>
             <article>
               <span>Eventos isentos</span>

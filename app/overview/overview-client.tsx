@@ -27,6 +27,7 @@ export type OverviewRow = Summary & {
 type OverviewClientProps = {
   rows: OverviewRow[];
   totals: Summary;
+  cashValue: number;
   error: string | null;
   session: AuthSession;
 };
@@ -63,7 +64,7 @@ function chartHeight(value: number, maxValue: number) {
   return `${Math.max(8, (value / maxValue) * 100)}%`;
 }
 
-export function OverviewClient({ rows, totals, error, session }: OverviewClientProps) {
+export function OverviewClient({ rows, totals, cashValue, error, session }: OverviewClientProps) {
   const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
   const countedRows = rows.filter((row) => row.contabilizarTotais).length;
   const chartItems = [
@@ -120,7 +121,7 @@ export function OverviewClient({ rows, totals, error, session }: OverviewClientP
       {error ? <section className="notice">Não consegui ligar ao Supabase. {error}</section> : null}
 
       <section className="overview-layout" aria-label="Resumo geral">
-        <div className="overview-card-grid">
+        <div className="overview-card-grid with-money-card">
           <article>
             <span>Resumo Totais</span>
             <small>Entradas Totais</small>
@@ -160,6 +161,11 @@ export function OverviewClient({ rows, totals, error, session }: OverviewClientP
             <span>Transferencias</span>
             <small>Pagas por transferencia</small>
             <strong className="value-green">{formatMoney(totals.transferencias)}</strong>
+          </article>
+          <article className="overview-money-card">
+            <span>Valor Dinheiro</span>
+            <small>Lucro + Montante Q25 - Saldo Conta Q26</small>
+            <strong className={cashValue >= 0 ? "value-green" : "value-red"}>{formatMoney(cashValue)}</strong>
           </article>
         </div>
 
