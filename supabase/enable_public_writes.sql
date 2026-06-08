@@ -5,11 +5,18 @@
 alter table public.eventos
 add column if not exists isento boolean not null default false;
 
+alter table public.eventos
+add column if not exists contabilizar_totais boolean not null default true;
+
 update public.eventos
 set isento = isento or lower(coalesce(isento_texto, '')) = 'sim';
 
 update public.eventos
 set isento_texto = case when isento then 'Sim' else 'Não' end;
+
+update public.eventos
+set contabilizar_totais = false
+where slug = 'decoracao';
 
 drop view if exists public.eventos_resumo;
 
@@ -25,6 +32,7 @@ select
   e.data_fim,
   e.isento,
   e.isento_texto,
+  e.contabilizar_totais,
   e.tipo,
   coalesce(sum(m.montante) filter (where m.tipo = 'entrada'), 0)::numeric(12,2) as total_entradas,
   coalesce(sum(m.montante) filter (where m.tipo = 'saida'), 0)::numeric(12,2) as total_saidas,

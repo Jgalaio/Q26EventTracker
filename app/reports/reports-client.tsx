@@ -75,6 +75,11 @@ function isContaPayment(value: string | null | undefined) {
   return payment === "transferencia" || payment === "c q26";
 }
 
+function isEventCounted(event: EventoResumo) {
+  if (typeof event.contabilizar_totais === "boolean") return event.contabilizar_totais;
+  return event.slug !== "decoracao";
+}
+
 function emptySummary(): Summary {
   return {
     entradas: 0,
@@ -160,9 +165,13 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
     return selectedEvent ? [selectedEvent] : [];
   }, [reportEvents, reportScope, selectedEvent]);
 
+  const countedEventSlugs = useMemo(() => {
+    return new Set(reportEvents.filter((item) => isEventCounted(item.event)).map((item) => item.event.slug));
+  }, [reportEvents]);
+
   const totals = useMemo(() => {
     return finalizeSummary(
-      visibleEvents.reduce((summary, item) => {
+      visibleEvents.filter((item) => reportScope === "evento" || isEventCounted(item.event)).reduce((summary, item) => {
         summary.entradas += item.summary.entradas;
         summary.saidas += item.summary.saidas;
         summary.aPagamento += item.summary.aPagamento;
@@ -174,19 +183,22 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
         return summary;
       }, emptySummary())
     );
-  }, [visibleEvents]);
+  }, [reportScope, visibleEvents]);
 
   const accountEntries = useMemo(() => {
     return movimentos.filter((movimento) => movimento.evento_slug === "contas" && movimento.tipo === "entrada");
   }, [movimentos]);
 
   const accountSaidas = useMemo(() => {
-    const source = reportScope === "geral" ? movimentos : visibleEvents.flatMap((item) => item.movimentos);
+    const source =
+      reportScope === "geral"
+        ? movimentos.filter((movimento) => countedEventSlugs.has(movimento.evento_slug))
+        : visibleEvents.flatMap((item) => item.movimentos);
     return source.filter(
       (movimento) =>
         movimento.evento_slug !== "contas" && movimento.tipo === "saida" && isContaPayment(movimento.tipo_pagamento)
     );
-  }, [movimentos, reportScope, visibleEvents]);
+  }, [countedEventSlugs, movimentos, reportScope, visibleEvents]);
 
   const accountTotals = useMemo(() => {
     const entradas = accountEntries.reduce((sum, movimento) => sum + Number(movimento.montante ?? 0), 0);
@@ -372,7 +384,7 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
           </section>
 
           <footer className="report-cover-note">
-            As parcelas Decoração e Contas, não entram nos totais finais.
+            Eventos marcados como só registo, como Decoração, e Contas não entram nos totais finais.
           </footer>
         </article>
 
@@ -419,6 +431,7 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
                   <div>
                     <p className="eyebrow">{item.event.tipo === "evento" ? "Evento" : "Categoria"}</p>
                     <h3>{item.event.nome}</h3>
+                    {!isEventCounted(item.event) ? <span className="event-status-badge detail">Só registo</span> : null}
                   </div>
                   <strong>{formatMoney(item.summary.lucro)}</strong>
                 </div>

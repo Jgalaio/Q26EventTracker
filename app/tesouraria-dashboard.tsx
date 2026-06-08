@@ -21,6 +21,7 @@ type EventForm = {
   data_inicio: string;
   data_fim: string;
   isento: "sim" | "nao";
+  contabilizar_totais: "sim" | "nao";
   tipo: "evento" | "categoria";
 };
 
@@ -61,6 +62,7 @@ const emptyEventForm: EventForm = {
   data_inicio: "",
   data_fim: "",
   isento: "nao",
+  contabilizar_totais: "sim",
   tipo: "evento"
 };
 
@@ -93,6 +95,11 @@ function isEventIsento(event: EventoResumo) {
   if (typeof event.isento === "boolean") return event.isento;
   const value = event.isento_texto?.trim().toLowerCase();
   return value === "sim";
+}
+
+function isEventCounted(event: EventoResumo) {
+  if (typeof event.contabilizar_totais === "boolean") return event.contabilizar_totais;
+  return event.slug !== "decoracao";
 }
 
 function slugify(value: string) {
@@ -234,7 +241,7 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
   }, [eventos]);
 
   const totals = useMemo(() => {
-    return eventOnlyList.reduce(
+    return eventOnlyList.filter(isEventCounted).reduce(
       (acc, event) => {
         acc.entradas += Number(event.total_entradas ?? 0);
         acc.saidas += Number(event.total_saidas ?? 0);
@@ -366,6 +373,7 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
       data_inicio: selectedEvent.data_inicio ?? "",
       data_fim: selectedEvent.data_fim ?? "",
       isento: isEventIsento(selectedEvent) ? "sim" : "nao",
+      contabilizar_totais: isEventCounted(selectedEvent) ? "sim" : "nao",
       tipo: selectedEvent.tipo
     });
     setJustification("");
@@ -428,6 +436,7 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
       data_fim: eventForm.data_fim || eventForm.data_inicio || null,
       isento: eventForm.isento === "sim",
       isento_texto: eventForm.isento === "sim" ? "Sim" : "Não",
+      contabilizar_totais: eventForm.contabilizar_totais === "sim",
       tipo: eventForm.tipo
     };
 
@@ -450,6 +459,7 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
         data_fim: payload.data_fim,
         isento: payload.isento,
         isento_texto: payload.isento_texto,
+        contabilizar_totais: payload.contabilizar_totais,
         tipo: payload.tipo,
         justification
       })
@@ -786,6 +796,7 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
               <span className="event-meta">
                 {event.tipo === "evento" ? formatDate(event.data_inicio) : "Categoria"}
               </span>
+              {!isEventCounted(event) ? <span className="event-status-badge">Só registo</span> : null}
               <span className={Number(event.saldo) >= 0 ? "event-balance positive" : "event-balance negative"}>
                 {formatMoney(event.saldo)}
               </span>
@@ -804,7 +815,12 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
                     {selectedEvent.tipo === "evento" ? formatDate(selectedEvent.data_inicio) : selectedEvent.folha_excel}
                     {" · Isento: "}
                     {isEventIsento(selectedEvent) ? "Sim" : "Não"}
+                    {" · Totais: "}
+                    {isEventCounted(selectedEvent) ? "Sim" : "Não"}
                   </span>
+                  {!isEventCounted(selectedEvent) ? (
+                    <span className="event-status-badge detail">Só registo, não entra nos totais gerais</span>
+                  ) : null}
                 </div>
                 <div className="event-side">
                   <div className="event-totals">
@@ -1290,6 +1306,21 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
                   >
                     <option value="nao">Não</option>
                     <option value="sim">Sim</option>
+                  </select>
+                </label>
+                <label>
+                  Contabilizar nos totais
+                  <select
+                    value={eventForm.contabilizar_totais}
+                    onChange={(event) =>
+                      setEventForm((current) => ({
+                        ...current,
+                        contabilizar_totais: event.target.value as EventForm["contabilizar_totais"]
+                      }))
+                    }
+                  >
+                    <option value="sim">Sim</option>
+                    <option value="nao">Não</option>
                   </select>
                 </label>
               </div>

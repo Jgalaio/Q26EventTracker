@@ -3,7 +3,7 @@ import { getSession } from "../auth";
 import { getTesourariaData, type EventoResumo, type MovimentoDetalhe } from "../supabase-data";
 import { OverviewClient, type OverviewRow } from "./overview-client";
 
-type Summary = Omit<OverviewRow, "nome" | "slug" | "movimentos">;
+type Summary = Omit<OverviewRow, "nome" | "slug" | "movimentos" | "contabilizarTotais">;
 
 function normalizePayment(value: string | null | undefined) {
   return value
@@ -57,6 +57,11 @@ function finalizeSummary(summary: Summary) {
   return summary;
 }
 
+function isEventCounted(event: EventoResumo) {
+  if (typeof event.contabilizar_totais === "boolean") return event.contabilizar_totais;
+  return event.slug !== "decoracao";
+}
+
 function summarizeEvent(event: EventoResumo, movimentos: MovimentoDetalhe[]): OverviewRow {
   const summary = finalizeSummary(
     movimentos.reduce((acc, movimento) => {
@@ -68,6 +73,7 @@ function summarizeEvent(event: EventoResumo, movimentos: MovimentoDetalhe[]): Ov
   return {
     slug: event.slug,
     nome: event.nome,
+    contabilizarTotais: isEventCounted(event),
     movimentos,
     ...summary
   };
@@ -90,7 +96,7 @@ export default async function OverviewPage() {
   );
 
   const totals = finalizeSummary(
-    rows.reduce((acc, row) => {
+    rows.filter((row) => row.contabilizarTotais).reduce((acc, row) => {
       acc.entradas += row.entradas;
       acc.saidas += row.saidas;
       acc.aPagamento += row.aPagamento;

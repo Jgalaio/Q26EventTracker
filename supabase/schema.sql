@@ -21,12 +21,20 @@ create table if not exists public.eventos (
   data_fim date,
   isento boolean not null default false,
   isento_texto text,
+  contabilizar_totais boolean not null default true,
   tipo text not null check (tipo in ('evento', 'categoria')),
   created_at timestamptz not null default now()
 );
 
 alter table public.eventos
 add column if not exists isento boolean not null default false;
+
+alter table public.eventos
+add column if not exists contabilizar_totais boolean not null default true;
+
+update public.eventos
+set contabilizar_totais = false
+where slug = 'decoracao';
 
 create table if not exists public.movimentos (
   id uuid primary key default gen_random_uuid(),
@@ -65,6 +73,7 @@ select
   e.data_fim,
   e.isento,
   e.isento_texto,
+  e.contabilizar_totais,
   e.tipo,
   coalesce(sum(m.montante) filter (where m.tipo = 'entrada'), 0)::numeric(12,2) as total_entradas,
   coalesce(sum(m.montante) filter (where m.tipo = 'saida'), 0)::numeric(12,2) as total_saidas,

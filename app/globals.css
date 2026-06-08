@@ -983,6 +983,30 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.event-status-badge {
+  align-items: center;
+  background: #f6edd7;
+  border: 1px solid #e0c58f;
+  border-radius: 999px;
+  color: #7e4b14;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 700;
+  min-height: 24px;
+  padding: 4px 8px;
+  width: fit-content;
+}
+
+.event-status-badge.detail {
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.event-status-badge.inline {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
 .positive {
   color: var(--green-ink);
 }
@@ -1563,6 +1587,10 @@ td {
 
 .overview-summary-row.expanded td {
   background: #f7faf8;
+}
+
+.overview-summary-row.not-counted td {
+  background: #fffcf2;
 }
 
 .overview-event-toggle {

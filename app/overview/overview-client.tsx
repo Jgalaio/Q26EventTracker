@@ -20,6 +20,7 @@ type Summary = {
 export type OverviewRow = Summary & {
   nome: string;
   slug: string;
+  contabilizarTotais: boolean;
   movimentos: MovimentoDetalhe[];
 };
 
@@ -64,6 +65,7 @@ function chartHeight(value: number, maxValue: number) {
 
 export function OverviewClient({ rows, totals, error, session }: OverviewClientProps) {
   const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
+  const countedRows = rows.filter((row) => row.contabilizarTotais).length;
   const chartItems = [
     { label: "Entradas Totais", value: totals.entradas, className: "bar-blue" },
     { label: "Saídas Totais", value: totals.saidas, className: "bar-orange" },
@@ -192,7 +194,7 @@ export function OverviewClient({ rows, totals, error, session }: OverviewClientP
             <p className="eyebrow">Eventos</p>
             <h2>Panorama por evento</h2>
           </div>
-          <span>{rows.length} eventos</span>
+          <span>{countedRows} contabilizados / {rows.length} eventos</span>
         </div>
         <div className="table-wrap overview-table-wrap">
           <table className="overview-table">
@@ -215,7 +217,15 @@ export function OverviewClient({ rows, totals, error, session }: OverviewClientP
                 const isExpanded = expandedSlug === row.slug;
                 return (
                   <Fragment key={row.slug}>
-                    <tr className={isExpanded ? "overview-summary-row expanded" : "overview-summary-row"}>
+                    <tr
+                      className={[
+                        "overview-summary-row",
+                        isExpanded ? "expanded" : "",
+                        row.contabilizarTotais ? "" : "not-counted"
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
                       <td className="item-cell">
                         <button
                           aria-expanded={isExpanded}
@@ -226,6 +236,7 @@ export function OverviewClient({ rows, totals, error, session }: OverviewClientP
                           <span>{isExpanded ? "-" : "+"}</span>
                           {row.nome}
                         </button>
+                        {!row.contabilizarTotais ? <span className="event-status-badge inline">Só registo</span> : null}
                       </td>
                       <td className="money">{formatMoney(row.entradas)}</td>
                       <td className="money">{formatMoney(row.saidas)}</td>

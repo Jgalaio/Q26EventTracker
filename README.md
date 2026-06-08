@@ -5,13 +5,15 @@ Este projeto converte o ficheiro Excel `Tesouraria Q26.xlsm` para:
 - `supabase/schema.sql`: tabelas, views e políticas de leitura.
 - `supabase/seed.sql`: importação dos 34 eventos/categorias e 551 movimentos.
 - `supabase/optional_excel_support.sql`: tabelas opcionais para histórico e CSVs auxiliares.
-- `supabase/enable_public_writes.sql`: adiciona o campo `isento` e dá permissões ao menu para criar/editar eventos e criar/editar/apagar movimentos.
+- `supabase/enable_public_writes.sql`: adiciona os campos `isento` e `contabilizar_totais`, e dá permissões ao menu para criar/editar eventos e criar/editar/apagar movimentos.
 - `data/*.csv`: exportações auditáveis, incluindo histórico Excel e utilizadores sem passwords.
 - App Next.js pronta para Vercel.
 
 A interface tem duas áreas principais: `Eventos`, onde escolhes cada evento e geres entradas/saídas, e `Contas`, onde entram os movimentos da folha Contas e as saídas são somadas automaticamente a partir das despesas dos eventos pagas por Transferencia ou C. Q26.
 
 A página `/overview` mostra o panorama geral da tesouraria, com cartões de totais, gráfico de barras e resumo por evento. Clicar num evento abre os movimentos desse evento em cascata.
+
+Cada evento pode ser marcado como `Contabilizar nos totais: Sim/Não`. Eventos marcados como `Não`, como `Decoração`, continuam visíveis para registo, mas não entram nos totais gerais, OverView ou relatório geral.
 
 Na janela de cada evento, o botão `+` no cabeçalho da tabela cria uma linha rápida para adicionar entradas ou saídas sem abrir modal. A página `/reports` mostra logo a pré-visualização do relatório, permitindo alternar entre relatório geral e evento selecionado e usar `Imprimir / PDF` no browser.
 
@@ -39,13 +41,13 @@ Depois corre:
 
 Se também quiseres guardar o histórico de alterações do Excel no Supabase, corre `supabase/optional_excel_support.sql` e importa os CSVs auxiliares pela Table Editor.
 
-Para ativar os formulários (`Novo evento`, `Editar evento`, `Adicionar entrada`, `Adicionar saída`) e guardar a opção `Isento: Sim/Não`, corre também:
+Para ativar os formulários (`Novo evento`, `Editar evento`, `Adicionar entrada`, `Adicionar saída`) e guardar as opções `Isento: Sim/Não` e `Contabilizar nos totais: Sim/Não`, corre também:
 
 ```sql
 -- supabase/enable_public_writes.sql
 ```
 
-Se já tinhas corrido este ficheiro antes, volta a corrê-lo para ativar a edição e eliminação de movimentos.
+Se já tinhas corrido este ficheiro antes, volta a corrê-lo para criar o campo `contabilizar_totais`, marcar `Decoração` como só registo e manter a edição/eliminação de movimentos ativa.
 
 As passwords da folha `Utilizadores` não foram exportadas. Para acesso real à app, cria utilizadores no Supabase Auth ou protege o projeto no Vercel.
 
