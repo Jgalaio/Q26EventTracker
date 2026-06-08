@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { EventoResumo, MovimentoDetalhe } from "./supabase-data";
 
@@ -537,9 +538,14 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
           <p className="eyebrow">Q26</p>
           <h1>Tesouraria</h1>
         </div>
-        <div className="status">
-          <span className="status-dot" />
-          Supabase
+        <div className="top-actions">
+          <Link className="nav-button" href="/overview">
+            OverView
+          </Link>
+          <div className="status">
+            <span className="status-dot" />
+            Supabase
+          </div>
         </div>
       </section>
 

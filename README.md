@@ -11,6 +11,8 @@ Este projeto converte o ficheiro Excel `Tesouraria Q26.xlsm` para:
 
 A interface tem duas áreas principais: `Eventos`, onde escolhes cada evento e geres entradas/saídas, e `Contas`, onde entram os movimentos da folha Contas e as saídas são somadas automaticamente a partir das despesas dos eventos pagas por Transferencia ou C. Q26.
 
+A página `/overview` mostra o panorama geral da tesouraria, com cartões de totais, gráfico de barras e resumo por evento.
+
 ## 1. Criar a base de dados
 
 No Supabase SQL Editor, corre primeiro:

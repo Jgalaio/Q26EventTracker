@@ -50,6 +50,14 @@ select {
   padding: 10px 0 22px;
 }
 
+.top-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .eyebrow {
   color: var(--green);
   font-size: 0.75rem;
@@ -88,6 +96,18 @@ h2 {
   display: block;
   height: 9px;
   width: 9px;
+}
+
+.nav-button {
+  align-items: center;
+  background: var(--blue);
+  border-radius: 999px;
+  color: white;
+  display: inline-flex;
+  font-weight: 700;
+  min-height: 39px;
+  padding: 0 14px;
+  text-decoration: none;
 }
 
 .notice {
@@ -733,14 +753,188 @@ td {
   color: var(--ink);
 }
 
+.overview-shell {
+  max-width: 1600px;
+}
+
+.overview-layout {
+  align-items: stretch;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+  margin-bottom: 16px;
+}
+
+.overview-card-grid {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.overview-card-grid article {
+  border-bottom: 1px solid var(--line);
+  min-height: 120px;
+  padding: 18px;
+}
+
+.overview-card-grid article:nth-child(odd) {
+  border-right: 1px solid var(--line);
+}
+
+.overview-card-grid article:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+.overview-card-grid span,
+.overview-card-grid small {
+  color: var(--muted);
+  display: block;
+  font-size: 0.8rem;
+}
+
+.overview-card-grid strong {
+  display: block;
+  font-size: 1.85rem;
+  margin-top: 14px;
+  overflow-wrap: anywhere;
+}
+
+.value-blue {
+  color: #5178a6;
+}
+
+.value-green {
+  color: #4f8a2f;
+}
+
+.value-red {
+  color: #d70f0f;
+}
+
+.value-purple {
+  color: #6f2fb6;
+}
+
+.chart-panel,
+.overview-table-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  min-width: 0;
+}
+
+.chart-heading {
+  border-bottom: 1px solid var(--line);
+  padding: 18px;
+}
+
+.bar-chart {
+  align-items: end;
+  display: grid;
+  gap: 22px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-height: 330px;
+  padding: 26px 26px 18px;
+}
+
+.bar-column {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  text-align: center;
+}
+
+.bar-track {
+  align-items: end;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  height: 260px;
+  justify-content: center;
+  width: 100%;
+}
+
+.chart-bar {
+  align-items: flex-start;
+  color: white;
+  display: flex;
+  justify-content: center;
+  min-height: 0;
+  padding-top: 8px;
+  width: min(120px, 86%);
+}
+
+.chart-bar span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  padding: 0 6px;
+}
+
+.bar-blue {
+  background: #4978c6;
+}
+
+.bar-orange {
+  background: #f27d2e;
+}
+
+.bar-muted {
+  background: #9aa39b;
+}
+
+.bar-column > strong {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.chart-legend {
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 18px 16px;
+}
+
+.chart-legend span {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 0.78rem;
+  gap: 6px;
+}
+
+.chart-legend i {
+  display: inline-block;
+  height: 9px;
+  width: 9px;
+}
+
+.overview-table-wrap {
+  max-height: none;
+}
+
+.overview-table {
+  min-width: 1320px;
+}
+
 @media (max-width: 980px) {
   .metrics,
   .management-menu,
-  .workspace {
+  .workspace,
+  .overview-layout {
     grid-template-columns: 1fr;
   }
 
   .event-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .overview-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -773,6 +967,34 @@ td {
   .table-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .top-actions {
+    justify-content: flex-start;
+  }
+
+  .overview-card-grid,
+  .bar-chart {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-card-grid article,
+  .overview-card-grid article:nth-child(odd),
+  .overview-card-grid article:nth-last-child(-n + 2) {
+    border-bottom: 1px solid var(--line);
+    border-right: 0;
+  }
+
+  .overview-card-grid article:last-child {
+    border-bottom: 0;
+  }
+
+  .bar-chart {
+    min-height: auto;
+  }
+
+  .bar-track {
+    height: 180px;
   }
 
   .event-totals {
