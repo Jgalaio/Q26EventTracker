@@ -256,8 +256,9 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
 
   const orderedEventos = useMemo(() => {
     return [...eventOnlyList].sort((a, b) => {
-      const balanceDelta = Number(b.saldo ?? 0) - Number(a.saldo ?? 0);
-      return balanceDelta || a.ordem_folha - b.ordem_folha;
+      const aTime = a.data_inicio ? new Date(`${a.data_inicio}T00:00:00`).getTime() : Number.POSITIVE_INFINITY;
+      const bTime = b.data_inicio ? new Date(`${b.data_inicio}T00:00:00`).getTime() : Number.POSITIVE_INFINITY;
+      return aTime - bTime || a.ordem_folha - b.ordem_folha;
     });
   }, [eventOnlyList]);
 
