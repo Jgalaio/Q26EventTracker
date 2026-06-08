@@ -17,6 +17,11 @@ type DashboardProps = {
 type ModalMode = "create-event" | "edit-event" | "add-entry" | "add-exit" | "edit-entry" | "edit-exit" | null;
 type SectionMode = "eventos" | "contas";
 
+type DescriptionPopup = {
+  title: string;
+  text: string;
+};
+
 type EventForm = {
   nome: string;
   data_inicio: string;
@@ -232,6 +237,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
   const [quickMovementForm, setQuickMovementForm] = useState<MovementForm>(emptyMovementForm);
   const [justification, setJustification] = useState("");
   const [selectedMovement, setSelectedMovement] = useState<MovimentoDetalhe | null>(null);
+  const [descriptionPopup, setDescriptionPopup] = useState<DescriptionPopup | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -646,6 +652,19 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
       ) : null}
     </div>
   );
+
+  const renderDescription = (movimento: MovimentoDetalhe) => {
+    if (!movimento.descricao) return "—";
+    return (
+      <button
+        className="description-button"
+        type="button"
+        onClick={() => setDescriptionPopup({ title: movimento.item, text: movimento.descricao ?? "" })}
+      >
+        {movimento.descricao}
+      </button>
+    );
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1172,7 +1191,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                             <span className={`pill ${movimento.tipo}`}>{movementLabel(movimento.tipo)}</span>
                           </td>
                           <td className="item-cell">{movimento.item}</td>
-                          <td>{movimento.descricao ?? "—"}</td>
+                          <td>{renderDescription(movimento)}</td>
                           <td>{formatDate(movimento.data_pagamento)}</td>
                           <td className="money">{formatMoney(movimento.montante)}</td>
                           <td>{movimento.tipo_pagamento ?? "—"}</td>
@@ -1280,7 +1299,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                     <tr key={movimento.id}>
                       <td>{movimento.evento_nome}</td>
                       <td className="item-cell">{movimento.item}</td>
-                      <td>{movimento.descricao ?? "—"}</td>
+                      <td>{renderDescription(movimento)}</td>
                       <td>{formatDate(movimento.data_pagamento)}</td>
                       <td className="money">{formatMoney(movimento.montante)}</td>
                       <td>{movimento.tipo_pagamento ?? "—"}</td>
@@ -1507,6 +1526,28 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
               </button>
             </div>
           </form>
+        </div>
+      ) : null}
+
+      {descriptionPopup ? (
+        <div className="modal-backdrop" role="presentation">
+          <section aria-modal="true" className="modal description-modal" role="dialog">
+            <div className="modal-heading">
+              <div>
+                <p className="eyebrow">Descrição</p>
+                <h2>{descriptionPopup.title}</h2>
+              </div>
+              <button aria-label="Fechar" className="icon-button" onClick={() => setDescriptionPopup(null)} type="button">
+                ×
+              </button>
+            </div>
+            <p className="description-full-text">{descriptionPopup.text}</p>
+            <div className="modal-actions">
+              <button type="button" onClick={() => setDescriptionPopup(null)}>
+                Fechar
+              </button>
+            </div>
+          </section>
         </div>
       ) : null}
     </main>

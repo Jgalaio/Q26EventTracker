@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getReportLogo } from "../app-settings";
 import { getSession } from "../auth";
 
 type LoginPageProps = {
@@ -20,13 +21,24 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   if (session) redirect(session.role === "view" ? "/overview" : "/");
 
   const params: Record<string, string | string[] | undefined> = searchParams ? await searchParams : {};
+  const reportLogo = await getReportLogo();
   const next = safeNextPath(getSearchValue(params, "next"));
   const hasError = getSearchValue(params, "error") === "1";
 
   return (
     <main className="login-shell">
       <section className="login-card">
-        <div>
+        <div className="login-brand">
+          <div className={reportLogo ? "login-logo-card custom-login-logo-card" : "login-logo-card"}>
+            {reportLogo ? (
+              <img alt="Logo Q26" src={reportLogo.dataUrl} />
+            ) : (
+              <>
+                <span>Q26</span>
+                <small>Pontével</small>
+              </>
+            )}
+          </div>
           <p className="eyebrow">Q26</p>
           <h1>Login</h1>
         </div>

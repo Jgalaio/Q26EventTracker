@@ -182,6 +182,52 @@ h2 {
   width: min(440px, 100%);
 }
 
+.login-brand {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
+}
+
+.login-logo-card {
+  align-items: center;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.82), rgba(247, 250, 255, 0.88)),
+    url("/report-background.png") center / cover no-repeat;
+  border: 1px solid #c4d8ff;
+  border-radius: 8px;
+  display: grid;
+  height: 126px;
+  justify-items: center;
+  overflow: hidden;
+  padding: 12px;
+  width: 126px;
+}
+
+.login-logo-card span {
+  color: var(--blue);
+  font-size: 2.05rem;
+  font-weight: 800;
+}
+
+.login-logo-card small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.login-logo-card img {
+  display: block;
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.custom-login-logo-card {
+  background: rgba(255, 255, 255, 0.9);
+}
+
 .login-card h1 {
   font-size: 2.7rem;
 }
@@ -1660,6 +1706,23 @@ td {
   width: min(720px, 100%);
 }
 
+.description-modal {
+  width: min(560px, 100%);
+}
+
+.description-full-text {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  line-height: 1.55;
+  margin: 0;
+  max-height: 360px;
+  overflow: auto;
+  padding: 14px;
+  white-space: pre-wrap;
+}
+
 .modal-heading {
   align-items: center;
   display: flex;
@@ -1709,6 +1772,21 @@ td {
 .modal-actions .secondary-button {
   background: var(--panel-soft);
   color: var(--ink);
+}
+
+.description-button {
+  background: transparent;
+  border: 0;
+  color: var(--blue);
+  cursor: pointer;
+  display: block;
+  max-width: 280px;
+  overflow: hidden;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-grid {

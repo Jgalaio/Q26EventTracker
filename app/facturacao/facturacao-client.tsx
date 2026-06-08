@@ -12,6 +12,11 @@ type FacturacaoClientProps = {
   session: AuthSession;
 };
 
+type DescriptionPopup = {
+  title: string;
+  text: string;
+};
+
 const moneyFormatter = new Intl.NumberFormat("pt-PT", {
   style: "currency",
   currency: "EUR",
@@ -65,6 +70,7 @@ export function FacturacaoClient({ eventos, movimentos, error, session }: Factur
   const [selectedSlug, setSelectedSlug] = useState(() => eventList[0]?.slug ?? "");
   const [invoiceValue, setInvoiceValue] = useState("");
   const [selectedPreviousIds, setSelectedPreviousIds] = useState<Set<string>>(new Set());
+  const [descriptionPopup, setDescriptionPopup] = useState<DescriptionPopup | null>(null);
 
   const selectedEvent = useMemo(() => {
     return eventList.find((event) => event.slug === selectedSlug) ?? eventList[0] ?? null;
@@ -122,6 +128,19 @@ export function FacturacaoClient({ eventos, movimentos, error, session }: Factur
   const selectEvent = (slug: string) => {
     setSelectedSlug(slug);
     setSelectedPreviousIds(new Set());
+  };
+
+  const renderDescription = (movimento: MovimentoDetalhe) => {
+    if (!movimento.descricao) return "-";
+    return (
+      <button
+        className="description-button"
+        type="button"
+        onClick={() => setDescriptionPopup({ title: movimento.item, text: movimento.descricao ?? "" })}
+      >
+        {movimento.descricao}
+      </button>
+    );
   };
 
   return (
@@ -234,7 +253,7 @@ export function FacturacaoClient({ eventos, movimentos, error, session }: Factur
                   currentEventExpenses.map((movimento) => (
                     <tr key={movimento.id}>
                       <td>{movimento.item}</td>
-                      <td>{movimento.descricao ?? "-"}</td>
+                      <td>{renderDescription(movimento)}</td>
                       <td>{formatDate(movimento.data_pagamento)}</td>
                       <td>{movimento.tipo_pagamento ?? "-"}</td>
                       <td>{formatMoney(movimento.montante)}</td>
@@ -285,7 +304,7 @@ export function FacturacaoClient({ eventos, movimentos, error, session }: Factur
                       </td>
                       <td>{movimento.evento_nome}</td>
                       <td>{movimento.item}</td>
-                      <td>{movimento.descricao ?? "-"}</td>
+                      <td>{renderDescription(movimento)}</td>
                       <td>{formatMoney(movimento.montante)}</td>
                     </tr>
                   ))
@@ -301,6 +320,28 @@ export function FacturacaoClient({ eventos, movimentos, error, session }: Factur
           </div>
         </article>
       </section>
+
+      {descriptionPopup ? (
+        <div className="modal-backdrop" role="presentation">
+          <section aria-modal="true" className="modal description-modal" role="dialog">
+            <div className="modal-heading">
+              <div>
+                <p className="eyebrow">Descrição</p>
+                <h2>{descriptionPopup.title}</h2>
+              </div>
+              <button aria-label="Fechar" className="icon-button" onClick={() => setDescriptionPopup(null)} type="button">
+                ×
+              </button>
+            </div>
+            <p className="description-full-text">{descriptionPopup.text}</p>
+            <div className="modal-actions">
+              <button type="button" onClick={() => setDescriptionPopup(null)}>
+                Fechar
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }
