@@ -28,6 +28,7 @@ type EventForm = {
 
 type MovementForm = {
   item: string;
+  descricao: string;
   montante: string;
   data_pagamento: string;
   numero_fatura: string;
@@ -69,6 +70,7 @@ const emptyEventForm: EventForm = {
 
 const emptyMovementForm: MovementForm = {
   item: "",
+  descricao: "",
   montante: "",
   data_pagamento: "",
   numero_fatura: "",
@@ -406,6 +408,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
     setSelectedMovement(movimento);
     setMovementForm({
       item: movimento.item,
+      descricao: movimento.descricao ?? "",
       montante: movimento.montante === null ? "" : String(movimento.montante),
       data_pagamento: movimento.data_pagamento ?? "",
       numero_fatura: movimento.numero_fatura ?? "",
@@ -472,6 +475,29 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
     });
   };
 
+  const deleteEvent = async () => {
+    if (!mayDelete || !selectedEvent) return;
+    const confirmed = window.confirm(
+      `Apagar o evento "${selectedEvent.nome}"? Esta ação também apaga todas as entradas e saídas deste evento.`
+    );
+    if (!confirmed) return;
+
+    setIsSaving(true);
+    setSaveMessage(null);
+    try {
+      await appWrite(`eventos/${selectedEvent.id}`, {
+        method: "DELETE"
+      });
+      setSelectedSlug("");
+      setSaveMessage("Evento apagado.");
+      router.refresh();
+    } catch (caught) {
+      setSaveMessage(caught instanceof Error ? caught.message : "Não foi possível apagar o evento.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const saveMovement = async () => {
     const isEditing = modalMode === "edit-entry" || modalMode === "edit-exit";
     const isEntryMode = modalMode === "add-entry" || modalMode === "edit-entry";
@@ -492,6 +518,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
       evento_id: isEditing ? undefined : selectedEvent?.id,
       tipo,
       item,
+      descricao: isEntryMode ? null : movementForm.descricao.trim() || null,
       data_pagamento: isEntryMode ? null : movementForm.data_pagamento || null,
       montante: amount,
       numero_fatura: isEntryMode ? null : movementForm.numero_fatura.trim() || null,
@@ -505,6 +532,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
         origem: "app",
         evento: movementToEdit ? movementToEdit.evento_nome : selectedEvent?.nome,
         item,
+        descricao: isEntryMode ? null : movementForm.descricao.trim() || null,
         montante: amount
       }
     };
@@ -546,6 +574,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
       evento_id: selectedEvent.id,
       tipo,
       item,
+      descricao: isEntryMode ? null : quickMovementForm.descricao.trim() || null,
       data_pagamento: isEntryMode ? null : quickMovementForm.data_pagamento || null,
       montante: amount,
       numero_fatura: isEntryMode ? null : quickMovementForm.numero_fatura.trim() || null,
@@ -559,6 +588,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
         modo: "linha_rapida",
         evento: selectedEvent.nome,
         item,
+        descricao: isEntryMode ? null : quickMovementForm.descricao.trim() || null,
         montante: amount
       }
     };
@@ -854,6 +884,11 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                         <button className="secondary-event-button" disabled={!selectedEvent} type="button" onClick={openEditEvent}>
                           Editar evento
                         </button>
+                        {mayDelete ? (
+                          <button className="danger-button" disabled={isSaving} type="button" onClick={deleteEvent}>
+                            Apagar evento
+                          </button>
+                        ) : null}
                       </>
                     ) : null}
                   </div>
@@ -963,6 +998,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                       <tr>
                         <th>Tipo</th>
                         <th>Item</th>
+                        <th>Descrição</th>
                         <th>Data</th>
                         <th>Montante</th>
                         <th>Pagamento</th>
@@ -1024,6 +1060,16 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                                 setQuickMovementForm((current) => ({ ...current, item: event.target.value }))
                               }
                               placeholder="Item"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              aria-label="Descrição da saída"
+                              value={quickMovementForm.descricao}
+                              onChange={(event) =>
+                                setQuickMovementForm((current) => ({ ...current, descricao: event.target.value }))
+                              }
+                              placeholder="Descrição"
                             />
                           </td>
                           <td>
@@ -1126,6 +1172,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                             <span className={`pill ${movimento.tipo}`}>{movementLabel(movimento.tipo)}</span>
                           </td>
                           <td className="item-cell">{movimento.item}</td>
+                          <td>{movimento.descricao ?? "—"}</td>
                           <td>{formatDate(movimento.data_pagamento)}</td>
                           <td className="money">{formatMoney(movimento.montante)}</td>
                           <td>{movimento.tipo_pagamento ?? "—"}</td>
@@ -1212,6 +1259,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                   <tr>
                     <th>Evento</th>
                     <th>Item</th>
+                    <th>Descrição</th>
                     <th>Data</th>
                     <th>Montante</th>
                     <th>Pagamento</th>
@@ -1232,6 +1280,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                     <tr key={movimento.id}>
                       <td>{movimento.evento_nome}</td>
                       <td className="item-cell">{movimento.item}</td>
+                      <td>{movimento.descricao ?? "—"}</td>
                       <td>{formatDate(movimento.data_pagamento)}</td>
                       <td className="money">{formatMoney(movimento.montante)}</td>
                       <td>{movimento.tipo_pagamento ?? "—"}</td>
@@ -1359,6 +1408,14 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                 </label>
                 {modalMode === "add-exit" || modalMode === "edit-exit" ? (
                   <>
+                    <label className="full">
+                      Descrição
+                      <textarea
+                        value={movementForm.descricao}
+                        onChange={(event) => setMovementForm((current) => ({ ...current, descricao: event.target.value }))}
+                        placeholder="Descrição da despesa"
+                      />
+                    </label>
                     <label>
                       Data pagamento
                       <input

@@ -26,6 +26,7 @@ export type MovimentoDetalhe = {
   evento_data_inicio: string | null;
   tipo: "entrada" | "saida" | "a_pagamento";
   item: string;
+  descricao: string | null;
   data_pagamento: string | null;
   montante: number | null;
   numero_fatura: string | null;

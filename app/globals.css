@@ -287,6 +287,7 @@ h2 {
 .management-menu input,
 .form-grid input,
 .form-grid select,
+.form-grid textarea,
 .justification-field textarea {
   background: #f8fbff;
   border: 1px solid var(--line);
@@ -295,6 +296,12 @@ h2 {
   min-height: 42px;
   min-width: 0;
   padding: 0 11px;
+}
+
+.form-grid textarea {
+  min-height: 84px;
+  padding: 11px;
+  resize: vertical;
 }
 
 .justification-field {
@@ -1398,6 +1405,10 @@ h2 {
   color: var(--ink);
 }
 
+.event-actions .danger-button {
+  background: var(--red);
+}
+
 .event-summary-grid {
   display: grid;
   gap: 10px;
@@ -1500,7 +1511,7 @@ table {
 }
 
 .outgoing-table {
-  min-width: 1260px;
+  min-width: 1380px;
 }
 
 .entries-table tbody tr:nth-child(odd) td,

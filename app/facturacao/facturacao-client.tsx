@@ -223,6 +223,7 @@ export function FacturacaoClient({ eventos, movimentos, error, session }: Factur
               <thead>
                 <tr>
                   <th>Item</th>
+                  <th>Descrição</th>
                   <th>Data</th>
                   <th>Pagamento</th>
                   <th>Montante</th>
@@ -233,6 +234,7 @@ export function FacturacaoClient({ eventos, movimentos, error, session }: Factur
                   currentEventExpenses.map((movimento) => (
                     <tr key={movimento.id}>
                       <td>{movimento.item}</td>
+                      <td>{movimento.descricao ?? "-"}</td>
                       <td>{formatDate(movimento.data_pagamento)}</td>
                       <td>{movimento.tipo_pagamento ?? "-"}</td>
                       <td>{formatMoney(movimento.montante)}</td>
@@ -240,7 +242,7 @@ export function FacturacaoClient({ eventos, movimentos, error, session }: Factur
                   ))
                 ) : (
                   <tr>
-                    <td className="empty-movement-row" colSpan={4}>
+                    <td className="empty-movement-row" colSpan={5}>
                       Sem despesas com Fatura C/NIF neste evento.
                     </td>
                   </tr>
@@ -265,6 +267,7 @@ export function FacturacaoClient({ eventos, movimentos, error, session }: Factur
                   <th>Selecionar</th>
                   <th>Evento</th>
                   <th>Item</th>
+                  <th>Descrição</th>
                   <th>Montante</th>
                 </tr>
               </thead>
@@ -282,12 +285,13 @@ export function FacturacaoClient({ eventos, movimentos, error, session }: Factur
                       </td>
                       <td>{movimento.evento_nome}</td>
                       <td>{movimento.item}</td>
+                      <td>{movimento.descricao ?? "-"}</td>
                       <td>{formatMoney(movimento.montante)}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td className="empty-movement-row" colSpan={4}>
+                    <td className="empty-movement-row" colSpan={5}>
                       Sem itens faturados em eventos anteriores.
                     </td>
                   </tr>

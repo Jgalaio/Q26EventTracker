@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prepareWritePayload, readJsonBody, requireWriteAccess, supabaseWrite } from "../../q26-write";
+import { prepareWritePayload, readJsonBody, requireDeleteAccess, requireWriteAccess, supabaseWrite } from "../../q26-write";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -15,4 +15,15 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   if (prepared.error) return prepared.error;
 
   return supabaseWrite(`eventos?id=eq.${encodeURIComponent(id)}`, "PATCH", prepared.payload);
+}
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  const access = await requireWriteAccess();
+  if (access.error) return access.error;
+
+  const deleteError = requireDeleteAccess(access.session);
+  if (deleteError) return deleteError;
+
+  const { id } = await context.params;
+  return supabaseWrite(`eventos?id=eq.${encodeURIComponent(id)}`, "DELETE");
 }

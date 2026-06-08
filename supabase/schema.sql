@@ -55,6 +55,9 @@ create table if not exists public.movimentos (
   unique (evento_id, tipo, origem_tabela, origem_linha)
 );
 
+alter table public.movimentos
+add column if not exists descricao text;
+
 create index if not exists movimentos_evento_id_idx on public.movimentos(evento_id);
 create index if not exists movimentos_tipo_idx on public.movimentos(tipo);
 create index if not exists movimentos_data_pagamento_idx on public.movimentos(data_pagamento);
@@ -171,7 +174,9 @@ from public.eventos e
 left join public.movimentos m on m.evento_id = e.id
 group by e.id;
 
-create or replace view public.movimentos_detalhe as
+drop view if exists public.movimentos_detalhe;
+
+create view public.movimentos_detalhe as
 select
   m.id,
   e.slug as evento_slug,
@@ -180,6 +185,7 @@ select
   e.data_inicio as evento_data_inicio,
   m.tipo,
   m.item,
+  m.descricao,
   m.data_pagamento,
   m.montante,
   m.numero_fatura,

@@ -1,4 +1,4 @@
--- Enables the app menu to create/edit events and add/edit/delete movements using the publishable key.
+-- Enables the app menu to create/edit/delete events and add/edit/delete movements using the publishable key.
 -- Warning: with these policies, anyone who can access the deployed app can write to these tables.
 -- For private production use, replace anon policies with authenticated-only policies and add Supabase Auth.
 
@@ -9,6 +9,9 @@ add column if not exists isento boolean not null default false;
 
 alter table public.eventos
 add column if not exists contabilizar_totais boolean not null default true;
+
+alter table public.movimentos
+add column if not exists descricao text;
 
 update public.eventos
 set isento = isento or lower(coalesce(isento_texto, '')) = 'sim';
@@ -132,11 +135,40 @@ from public.eventos e
 left join public.movimentos m on m.evento_id = e.id
 group by e.id;
 
+drop view if exists public.movimentos_detalhe;
+
+create view public.movimentos_detalhe as
+select
+  m.id,
+  e.slug as evento_slug,
+  e.nome as evento_nome,
+  e.tipo as evento_tipo,
+  e.data_inicio as evento_data_inicio,
+  m.tipo,
+  m.item,
+  m.descricao,
+  m.data_pagamento,
+  m.montante,
+  m.numero_fatura,
+  m.fatura_com_nif,
+  m.tipo_pagamento,
+  m.pago,
+  m.origem_tabela,
+  m.origem_linha,
+  m.formula_montante,
+  m.raw,
+  m.created_at
+from public.movimentos m
+join public.eventos e on e.id = m.evento_id;
+
 alter view public.eventos_resumo set (security_invoker = true);
+alter view public.movimentos_detalhe set (security_invoker = true);
 
 grant insert, update on public.eventos to anon, authenticated;
+grant delete on public.eventos to anon, authenticated;
 grant insert, update, delete on public.movimentos to anon, authenticated;
 grant select on public.eventos_resumo to anon, authenticated;
+grant select on public.movimentos_detalhe to anon, authenticated;
 revoke all on public.app_users from anon, authenticated;
 grant select, insert, update, delete on public.app_settings to anon, authenticated;
 grant execute on function public.app_verify_login(text, text) to anon, authenticated;
@@ -144,6 +176,7 @@ grant execute on function public.app_change_password(text, text, text) to anon, 
 
 drop policy if exists "Escrita publica eventos insert" on public.eventos;
 drop policy if exists "Escrita publica eventos update" on public.eventos;
+drop policy if exists "Escrita publica eventos delete" on public.eventos;
 drop policy if exists "Escrita publica movimentos insert" on public.movimentos;
 drop policy if exists "Escrita publica movimentos update" on public.movimentos;
 drop policy if exists "Escrita publica movimentos delete" on public.movimentos;
@@ -162,6 +195,11 @@ on public.eventos for update
 to anon, authenticated
 using (true)
 with check (true);
+
+create policy "Escrita publica eventos delete"
+on public.eventos for delete
+to anon, authenticated
+using (true);
 
 create policy "Escrita publica movimentos insert"
 on public.movimentos for insert
