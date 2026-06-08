@@ -508,7 +508,7 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
         </div>
       </section>
 
-      <section className="management-menu" aria-label="Gestão de eventos">
+      <section className="management-menu" aria-label="Gestão e filtros">
         <div className="section-tabs" role="tablist" aria-label="Área principal">
           <button
             aria-selected={sectionMode === "eventos"}
@@ -529,40 +529,41 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
             Contas
           </button>
         </div>
-        {sectionMode === "eventos" ? (
-          <>
-            <label>
-              Evento
-              <select
-                value={selectedEvent?.slug ?? ""}
-                onChange={(event) => {
-                  setSelectedSlug(event.target.value);
-                  setActiveTab("entrada");
-                  setPago("todos");
-                }}
-              >
-                {orderedEventos.map((event) => (
-                  <option key={event.slug} value={event.slug}>
-                    {event.nome}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="menu-actions">
-              <button type="button" onClick={openCreateEvent}>
-                Novo evento
-              </button>
-              <button disabled={!selectedEvent} type="button" onClick={openEditEvent}>
-                Editar evento
-              </button>
+        <label className="menu-search">
+          Pesquisa
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Item ou fatura"
+          />
+        </label>
+        <label className="menu-paid">
+          Pago
+          <select
+            disabled={activeTab === "entrada"}
+            value={pago}
+            onChange={(event) => setPago(event.target.value as typeof pago)}
+          >
+            <option value="todos">Todos</option>
+            <option value="sim">Sim</option>
+            <option value="nao">Não</option>
+          </select>
+        </label>
+        <div className="menu-actions">
+          {sectionMode === "eventos" ? (
+            <button type="button" onClick={openCreateEvent}>
+              Novo evento
+            </button>
+          ) : (
+            <div className="account-menu-summary">
+              <span>Conta Q26</span>
+              <strong>{formatMoney(accountCounts.totalEntradas - accountCounts.totalSaidas)}</strong>
             </div>
-          </>
-        ) : (
-          <div className="account-menu-summary">
-            <span>Conta Q26</span>
-            <strong>{formatMoney(accountCounts.totalEntradas - accountCounts.totalSaidas)}</strong>
-          </div>
-        )}
+          )}
+          <button className="secondary-menu-button" type="button" onClick={resetFilters}>
+            Limpar
+          </button>
+        </div>
       </section>
 
       {saveMessage ? <section className="notice">{saveMessage}</section> : null}
@@ -609,32 +610,6 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
             </article>
           </>
         )}
-      </section>
-
-      <section className="controls" aria-label="Filtros">
-        <label>
-          Pesquisa
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Item ou fatura"
-          />
-        </label>
-        <label>
-          Pago
-          <select
-            disabled={activeTab === "entrada"}
-            value={pago}
-            onChange={(event) => setPago(event.target.value as typeof pago)}
-          >
-            <option value="todos">Todos</option>
-            <option value="sim">Sim</option>
-            <option value="nao">Não</option>
-          </select>
-        </label>
-        <button type="button" onClick={resetFilters}>
-          Limpar
-        </button>
       </section>
 
       {sectionMode === "eventos" ? (
@@ -690,6 +665,9 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                     </button>
                     <button type="button" onClick={() => openMovementForm("add-exit")}>
                       Adicionar saída
+                    </button>
+                    <button className="secondary-event-button" disabled={!selectedEvent} type="button" onClick={openEditEvent}>
+                      Editar evento
                     </button>
                   </div>
                 </div>

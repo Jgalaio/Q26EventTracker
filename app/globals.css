@@ -106,7 +106,7 @@ h2 {
   border-radius: 8px;
   display: grid;
   gap: 12px;
-  grid-template-columns: auto minmax(260px, 1fr) auto;
+  grid-template-columns: auto minmax(180px, 280px) minmax(112px, 150px) auto;
   margin-bottom: 16px;
   padding: 14px;
 }
@@ -147,7 +147,17 @@ h2 {
   gap: 7px;
 }
 
+.menu-search,
+.menu-paid {
+  min-width: 0;
+}
+
+.menu-search input {
+  width: 100%;
+}
+
 .management-menu select,
+.management-menu input,
 .form-grid input,
 .form-grid select {
   background: #fbfcfa;
@@ -165,6 +175,7 @@ h2 {
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+  min-width: 0;
 }
 
 .account-menu-summary {
@@ -205,6 +216,12 @@ h2 {
 
 .menu-actions button:first-child {
   background: var(--blue);
+}
+
+.menu-actions .secondary-menu-button {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  color: var(--ink);
 }
 
 .menu-actions button:disabled,
@@ -469,6 +486,12 @@ h2 {
 
 .event-actions button:first-child {
   background: var(--blue);
+}
+
+.event-actions .secondary-event-button {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  color: var(--ink);
 }
 
 .table-panel > .tabs,
