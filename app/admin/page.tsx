@@ -1,15 +1,33 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getQ25Balance, getReportLogo } from "../app-settings";
+import { getAuditLogs } from "../audit-log";
 import { getSession, listAuthUsers } from "../auth";
 import { AdminClient } from "./admin-client";
 
-export default async function AdminPage() {
+type AdminPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function parseLogPage(value: string | string[] | undefined) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const page = Number.parseInt(raw ?? "0", 10);
+  return Number.isFinite(page) && page > 0 ? page : 0;
+}
+
+export default async function AdminPage({ searchParams }: AdminPageProps) {
   const session = await getSession();
   if (!session) redirect("/login?next=/admin");
   if (session.role !== "admin") redirect(session.role === "view" ? "/overview" : "/");
 
-  const [users, reportLogo, q25Balance] = await Promise.all([listAuthUsers(), getReportLogo(), getQ25Balance()]);
+  const params = searchParams ? await searchParams : {};
+  const auditPage = parseLogPage(params.logPage);
+  const [users, reportLogo, q25Balance, audit] = await Promise.all([
+    listAuthUsers(),
+    getReportLogo(),
+    getQ25Balance(),
+    getAuditLogs(auditPage, 50)
+  ]);
 
   return (
     <main className="shell">
@@ -39,7 +57,16 @@ export default async function AdminPage() {
         </div>
       </section>
 
-      <AdminClient q25Balance={q25Balance} reportLogo={reportLogo} session={session} users={users} />
+      <AdminClient
+        auditHasNext={audit.hasNext}
+        auditLogError={audit.error}
+        auditLogs={audit.logs}
+        auditPage={auditPage}
+        q25Balance={q25Balance}
+        reportLogo={reportLogo}
+        session={session}
+        users={users}
+      />
     </main>
   );
 }

@@ -43,13 +43,13 @@ Depois corre:
 
 Se também quiseres guardar o histórico de alterações do Excel no Supabase, corre `supabase/optional_excel_support.sql` e importa os CSVs auxiliares pela Table Editor.
 
-Para ativar os formulários (`Novo evento`, `Editar evento`, `Adicionar entrada`, `Adicionar saída`), guardar a descrição das saídas, apagar eventos por Admin, guardar as opções `Isento: Sim/Não` e `Contabilizar nos totais: Sim/Não`, permitir alteração de password e trocar o logo do relatório, corre também:
+Para ativar os formulários (`Novo evento`, `Editar evento`, `Adicionar entrada`, `Adicionar saída`), guardar a descrição das saídas, apagar eventos por Admin, guardar o log de alterações, guardar as opções `Isento: Sim/Não` e `Contabilizar nos totais: Sim/Não`, permitir alteração de password e trocar o logo do relatório, corre também:
 
 ```sql
 -- supabase/enable_public_writes.sql
 ```
 
-Se já tinhas corrido este ficheiro antes, volta a corrê-lo para criar as tabelas `app_users` e `app_settings`, ativar as funções `app_verify_login` / `app_change_password`, adicionar a coluna `descricao`, marcar `Decoração` como só registo e manter a edição/eliminação de eventos e movimentos ativa.
+Se já tinhas corrido este ficheiro antes, volta a corrê-lo para criar as tabelas `app_users`, `app_settings` e `app_audit_logs`, ativar as funções `app_verify_login` / `app_change_password`, adicionar a coluna `descricao`, marcar `Decoração` como só registo e manter a edição/eliminação de eventos e movimentos ativa.
 
 O painel `Admin` permite alterar a password do utilizador atual, guardar/remover o logo personalizado do relatório e definir o `Montante deixado pelos Q25` usado nos cartões de totais. As passwords base são criadas no Supabase com hash e a app valida o login através de funções SQL, sem expor a coluna `password_hash` pela API pública.
 

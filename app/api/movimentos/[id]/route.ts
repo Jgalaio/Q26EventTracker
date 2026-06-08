@@ -20,7 +20,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   const prepared = prepareWritePayload(body, access.session, true, "movement");
   if (prepared.error) return prepared.error;
 
-  return supabaseWrite(`movimentos?id=eq.${encodeURIComponent(id)}`, "PATCH", prepared.payload);
+  return supabaseWrite(`movimentos?id=eq.${encodeURIComponent(id)}`, "PATCH", prepared.payload, access.session);
 }
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
@@ -31,5 +31,5 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   if (deleteError) return deleteError;
 
   const { id } = await context.params;
-  return supabaseWrite(`movimentos?id=eq.${encodeURIComponent(id)}`, "DELETE");
+  return supabaseWrite(`movimentos?id=eq.${encodeURIComponent(id)}`, "DELETE", undefined, access.session);
 }

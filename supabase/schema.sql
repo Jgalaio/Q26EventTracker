@@ -75,6 +75,21 @@ create table if not exists public.app_settings (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.app_audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  username text not null,
+  role text not null check (role in ('admin', 'operator', 'view')),
+  action text not null,
+  resource text not null,
+  resource_id text,
+  summary text,
+  details jsonb not null default '{}'::jsonb
+);
+
+create index if not exists app_audit_logs_created_at_idx on public.app_audit_logs(created_at desc);
+create index if not exists app_audit_logs_resource_idx on public.app_audit_logs(resource, resource_id);
+
 insert into public.app_users (username, role, password_hash)
 values
   ('J.Galaio', 'admin', '325cb2800043914c9e9d09f6006aff8c90b55eeb4928d13aa4a3385003bcea26'),
@@ -207,11 +222,14 @@ alter table public.eventos enable row level security;
 alter table public.movimentos enable row level security;
 alter table public.app_users enable row level security;
 alter table public.app_settings enable row level security;
+alter table public.app_audit_logs enable row level security;
 
 drop policy if exists "Leitura publica eventos" on public.eventos;
 drop policy if exists "Leitura publica movimentos" on public.movimentos;
 drop policy if exists "Leitura publica app users" on public.app_users;
 drop policy if exists "Leitura publica app settings" on public.app_settings;
+drop policy if exists "Leitura publica app audit logs" on public.app_audit_logs;
+drop policy if exists "Escrita publica app audit logs" on public.app_audit_logs;
 drop policy if exists "Escrita publica app users" on public.app_users;
 
 create policy "Leitura publica eventos"
@@ -229,6 +247,16 @@ on public.app_settings for select
 to anon, authenticated
 using (true);
 
+create policy "Leitura publica app audit logs"
+on public.app_audit_logs for select
+to anon, authenticated
+using (true);
+
+create policy "Escrita publica app audit logs"
+on public.app_audit_logs for insert
+to anon, authenticated
+with check (true);
+
 grant usage on schema public to anon, authenticated;
 grant select on public.eventos to anon, authenticated;
 grant select on public.movimentos to anon, authenticated;
@@ -236,5 +264,6 @@ grant select on public.eventos_resumo to anon, authenticated;
 grant select on public.movimentos_detalhe to anon, authenticated;
 revoke all on public.app_users from anon, authenticated;
 grant select, insert, update, delete on public.app_settings to anon, authenticated;
+grant select, insert on public.app_audit_logs to anon, authenticated;
 grant execute on function public.app_verify_login(text, text) to anon, authenticated;
 grant execute on function public.app_change_password(text, text, text) to anon, authenticated;

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { writeAuditLog } from "../audit-log";
 import { getSession } from "../auth";
 import type { AuthSession } from "../auth-types";
 
@@ -94,7 +95,42 @@ export function prepareWritePayload(
   return { payload, error: null };
 }
 
-export async function supabaseWrite(resource: string, method: string, body?: JsonBody) {
+function baseResource(resource: string) {
+  return resource.split("?")[0] ?? resource;
+}
+
+function resourceLabel(resource: string) {
+  if (resource === "eventos") return "evento";
+  if (resource === "movimentos") return "movimento";
+  return resource;
+}
+
+function actionLabel(method: string, resource: string) {
+  const label = resourceLabel(resource);
+  if (method === "POST") return `Criou ${label}`;
+  if (method === "PATCH") return `Alterou ${label}`;
+  if (method === "DELETE") return `Apagou ${label}`;
+  return `${method} ${label}`;
+}
+
+function getFilterId(resource: string) {
+  const match = resource.match(/(?:^|[?&])id=eq\.([^&]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function firstResponseRow(value: unknown) {
+  if (Array.isArray(value)) return value[0] as Record<string, unknown> | undefined;
+  if (value && typeof value === "object") return value as Record<string, unknown>;
+  return undefined;
+}
+
+function auditSummary(action: string, body: JsonBody | undefined, response: unknown) {
+  const row = firstResponseRow(response);
+  const name = row?.nome ?? row?.item ?? body?.nome ?? body?.item;
+  return typeof name === "string" && name.trim() ? `${action}: ${name}` : action;
+}
+
+export async function supabaseWrite(resource: string, method: string, body?: JsonBody, session?: AuthSession) {
   const response = await fetch(`${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${resource}`, {
     method,
     headers: {
@@ -111,5 +147,26 @@ export async function supabaseWrite(resource: string, method: string, body?: Jso
   }
 
   const responseBody = await response.text();
-  return NextResponse.json(responseBody ? JSON.parse(responseBody) : null);
+  const parsedResponse = responseBody ? JSON.parse(responseBody) : null;
+
+  if (session) {
+    const resourceName = baseResource(resource);
+    const row = firstResponseRow(parsedResponse);
+    const resourceId = typeof row?.id === "string" ? row.id : getFilterId(resource);
+    const action = actionLabel(method, resourceName);
+    await writeAuditLog({
+      session,
+      action,
+      resource: resourceName,
+      resourceId,
+      summary: auditSummary(action, body, parsedResponse),
+      details: {
+        method,
+        payload: body ?? null,
+        resource
+      }
+    });
+  }
+
+  return NextResponse.json(parsedResponse);
 }

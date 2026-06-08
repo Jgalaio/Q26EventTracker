@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
+import Link from "next/link";
 import type { ReportLogo } from "../app-settings";
+import type { AuditLogEntry } from "../audit-log";
 import { ROLE_LABELS, type AuthSession } from "../auth-types";
 
 type AdminUser = {
@@ -14,6 +16,10 @@ type AdminClientProps = {
   users: AdminUser[];
   reportLogo: ReportLogo | null;
   q25Balance: number;
+  auditLogs: AuditLogEntry[];
+  auditLogError: string | null;
+  auditPage: number;
+  auditHasNext: boolean;
 };
 
 type PasswordForm = {
@@ -28,7 +34,38 @@ const emptyPasswordForm: PasswordForm = {
   confirmPassword: ""
 };
 
-export function AdminClient({ session, users, reportLogo, q25Balance }: AdminClientProps) {
+const logDateFormatter = new Intl.DateTimeFormat("pt-PT", {
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  month: "2-digit",
+  year: "numeric"
+});
+
+function formatLogDate(value: string) {
+  return logDateFormatter.format(new Date(value));
+}
+
+function formatDetails(details: Record<string, unknown>) {
+  const justification =
+    typeof details.payload === "object" && details.payload && "justification" in details.payload
+      ? (details.payload as { justification?: unknown }).justification
+      : null;
+  if (typeof justification === "string" && justification.trim()) return justification;
+  if (typeof details.method === "string") return details.method;
+  return "-";
+}
+
+export function AdminClient({
+  session,
+  users,
+  reportLogo,
+  q25Balance,
+  auditLogs,
+  auditLogError,
+  auditPage,
+  auditHasNext
+}: AdminClientProps) {
   const [passwordForm, setPasswordForm] = useState<PasswordForm>(emptyPasswordForm);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [logoMessage, setLogoMessage] = useState<string | null>(null);
@@ -258,6 +295,68 @@ export function AdminClient({ session, users, reportLogo, q25Balance }: AdminCli
             </p>
           </article>
         ))}
+      </section>
+
+      <section className="admin-log-panel" aria-label="Log de alterações">
+        <div className="admin-log-header">
+          <div>
+            <p className="eyebrow">Auditoria</p>
+            <h2>Log de alterações</h2>
+          </div>
+          <span>50 linhas por página</span>
+        </div>
+        {auditLogError ? <p className="form-message">Não foi possível carregar o log. {auditLogError}</p> : null}
+        <div className="admin-log-table-wrap">
+          <table className="admin-log-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Utilizador</th>
+                <th>Role</th>
+                <th>Ação</th>
+                <th>Resumo</th>
+                <th>Detalhe</th>
+              </tr>
+            </thead>
+            <tbody>
+              {auditLogs.length ? (
+                auditLogs.map((log) => (
+                  <tr key={log.id}>
+                    <td>{formatLogDate(log.created_at)}</td>
+                    <td>{log.username}</td>
+                    <td>{ROLE_LABELS[log.role]}</td>
+                    <td>{log.action}</td>
+                    <td>{log.summary ?? "-"}</td>
+                    <td className="admin-log-details">{formatDetails(log.details)}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className="empty-movement-row" colSpan={6}>
+                    Ainda não há alterações registadas.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="admin-log-pagination">
+          <Link
+            aria-disabled={auditPage === 0}
+            className={auditPage === 0 ? "nav-button disabled" : "nav-button secondary-nav-button"}
+            href={`/admin?logPage=${Math.max(0, auditPage - 1)}`}
+          >
+            Anterior
+          </Link>
+          <span>Página {auditPage + 1}</span>
+          <Link
+            aria-disabled={!auditHasNext}
+            className={auditHasNext ? "nav-button secondary-nav-button" : "nav-button disabled"}
+            href={`/admin?logPage=${auditPage + 1}`}
+          >
+            Seguinte
+          </Link>
+        </div>
       </section>
     </>
   );

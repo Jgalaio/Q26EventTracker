@@ -9,5 +9,5 @@ export async function POST(request: NextRequest) {
   const prepared = prepareWritePayload(body, access.session, false, "movement");
   if (prepared.error) return prepared.error;
 
-  return supabaseWrite("movimentos", "POST", prepared.payload);
+  return supabaseWrite("movimentos", "POST", prepared.payload, access.session);
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { writeAuditLog } from "../../../audit-log";
 import { deleteAppSetting, writeAppSetting } from "../../../app-settings";
 import { getSession } from "../../../auth";
 
@@ -21,6 +22,14 @@ export async function POST(request: NextRequest) {
 
   try {
     await writeAppSetting("report_logo", { dataUrl, fileName });
+    await writeAuditLog({
+      session,
+      action: "Alterou logo do relatório",
+      resource: "app_settings",
+      resourceId: "report_logo",
+      summary: "Logo do relatório atualizado",
+      details: { fileName }
+    });
     return NextResponse.json({ message: "Logo do relatório atualizado." });
   } catch (error) {
     return NextResponse.json(
@@ -41,6 +50,14 @@ export async function DELETE() {
 
   try {
     await deleteAppSetting("report_logo");
+    await writeAuditLog({
+      session,
+      action: "Removeu logo do relatório",
+      resource: "app_settings",
+      resourceId: "report_logo",
+      summary: "Logo personalizado removido",
+      details: {}
+    });
     return NextResponse.json({ message: "Logo personalizado removido." });
   } catch (error) {
     return NextResponse.json({ message: error instanceof Error ? error.message : "Não foi possível remover." }, { status: 500 });

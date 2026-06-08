@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { writeAuditLog } from "../../../audit-log";
 import { getSession, verifyCredentials } from "../../../auth";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ushhacwtmpmwmvpaitdx.supabase.co";
@@ -53,6 +54,15 @@ export async function POST(request: NextRequest) {
   if (!result) {
     return NextResponse.json({ message: "A password atual não está correta." }, { status: 400 });
   }
+
+  await writeAuditLog({
+    session,
+    action: "Alterou password",
+    resource: "app_users",
+    resourceId: session.username,
+    summary: `${session.username} alterou a password`,
+    details: { username: session.username }
+  });
 
   return NextResponse.json({ message: "Password alterada com sucesso." });
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { writeAuditLog } from "../../../audit-log";
 import { writeAppSetting } from "../../../app-settings";
 import { getSession } from "../../../auth";
 
@@ -27,6 +28,14 @@ export async function POST(request: NextRequest) {
 
   try {
     await writeAppSetting("q25_balance", { amount });
+    await writeAuditLog({
+      session,
+      action: "Alterou montante Q25",
+      resource: "app_settings",
+      resourceId: "q25_balance",
+      summary: `Montante Q25 atualizado para ${amount}`,
+      details: { amount }
+    });
     return NextResponse.json({ message: "Montante Q25 atualizado." });
   } catch (error) {
     return NextResponse.json(

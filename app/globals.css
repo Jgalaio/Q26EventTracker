@@ -1853,6 +1853,63 @@ td {
   margin: 12px 0 0;
 }
 
+.admin-log-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 18px;
+}
+
+.admin-log-header {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.admin-log-header h2 {
+  margin: 0;
+}
+
+.admin-log-header > span,
+.admin-log-pagination span {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.admin-log-table-wrap {
+  overflow: auto;
+}
+
+.admin-log-table {
+  min-width: 980px;
+}
+
+.admin-log-details {
+  color: var(--muted);
+  max-width: 260px;
+  overflow-wrap: anywhere;
+}
+
+.admin-log-pagination {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.nav-button.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .overview-shell {
   max-width: 1600px;
 }
