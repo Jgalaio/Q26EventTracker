@@ -639,15 +639,13 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
 
       {sectionMode === "eventos" ? (
       <section className="workspace">
-        <aside className="event-list" aria-label="Eventos e categorias">
-          <div className="event-list-heading">
-            <p className="eyebrow">Eventos</p>
-            <h2>Escolhe um evento</h2>
-          </div>
+        <aside className="event-list" aria-label="Eventos e categorias" role="tablist">
           {orderedEventos.map((event) => (
             <button
+              aria-selected={selectedEvent?.slug === event.slug}
               className={selectedEvent?.slug === event.slug ? "event-card selected" : "event-card"}
               key={event.slug}
+              role="tab"
               type="button"
               onClick={() => {
                 setSelectedSlug(event.slug);
