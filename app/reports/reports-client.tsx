@@ -226,6 +226,8 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
     return reportEvents.find((item) => item.event.slug === "decoracao")?.summary ?? emptySummary();
   }, [reportEvents]);
 
+  const totalWithBankBalance = totals.lucro + accountTotals.saldo;
+
   const chartItems = [
     { label: "Entradas Totais", value: totals.entradas, className: "cover-bar-blue" },
     { label: "Saídas Totais", value: totals.saidas, className: "cover-bar-orange" },
@@ -388,6 +390,11 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
                 <span>SALDO Total</span>
                 <small>Lucro final</small>
                 <strong className={totals.lucro >= 0 ? "positive" : "negative"}>{formatMoney(totals.lucro)}</strong>
+              </article>
+              <article>
+                <span>SALDO + Conta Bancária</span>
+                <small>Lucro + Saldo Conta Bancária</small>
+                <strong className={totalWithBankBalance >= 0 ? "positive" : "negative"}>{formatMoney(totalWithBankBalance)}</strong>
               </article>
             </section>
           </div>
