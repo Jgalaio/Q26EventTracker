@@ -120,15 +120,19 @@ function booleanToForm(value: boolean | null): "" | "sim" | "nao" {
   return "";
 }
 
-function isContaPayment(value: string | null) {
-  const normalized = value
+function normalizePayment(value: string | null | undefined) {
+  return value
     ?.normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
+    .replace(/\./g, "")
     .replace(/\s+/g, " ")
-    .trim();
+    .trim() ?? "";
+}
 
-  return normalized === "transferencia" || normalized === "c. q26" || normalized === "c q26";
+function isContaPayment(value: string | null) {
+  const normalized = normalizePayment(value);
+  return normalized === "transferencia" || normalized === "c q26";
 }
 
 function numericAmount(value: string) {
@@ -229,6 +233,37 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
         return acc;
       },
       { entradas: 0, saidas: 0, totalEntradas: 0, totalSaidas: 0 }
+    );
+  }, [eventMovimentos]);
+
+  const eventFinancialSummary = useMemo(() => {
+    return eventMovimentos.reduce(
+      (acc, movimento) => {
+        const amount = Number(movimento.montante ?? 0);
+        if (movimento.tipo === "entrada") {
+          acc.entradas += amount;
+          return acc;
+        }
+
+        acc.saidas += amount;
+        if (movimento.fatura_com_nif === true) acc.faturado += amount;
+        if (movimento.fatura_com_nif === false) acc.naoFaturado += amount;
+
+        const payment = normalizePayment(movimento.tipo_pagamento);
+        if (payment === "c q26") acc.pagoQ26 += amount;
+        if (payment === "transferencia") acc.transferencia += amount;
+        if (payment === "dinheiro") acc.dinheiro += amount;
+        return acc;
+      },
+      {
+        entradas: 0,
+        saidas: 0,
+        faturado: 0,
+        naoFaturado: 0,
+        pagoQ26: 0,
+        transferencia: 0,
+        dinheiro: 0
+      }
     );
   }, [eventMovimentos]);
 
@@ -671,6 +706,51 @@ export function Dashboard({ eventos, movimentos, error }: DashboardProps) {
                     </button>
                   </div>
                 </div>
+              </div>
+
+              <div className="event-summary-grid" aria-label="Resumo do evento">
+                <article>
+                  <span>Entradas</span>
+                  <strong>{formatMoney(eventFinancialSummary.entradas)}</strong>
+                  <small>Todas as Entradas</small>
+                </article>
+                <article>
+                  <span>Saídas</span>
+                  <strong>{formatMoney(eventFinancialSummary.saidas)}</strong>
+                  <small>Todas as Despesas</small>
+                </article>
+                <article>
+                  <span>Saldo</span>
+                  <strong className={eventFinancialSummary.entradas - eventFinancialSummary.saidas >= 0 ? "positive" : "negative"}>
+                    {formatMoney(eventFinancialSummary.entradas - eventFinancialSummary.saidas)}
+                  </strong>
+                  <small>Lucro final</small>
+                </article>
+                <article>
+                  <span>Faturado</span>
+                  <strong>{formatMoney(eventFinancialSummary.faturado)}</strong>
+                  <small>Fatura C/NIF: Sim</small>
+                </article>
+                <article>
+                  <span>Não Faturado</span>
+                  <strong>{formatMoney(eventFinancialSummary.naoFaturado)}</strong>
+                  <small>Fatura C/NIF: Não</small>
+                </article>
+                <article>
+                  <span>Pago C.Q26</span>
+                  <strong>{formatMoney(eventFinancialSummary.pagoQ26)}</strong>
+                  <small>Pagamento C. Q26</small>
+                </article>
+                <article>
+                  <span>Transferencia</span>
+                  <strong>{formatMoney(eventFinancialSummary.transferencia)}</strong>
+                  <small>Pago por Transferencia</small>
+                </article>
+                <article>
+                  <span>Pago Dinheiro</span>
+                  <strong>{formatMoney(eventFinancialSummary.dinheiro)}</strong>
+                  <small>Pago com Dinheiro</small>
+                </article>
               </div>
 
               <div className="tabs" role="tablist" aria-label="Movimentos do evento">
