@@ -89,6 +89,11 @@ export function OverviewClient({ rows, totals, error, session }: OverviewClientP
               Tesouraria
             </Link>
           ) : null}
+          {canWrite(session.role) ? (
+            <Link className="nav-button secondary-nav-button" href="/reports">
+              Relatórios
+            </Link>
+          ) : null}
           <div className="user-chip">
             <span>{session.username}</span>
             <strong>{ROLE_LABELS[session.role]}</strong>

@@ -13,7 +13,7 @@ A interface tem duas áreas principais: `Eventos`, onde escolhes cada evento e g
 
 A página `/overview` mostra o panorama geral da tesouraria, com cartões de totais, gráfico de barras e resumo por evento. Clicar num evento abre os movimentos desse evento em cascata.
 
-Na janela de cada evento, o botão `+` no cabeçalho da tabela cria uma linha rápida para adicionar entradas ou saídas sem abrir modal. A zona `Relatórios` permite gerar um relatório geral ou apenas do evento selecionado e usar `Imprimir / PDF` no browser.
+Na janela de cada evento, o botão `+` no cabeçalho da tabela cria uma linha rápida para adicionar entradas ou saídas sem abrir modal. A página `/reports` mostra logo a pré-visualização do relatório, permitindo alternar entre relatório geral e evento selecionado e usar `Imprimir / PDF` no browser.
 
 O sistema de login tem três roles:
 

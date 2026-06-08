@@ -21,6 +21,9 @@ export default async function AdminPage() {
           <Link className="nav-button" href="/">
             Tesouraria
           </Link>
+          <Link className="nav-button secondary-nav-button" href="/reports">
+            Relatórios
+          </Link>
           <Link className="nav-button secondary-nav-button" href="/overview">
             OverView
           </Link>

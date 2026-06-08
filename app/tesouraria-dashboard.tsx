@@ -15,7 +15,6 @@ type DashboardProps = {
 
 type ModalMode = "create-event" | "edit-event" | "add-entry" | "add-exit" | "edit-entry" | "edit-exit" | null;
 type SectionMode = "eventos" | "contas";
-type ReportScope = "geral" | "evento";
 
 type EventForm = {
   nome: string;
@@ -43,12 +42,6 @@ type FinancialSummary = {
   pagoQ26: number;
   transferencia: number;
   dinheiro: number;
-};
-
-type ReportEvent = {
-  event: EventoResumo;
-  movimentos: MovimentoDetalhe[];
-  summary: FinancialSummary;
 };
 
 const moneyFormatter = new Intl.NumberFormat("pt-PT", {
@@ -227,8 +220,6 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
   const [movementForm, setMovementForm] = useState<MovementForm>(emptyMovementForm);
   const [quickAddTab, setQuickAddTab] = useState<"entrada" | "saida" | null>(null);
   const [quickMovementForm, setQuickMovementForm] = useState<MovementForm>(emptyMovementForm);
-  const [reportScope, setReportScope] = useState<ReportScope>("geral");
-  const [showReport, setShowReport] = useState(false);
   const [justification, setJustification] = useState("");
   const [selectedMovement, setSelectedMovement] = useState<MovimentoDetalhe | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -344,47 +335,6 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
       return matchesQuery && matchesPago;
     });
   }, [accountEntries, accountSaidas, activeTab, normalizedQuery, pago]);
-
-  const reportEvents = useMemo<ReportEvent[]>(() => {
-    return orderedEventos.map((event) => {
-      const eventItems = movimentos.filter((movimento) => movimento.evento_slug === event.slug);
-      return {
-        event,
-        movimentos: eventItems,
-        summary: summarizeMovimentos(eventItems)
-      };
-    });
-  }, [movimentos, orderedEventos]);
-
-  const visibleReportEvents = useMemo(() => {
-    if (reportScope === "geral") return reportEvents;
-    if (!selectedEvent) return [];
-    return reportEvents.filter((item) => item.event.slug === selectedEvent.slug);
-  }, [reportEvents, reportScope, selectedEvent]);
-
-  const reportTotals = useMemo(() => {
-    return visibleReportEvents.reduce(
-      (acc, item) => {
-        acc.entradas += item.summary.entradas;
-        acc.saidas += item.summary.saidas;
-        acc.faturado += item.summary.faturado;
-        acc.naoFaturado += item.summary.naoFaturado;
-        acc.pagoQ26 += item.summary.pagoQ26;
-        acc.transferencia += item.summary.transferencia;
-        acc.dinheiro += item.summary.dinheiro;
-        return acc;
-      },
-      {
-        entradas: 0,
-        saidas: 0,
-        faturado: 0,
-        naoFaturado: 0,
-        pagoQ26: 0,
-        transferencia: 0,
-        dinheiro: 0
-      }
-    );
-  }, [visibleReportEvents]);
 
   const resetFilters = () => {
     setQuery("");
@@ -688,6 +638,9 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
               Admin
             </Link>
           ) : null}
+          <Link className="nav-button secondary-nav-button" href="/reports">
+            Relatórios
+          </Link>
           <Link className="nav-button" href="/overview">
             OverView
           </Link>
@@ -812,127 +765,6 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
           </>
         )}
       </section>
-
-      <section className="report-builder no-print" aria-label="Criação de relatórios">
-        <div>
-          <p className="eyebrow">Relatórios</p>
-          <h2>Criação de relatórios</h2>
-        </div>
-        <label>
-          Tipo de relatório
-          <select value={reportScope} onChange={(event) => setReportScope(event.target.value as ReportScope)}>
-            <option value="geral">Relatório geral</option>
-            <option value="evento">Evento selecionado</option>
-          </select>
-        </label>
-        <div className="report-actions">
-          <button type="button" onClick={() => setShowReport(true)}>
-            Criar relatório
-          </button>
-          {showReport ? (
-            <button className="secondary-menu-button" type="button" onClick={() => window.print()}>
-              Imprimir / PDF
-            </button>
-          ) : null}
-        </div>
-      </section>
-
-      {showReport ? (
-        <section className="report-preview" aria-label="Pré-visualização do relatório">
-          <div className="report-cover">
-            <div>
-              <p className="eyebrow">Tesouraria Q26</p>
-              <h2>{reportScope === "geral" ? "Relatório geral" : selectedEvent?.nome ?? "Evento selecionado"}</h2>
-            </div>
-            <span>{dateFormatter.format(new Date())}</span>
-          </div>
-
-          <div className="report-summary">
-            <article>
-              <span>Entradas</span>
-              <strong>{formatMoney(reportTotals.entradas)}</strong>
-            </article>
-            <article>
-              <span>Saídas</span>
-              <strong>{formatMoney(reportTotals.saidas)}</strong>
-            </article>
-            <article>
-              <span>Saldo</span>
-              <strong className={reportTotals.entradas - reportTotals.saidas >= 0 ? "positive" : "negative"}>
-                {formatMoney(reportTotals.entradas - reportTotals.saidas)}
-              </strong>
-            </article>
-            <article>
-              <span>Faturado</span>
-              <strong>{formatMoney(reportTotals.faturado)}</strong>
-            </article>
-            <article>
-              <span>Não faturado</span>
-              <strong>{formatMoney(reportTotals.naoFaturado)}</strong>
-            </article>
-            <article>
-              <span>C. Q26</span>
-              <strong>{formatMoney(reportTotals.pagoQ26)}</strong>
-            </article>
-          </div>
-
-          {visibleReportEvents.length ? (
-            visibleReportEvents.map((item) => (
-              <article className="report-event" key={item.event.slug}>
-                <div className="report-event-heading">
-                  <div>
-                    <p className="eyebrow">{item.event.tipo === "evento" ? "Evento" : "Categoria"}</p>
-                    <h3>{item.event.nome}</h3>
-                  </div>
-                  <strong>{formatMoney(item.summary.entradas - item.summary.saidas)}</strong>
-                </div>
-                <div className="report-event-totals">
-                  <span>Entradas {formatMoney(item.summary.entradas)}</span>
-                  <span>Saídas {formatMoney(item.summary.saidas)}</span>
-                  <span>Faturado {formatMoney(item.summary.faturado)}</span>
-                  <span>Não faturado {formatMoney(item.summary.naoFaturado)}</span>
-                </div>
-                <div className="report-table-wrap">
-                  <table className="report-table">
-                    <thead>
-                      <tr>
-                        <th>Tipo</th>
-                        <th>Item</th>
-                        <th>Data</th>
-                        <th>Montante</th>
-                        <th>Pagamento</th>
-                        <th>Fatura C/NIF</th>
-                        <th>Pago</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {item.movimentos.length ? (
-                        item.movimentos.map((movimento) => (
-                          <tr key={movimento.id}>
-                            <td>{movementLabel(movimento.tipo)}</td>
-                            <td className="item-cell">{movimento.item}</td>
-                            <td>{formatDate(movimento.data_pagamento)}</td>
-                            <td className="money">{formatMoney(movimento.montante)}</td>
-                            <td>{movimento.tipo_pagamento ?? "—"}</td>
-                            <td>{movimento.fatura_com_nif === null ? "—" : movimento.fatura_com_nif ? "Sim" : "Não"}</td>
-                            <td>{movimento.pago === null ? "—" : movimento.pago ? "Sim" : "Não"}</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={7}>Sem movimentos.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </article>
-            ))
-          ) : (
-            <p className="report-empty">Seleciona um evento para criar o relatório desse evento.</p>
-          )}
-        </section>
-      ) : null}
 
       {sectionMode === "eventos" ? (
       <section className="workspace">
