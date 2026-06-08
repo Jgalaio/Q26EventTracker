@@ -298,6 +298,15 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
   }, [eventMovimentos]);
 
   const eventFinancialSummary = useMemo(() => summarizeMovimentos(eventMovimentos), [eventMovimentos]);
+  const eventMovementRatio = useMemo(() => {
+    const entradas = Math.max(0, eventFinancialSummary.entradas);
+    const saidas = Math.max(0, eventFinancialSummary.saidas);
+    const total = entradas + saidas;
+    const entradasPercent = total > 0 ? Math.round((entradas / total) * 100) : 0;
+    const saidasPercent = total > 0 ? 100 - entradasPercent : 0;
+
+    return { entradasPercent, saidasPercent };
+  }, [eventFinancialSummary]);
 
   const filteredMovimentos = useMemo(() => {
     return eventMovimentos.filter((movimento) => {
@@ -958,6 +967,32 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                   <small>Pago com Dinheiro</small>
                 </article>
               </div>
+
+              <section className="event-ratio-panel" aria-label="Percentagem de entradas e despesas">
+                <div className="event-ratio-heading">
+                  <span>Entradas vs Despesas</span>
+                  <strong>
+                    {eventMovementRatio.entradasPercent}% / {eventMovementRatio.saidasPercent}%
+                  </strong>
+                </div>
+                <div className="event-ratio-bar" aria-hidden="true">
+                  <i
+                    className="event-ratio-entradas"
+                    style={{ width: `${eventMovementRatio.entradasPercent}%` }}
+                  />
+                  <i className="event-ratio-saidas" style={{ width: `${eventMovementRatio.saidasPercent}%` }} />
+                </div>
+                <div className="event-ratio-legend">
+                  <span>
+                    <i className="event-ratio-dot entradas" />
+                    Entradas {eventMovementRatio.entradasPercent}%
+                  </span>
+                  <span>
+                    <i className="event-ratio-dot saidas" />
+                    Despesas {eventMovementRatio.saidasPercent}%
+                  </span>
+                </div>
+              </section>
 
               <div className="tabs" role="tablist" aria-label="Movimentos do evento">
                 <button
