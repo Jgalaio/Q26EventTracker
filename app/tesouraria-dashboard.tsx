@@ -657,6 +657,9 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
           <Link className="nav-button secondary-nav-button" href="/reports">
             Relatórios
           </Link>
+          <Link className="nav-button secondary-nav-button" href="/facturacao">
+            Facturação
+          </Link>
           <Link className="nav-button" href="/overview">
             OverView
           </Link>

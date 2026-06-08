@@ -405,6 +405,77 @@ h2 {
   width: min(1260px, calc(100% - 32px));
 }
 
+.billing-shell {
+  width: min(1480px, calc(100% - 32px));
+}
+
+.billing-controls {
+  align-items: end;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(260px, 1fr) minmax(220px, 0.42fr);
+  margin-bottom: 16px;
+  padding: 16px;
+}
+
+.billing-controls label {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.84rem;
+  gap: 7px;
+}
+
+.billing-controls select,
+.billing-controls input {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  min-height: 42px;
+  min-width: 0;
+  padding: 0 11px;
+}
+
+.billing-metrics strong.positive {
+  color: var(--green-ink);
+}
+
+.billing-metrics strong.negative {
+  color: var(--red);
+}
+
+.billing-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.billing-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  min-width: 0;
+}
+
+.table-wrap.billing-table-wrap {
+  max-height: calc(100vh - 430px);
+}
+
+.billing-panel table {
+  min-width: 760px;
+}
+
+.billing-panel input[type="checkbox"] {
+  accent-color: var(--blue);
+  height: 18px;
+  width: 18px;
+}
+
 .reports-toolbar {
   align-items: end;
   background: var(--panel);
@@ -2162,6 +2233,8 @@ td {
   }
 
   .reports-toolbar,
+  .billing-controls,
+  .billing-grid,
   .report-summary,
   .report-event-totals,
   .report-cover-accounts {
