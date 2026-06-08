@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const username = String(formData.get("username") ?? "");
   const password = String(formData.get("password") ?? "");
-  const session = verifyCredentials(username, password);
+  const session = await verifyCredentials(username, password);
   const nextPath = safeNextPath(formData.get("next"));
 
   if (!session) {

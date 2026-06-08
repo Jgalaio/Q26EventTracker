@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getReportLogo } from "../app-settings";
 import { getSession } from "../auth";
 import { canWrite } from "../auth-types";
 import { getTesourariaData } from "../supabase-data";
@@ -9,7 +10,7 @@ export default async function ReportsPage() {
   if (!session) redirect("/login?next=/reports");
   if (!canWrite(session.role)) redirect("/overview");
 
-  const { eventos, movimentos, error } = await getTesourariaData();
+  const [{ eventos, movimentos, error }, reportLogo] = await Promise.all([getTesourariaData(), getReportLogo()]);
 
   return (
     <ReportsClient
@@ -17,6 +18,7 @@ export default async function ReportsPage() {
       eventos={eventos}
       generatedAt={new Date().toISOString()}
       movimentos={movimentos}
+      reportLogo={reportLogo}
       session={session}
     />
   );

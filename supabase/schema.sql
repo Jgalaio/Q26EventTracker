@@ -59,6 +59,90 @@ create index if not exists movimentos_evento_id_idx on public.movimentos(evento_
 create index if not exists movimentos_tipo_idx on public.movimentos(tipo);
 create index if not exists movimentos_data_pagamento_idx on public.movimentos(data_pagamento);
 
+create table if not exists public.app_users (
+  username text primary key,
+  role text not null check (role in ('admin', 'operator', 'view')),
+  password_hash text not null,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.app_settings (
+  key text primary key,
+  value jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+insert into public.app_users (username, role, password_hash)
+values
+  ('J.Galaio', 'admin', '325cb2800043914c9e9d09f6006aff8c90b55eeb4928d13aa4a3385003bcea26'),
+  ('A.Lopes', 'admin', 'b5b1ad0508150fece4e94ce08996eef647319ded8abb712c8c6b63c51f745825'),
+  ('M.Amendoeira', 'operator', 'b78ecebe0a0c3e78c06b12ff45018eef3cab88c0119531d72d4b362c612b9303'),
+  ('Q26', 'view', 'a6c71bf69ece63be7e9fec6791203c7a1d444a8b32303bc1147b326772b62993')
+on conflict (username) do nothing;
+
+create or replace function public.app_verify_login(p_username text, p_password text)
+returns table (username text, role text, password_valid boolean, has_override boolean)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user public.app_users%rowtype;
+begin
+  select *
+  into v_user
+  from public.app_users
+  where public.app_users.username = btrim(p_username);
+
+  if found then
+    return query
+    select
+      v_user.username,
+      v_user.role,
+      v_user.password_hash = encode(digest(v_user.username || ':' || p_password, 'sha256'), 'hex'),
+      true;
+    return;
+  end if;
+
+  return query select btrim(p_username), null::text, false, false;
+end;
+$$;
+
+create or replace function public.app_change_password(p_username text, p_current_password text, p_new_password text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user public.app_users%rowtype;
+begin
+  if length(p_new_password) < 6 then
+    return false;
+  end if;
+
+  select *
+  into v_user
+  from public.app_users
+  where public.app_users.username = btrim(p_username);
+
+  if not found then
+    return false;
+  end if;
+
+  if v_user.password_hash <> encode(digest(v_user.username || ':' || p_current_password, 'sha256'), 'hex') then
+    return false;
+  end if;
+
+  update public.app_users
+  set password_hash = encode(digest(v_user.username || ':' || p_new_password, 'sha256'), 'hex'),
+      updated_at = now()
+  where public.app_users.username = v_user.username;
+
+  return true;
+end;
+$$;
+
 drop view if exists public.eventos_resumo;
 
 create view public.eventos_resumo as
@@ -115,9 +199,14 @@ alter view public.movimentos_detalhe set (security_invoker = true);
 
 alter table public.eventos enable row level security;
 alter table public.movimentos enable row level security;
+alter table public.app_users enable row level security;
+alter table public.app_settings enable row level security;
 
 drop policy if exists "Leitura publica eventos" on public.eventos;
 drop policy if exists "Leitura publica movimentos" on public.movimentos;
+drop policy if exists "Leitura publica app users" on public.app_users;
+drop policy if exists "Leitura publica app settings" on public.app_settings;
+drop policy if exists "Escrita publica app users" on public.app_users;
 
 create policy "Leitura publica eventos"
 on public.eventos for select
@@ -129,8 +218,17 @@ on public.movimentos for select
 to anon, authenticated
 using (true);
 
+create policy "Leitura publica app settings"
+on public.app_settings for select
+to anon, authenticated
+using (true);
+
 grant usage on schema public to anon, authenticated;
 grant select on public.eventos to anon, authenticated;
 grant select on public.movimentos to anon, authenticated;
 grant select on public.eventos_resumo to anon, authenticated;
 grant select on public.movimentos_detalhe to anon, authenticated;
+revoke all on public.app_users from anon, authenticated;
+grant select, insert, update, delete on public.app_settings to anon, authenticated;
+grant execute on function public.app_verify_login(text, text) to anon, authenticated;
+grant execute on function public.app_change_password(text, text, text) to anon, authenticated;

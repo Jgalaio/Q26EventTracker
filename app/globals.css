@@ -537,6 +537,19 @@ h2 {
   font-weight: 700;
 }
 
+.custom-logo-card {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid #c4d8ff;
+  padding: 10px;
+}
+
+.report-logo-image {
+  display: block;
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+
 .report-title-block {
   align-self: center;
   display: grid;
@@ -1622,6 +1635,111 @@ td {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.admin-settings-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 18px;
+}
+
+.admin-settings-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.admin-settings-card label {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.84rem;
+  gap: 7px;
+}
+
+.admin-settings-card input {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  min-height: 42px;
+  min-width: 0;
+  padding: 0 11px;
+}
+
+.admin-settings-card input[readonly] {
+  color: var(--muted);
+}
+
+.admin-settings-card input[type="file"] {
+  align-items: center;
+  display: flex;
+  padding: 9px 11px;
+}
+
+.admin-settings-card button {
+  background: var(--blue);
+  border: 0;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 42px;
+  padding: 0 14px;
+}
+
+.admin-settings-card button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.admin-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-inline-actions .secondary-button {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.logo-preview-box {
+  align-items: center;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.86), rgba(247, 250, 255, 0.9)),
+    url("/report-background.png") center / cover no-repeat;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  height: 150px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.logo-preview-box img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.logo-preview-box span {
+  color: var(--blue);
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.admin-file-name {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .admin-card {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -1932,6 +2050,10 @@ td {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .admin-settings-grid {
+    grid-template-columns: 1fr;
+  }
+
   .menu-actions {
     justify-content: flex-start;
   }
@@ -2094,6 +2216,11 @@ td {
   }
 
   .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-inline-actions {
+    display: grid;
     grid-template-columns: 1fr;
   }
 }

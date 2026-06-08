@@ -5,7 +5,7 @@ Este projeto converte o ficheiro Excel `Tesouraria Q26.xlsm` para:
 - `supabase/schema.sql`: tabelas, views e políticas de leitura.
 - `supabase/seed.sql`: importação dos 34 eventos/categorias e 551 movimentos.
 - `supabase/optional_excel_support.sql`: tabelas opcionais para histórico e CSVs auxiliares.
-- `supabase/enable_public_writes.sql`: adiciona os campos `isento` e `contabilizar_totais`, e dá permissões ao menu para criar/editar eventos e criar/editar/apagar movimentos.
+- `supabase/enable_public_writes.sql`: adiciona os campos `isento` e `contabilizar_totais`, ativa a edição de eventos/movimentos e cria as tabelas de definições do Admin.
 - `data/*.csv`: exportações auditáveis, incluindo histórico Excel e utilizadores sem passwords.
 - App Next.js pronta para Vercel.
 
@@ -25,6 +25,8 @@ O sistema de login tem três roles:
 
 As passwords não ficam gravadas em texto claro no projeto. Para sessões mais seguras em produção, define também `Q26_AUTH_SECRET` nas variáveis de ambiente do Vercel.
 
+No painel `/admin`, um Admin pode alterar a sua própria password e trocar o logo usado na capa do relatório. Essas alterações ficam guardadas no Supabase depois de correres `supabase/enable_public_writes.sql`.
+
 ## 1. Criar a base de dados
 
 No Supabase SQL Editor, corre primeiro:
@@ -41,15 +43,15 @@ Depois corre:
 
 Se também quiseres guardar o histórico de alterações do Excel no Supabase, corre `supabase/optional_excel_support.sql` e importa os CSVs auxiliares pela Table Editor.
 
-Para ativar os formulários (`Novo evento`, `Editar evento`, `Adicionar entrada`, `Adicionar saída`) e guardar as opções `Isento: Sim/Não` e `Contabilizar nos totais: Sim/Não`, corre também:
+Para ativar os formulários (`Novo evento`, `Editar evento`, `Adicionar entrada`, `Adicionar saída`), guardar as opções `Isento: Sim/Não` e `Contabilizar nos totais: Sim/Não`, permitir alteração de password e trocar o logo do relatório, corre também:
 
 ```sql
 -- supabase/enable_public_writes.sql
 ```
 
-Se já tinhas corrido este ficheiro antes, volta a corrê-lo para criar o campo `contabilizar_totais`, marcar `Decoração` como só registo e manter a edição/eliminação de movimentos ativa.
+Se já tinhas corrido este ficheiro antes, volta a corrê-lo para criar as tabelas `app_users` e `app_settings`, ativar as funções `app_verify_login` / `app_change_password`, marcar `Decoração` como só registo e manter a edição/eliminação de movimentos ativa.
 
-As passwords da folha `Utilizadores` não foram exportadas. Para acesso real à app, cria utilizadores no Supabase Auth ou protege o projeto no Vercel.
+O painel `Admin` permite alterar a password do utilizador atual e guardar/remover o logo personalizado do relatório. As passwords base são criadas no Supabase com hash e a app valida o login através de funções SQL, sem expor a coluna `password_hash` pela API pública.
 
 ## 2. Variáveis de ambiente
 

@@ -8,6 +8,17 @@ type AuthUser = AuthSession & {
   passwordHash: string;
 };
 
+type SupabaseLoginRow = {
+  username: string | null;
+  role: string | null;
+  password_valid: boolean;
+  has_override: boolean;
+};
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ushhacwtmpmwmvpaitdx.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB";
+
 const AUTH_USERS: AuthUser[] = [
   {
     username: "J.Galaio",
@@ -35,7 +46,7 @@ function authSecret() {
   return process.env.Q26_AUTH_SECRET || "q26-event-tracker-change-this-secret";
 }
 
-function hashCredential(username: string, password: string) {
+export function hashCredential(username: string, password: string) {
   return createHash("sha256").update(`${username}:${password}`).digest("hex");
 }
 
@@ -61,12 +72,48 @@ function isRole(value: unknown): value is UserRole {
   return value === "admin" || value === "operator" || value === "view";
 }
 
-export function listAuthUsers() {
+async function verifyStoredCredentials(username: string, password: string) {
+  const endpoint = `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/rpc/app_verify_login`;
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ p_username: username, p_password: password }),
+      cache: "no-store"
+    });
+
+    if (!response.ok) return null;
+    const rows = (await response.json()) as SupabaseLoginRow[];
+    const row = rows[0];
+    if (!row?.has_override) return { hasOverride: false, session: null };
+    if (!row.password_valid || typeof row.username !== "string" || !isRole(row.role)) {
+      return { hasOverride: true, session: null };
+    }
+
+    return {
+      hasOverride: true,
+      session: {
+        username: row.username,
+        role: row.role
+      }
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function listAuthUsers() {
   return AUTH_USERS.map(({ username, role }) => ({ username, role }));
 }
 
-export function verifyCredentials(username: string, password: string): AuthSession | null {
+export async function verifyCredentials(username: string, password: string): Promise<AuthSession | null> {
   const normalizedUsername = username.trim();
+  const storedCredentials = await verifyStoredCredentials(normalizedUsername, password);
+  if (storedCredentials?.hasOverride) return storedCredentials.session;
+
   const user = AUTH_USERS.find((candidate) => candidate.username === normalizedUsername);
   if (!user) return null;
 

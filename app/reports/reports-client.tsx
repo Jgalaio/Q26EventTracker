@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import type { ReportLogo } from "../app-settings";
 import { ROLE_LABELS, canAccessAdmin, type AuthSession } from "../auth-types";
 import type { EventoResumo, MovimentoDetalhe } from "../supabase-data";
 
@@ -31,6 +32,7 @@ type ReportsClientProps = {
   error: string | null;
   session: AuthSession;
   generatedAt: string;
+  reportLogo: ReportLogo | null;
 };
 
 const moneyFormatter = new Intl.NumberFormat("pt-PT", {
@@ -158,7 +160,7 @@ function eventPie(summary: Summary) {
   };
 }
 
-export function ReportsClient({ eventos, movimentos, error, session, generatedAt }: ReportsClientProps) {
+export function ReportsClient({ eventos, movimentos, error, session, generatedAt, reportLogo }: ReportsClientProps) {
   const eventList = useMemo(() => {
     return eventos
       .filter((event) => event.slug !== "contas")
@@ -315,12 +317,18 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
       <section className="report-stage" aria-label="Pré-visualização do relatório">
         <article className="report-page report-front-page">
           <header className="report-front-header">
-            <div className="report-logo-card" aria-label="Quarentões 26 Pontével">
-              <div className="report-logo-mark">
-                <span>Q26</span>
-              </div>
-              <strong>Quarentões 26</strong>
-              <small>Pontével</small>
+            <div className={reportLogo ? "report-logo-card custom-logo-card" : "report-logo-card"} aria-label="Logo do relatório">
+              {reportLogo ? (
+                <img alt="Logo do relatório" className="report-logo-image" src={reportLogo.dataUrl} />
+              ) : (
+                <>
+                  <div className="report-logo-mark">
+                    <span>Q26</span>
+                  </div>
+                  <strong>Quarentões 26</strong>
+                  <small>Pontével</small>
+                </>
+              )}
             </div>
             <div className="report-title-block">
               <h2>Relatório de Contas Q26</h2>

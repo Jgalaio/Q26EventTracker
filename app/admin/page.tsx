@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getReportLogo } from "../app-settings";
 import { getSession, listAuthUsers } from "../auth";
-import { ROLE_LABELS } from "../auth-types";
+import { AdminClient } from "./admin-client";
 
 export default async function AdminPage() {
   const session = await getSession();
   if (!session) redirect("/login?next=/admin");
   if (session.role !== "admin") redirect(session.role === "view" ? "/overview" : "/");
 
-  const users = listAuthUsers();
+  const [users, reportLogo] = await Promise.all([listAuthUsers(), getReportLogo()]);
 
   return (
     <main className="shell">
@@ -35,21 +36,7 @@ export default async function AdminPage() {
         </div>
       </section>
 
-      <section className="admin-grid" aria-label="Utilizadores">
-        {users.map((user) => (
-          <article className="admin-card" key={user.username}>
-            <span>{ROLE_LABELS[user.role]}</span>
-            <strong>{user.username}</strong>
-            <p>
-              {user.role === "admin"
-                ? "Acesso total, incluindo apagar registos e painel Admin."
-                : user.role === "operator"
-                  ? "Pode adicionar e alterar. Alterações exigem justificação."
-                  : "Pode apenas consultar o OverView."}
-            </p>
-          </article>
-        ))}
-      </section>
+      <AdminClient reportLogo={reportLogo} session={session} users={users} />
     </main>
   );
 }
