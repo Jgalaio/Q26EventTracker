@@ -227,7 +227,10 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
     return reportEvents.find((item) => item.event.slug === "decoracao")?.summary ?? emptySummary();
   }, [reportEvents]);
 
-  const totalWithQ25Balance = totals.lucro + q25Balance;
+  const totalWithQ25Balance = reportScope === "geral" ? totals.lucro + q25Balance : totals.lucro;
+  const q25SummaryLabel = reportScope === "geral" ? "SALDO + Q25" : "SALDO do evento";
+  const q25SummaryDescription =
+    reportScope === "geral" ? "Lucro + Montante deixado pelos Q25" : "Lucro do evento selecionado";
 
   const chartItems = [
     { label: "Entradas Totais", value: totals.entradas, className: "cover-bar-blue" },
@@ -396,8 +399,8 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
                 <strong className={totals.lucro >= 0 ? "positive" : "negative"}>{formatMoney(totals.lucro)}</strong>
               </article>
               <article>
-                <span>SALDO + Q25</span>
-                <small>Lucro + Montante deixado pelos Q25</small>
+                <span>{q25SummaryLabel}</span>
+                <small>{q25SummaryDescription}</small>
                 <strong className={totalWithQ25Balance >= 0 ? "positive" : "negative"}>{formatMoney(totalWithQ25Balance)}</strong>
               </article>
             </section>
