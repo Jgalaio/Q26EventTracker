@@ -136,6 +136,11 @@ function chartHeight(value: number, maxValue: number) {
   return `${Math.max(9, (value / maxValue) * 100)}%`;
 }
 
+function barWidth(value: number, maxValue: number) {
+  if (value <= 0 || maxValue <= 0) return "0%";
+  return `${Math.max(2, (value / maxValue) * 100)}%`;
+}
+
 function eventPie(summary: Summary) {
   const entradas = Math.max(0, summary.entradas);
   const saidas = Math.max(0, summary.saidas);
@@ -225,6 +230,14 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
     { label: "A Pagamento Total", value: totals.aPagamento, className: "cover-bar-yellow" }
   ];
   const chartMax = Math.max(...chartItems.map((item) => item.value), 1);
+  const overviewChartMax = Math.max(
+    ...visibleEvents.flatMap((item) => [
+      item.summary.entradas,
+      item.summary.saidas,
+      Math.abs(item.summary.lucro)
+    ]),
+    1
+  );
   const printedDate = dateFormatter.format(new Date(generatedAt));
   const reportSubtitle = reportScope === "geral" ? "Relatório geral" : selectedEvent?.event.nome ?? "Evento selecionado";
 
@@ -414,6 +427,44 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
               <strong className={totals.lucro >= 0 ? "positive" : "negative"}>{formatMoney(totals.lucro)}</strong>
             </article>
           </div>
+
+          <section className="report-overview-bars" aria-label="Gráfico horizontal dos eventos">
+            <div className="report-chart-heading">
+              <div>
+                <p className="eyebrow">Eventos</p>
+                <h3>Entradas, despesas e lucro</h3>
+              </div>
+              <div className="report-chart-legend">
+                <span><i className="bar-blue-solid" />Entradas</span>
+                <span><i className="bar-orange-solid" />Despesas</span>
+                <span><i className="bar-green-solid" />Lucro</span>
+              </div>
+            </div>
+            <div className="horizontal-chart">
+              {visibleEvents.map((item) => (
+                <div className="horizontal-chart-row" key={item.event.slug}>
+                  <strong>{item.event.nome}</strong>
+                  <div className="horizontal-bars">
+                    <span className="horizontal-bar-cell">
+                      <i className="horizontal-bar bar-blue-solid" style={{ width: barWidth(item.summary.entradas, overviewChartMax) }} />
+                      <em>{formatMoney(item.summary.entradas)}</em>
+                    </span>
+                    <span className="horizontal-bar-cell">
+                      <i className="horizontal-bar bar-orange-solid" style={{ width: barWidth(item.summary.saidas, overviewChartMax) }} />
+                      <em>{formatMoney(item.summary.saidas)}</em>
+                    </span>
+                    <span className="horizontal-bar-cell">
+                      <i
+                        className={`horizontal-bar ${item.summary.lucro >= 0 ? "bar-green-solid" : "bar-red-solid"}`}
+                        style={{ width: barWidth(Math.abs(item.summary.lucro), overviewChartMax) }}
+                      />
+                      <em>{formatMoney(item.summary.lucro)}</em>
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
         </article>
 
         {visibleEvents.length ? (
