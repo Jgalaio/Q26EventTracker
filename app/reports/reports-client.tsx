@@ -32,6 +32,7 @@ type ReportsClientProps = {
   error: string | null;
   session: AuthSession;
   generatedAt: string;
+  q25Balance: number;
   reportLogo: ReportLogo | null;
 };
 
@@ -160,7 +161,7 @@ function eventPie(summary: Summary) {
   };
 }
 
-export function ReportsClient({ eventos, movimentos, error, session, generatedAt, reportLogo }: ReportsClientProps) {
+export function ReportsClient({ eventos, movimentos, error, session, generatedAt, q25Balance, reportLogo }: ReportsClientProps) {
   const eventList = useMemo(() => {
     return eventos
       .filter((event) => event.slug !== "contas")
@@ -226,7 +227,7 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
     return reportEvents.find((item) => item.event.slug === "decoracao")?.summary ?? emptySummary();
   }, [reportEvents]);
 
-  const totalWithBankBalance = totals.lucro + accountTotals.saldo;
+  const totalWithQ25Balance = totals.lucro + q25Balance;
 
   const chartItems = [
     { label: "Entradas Totais", value: totals.entradas, className: "cover-bar-blue" },
@@ -392,9 +393,9 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
                 <strong className={totals.lucro >= 0 ? "positive" : "negative"}>{formatMoney(totals.lucro)}</strong>
               </article>
               <article>
-                <span>SALDO + Conta Bancária</span>
-                <small>Lucro + Saldo Conta Bancária</small>
-                <strong className={totalWithBankBalance >= 0 ? "positive" : "negative"}>{formatMoney(totalWithBankBalance)}</strong>
+                <span>SALDO + Q25</span>
+                <small>Lucro + Montante deixado pelos Q25</small>
+                <strong className={totalWithQ25Balance >= 0 ? "positive" : "negative"}>{formatMoney(totalWithQ25Balance)}</strong>
               </article>
             </section>
           </div>

@@ -51,7 +51,7 @@ Para ativar os formulários (`Novo evento`, `Editar evento`, `Adicionar entrada`
 
 Se já tinhas corrido este ficheiro antes, volta a corrê-lo para criar as tabelas `app_users` e `app_settings`, ativar as funções `app_verify_login` / `app_change_password`, marcar `Decoração` como só registo e manter a edição/eliminação de movimentos ativa.
 
-O painel `Admin` permite alterar a password do utilizador atual e guardar/remover o logo personalizado do relatório. As passwords base são criadas no Supabase com hash e a app valida o login através de funções SQL, sem expor a coluna `password_hash` pela API pública.
+O painel `Admin` permite alterar a password do utilizador atual, guardar/remover o logo personalizado do relatório e definir o `Montante deixado pelos Q25` usado nos cartões de totais. As passwords base são criadas no Supabase com hash e a app valida o login através de funções SQL, sem expor a coluna `password_hash` pela API pública.
 
 ## 2. Variáveis de ambiente
 

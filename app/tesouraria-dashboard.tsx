@@ -10,6 +10,7 @@ type DashboardProps = {
   eventos: EventoResumo[];
   movimentos: MovimentoDetalhe[];
   error: string | null;
+  q25Balance: number;
   session: AuthSession;
 };
 
@@ -212,7 +213,7 @@ async function appWrite(resource: string, options: RequestInit) {
   return body ? JSON.parse(body) : null;
 }
 
-export function Dashboard({ eventos, movimentos, error, session }: DashboardProps) {
+export function Dashboard({ eventos, movimentos, error, q25Balance, session }: DashboardProps) {
   const router = useRouter();
   const mayWrite = canWrite(session.role);
   const mayDelete = canDelete(session.role);
@@ -329,7 +330,7 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
 
   const eventProfit = totals.entradas - totals.saidas;
   const accountBalance = accountCounts.totalEntradas - accountCounts.totalSaidas;
-  const profitWithBankBalance = eventProfit + accountBalance;
+  const profitWithQ25Balance = eventProfit + q25Balance;
 
   const filteredAccountMovimentos = useMemo(() => {
     const source = activeTab === "entrada" ? accountEntries : accountSaidas;
@@ -755,8 +756,8 @@ export function Dashboard({ eventos, movimentos, error, session }: DashboardProp
               <strong>{formatMoney(eventProfit)}</strong>
             </article>
             <article>
-              <span>Lucro + Saldo Conta</span>
-              <strong>{formatMoney(profitWithBankBalance)}</strong>
+              <span>Lucro + Montante Q25</span>
+              <strong>{formatMoney(profitWithQ25Balance)}</strong>
             </article>
             <article>
               <span>Eventos isentos</span>

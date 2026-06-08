@@ -13,6 +13,7 @@ type AdminClientProps = {
   session: AuthSession;
   users: AdminUser[];
   reportLogo: ReportLogo | null;
+  q25Balance: number;
 };
 
 type PasswordForm = {
@@ -27,15 +28,18 @@ const emptyPasswordForm: PasswordForm = {
   confirmPassword: ""
 };
 
-export function AdminClient({ session, users, reportLogo }: AdminClientProps) {
+export function AdminClient({ session, users, reportLogo, q25Balance }: AdminClientProps) {
   const [passwordForm, setPasswordForm] = useState<PasswordForm>(emptyPasswordForm);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [logoMessage, setLogoMessage] = useState<string | null>(null);
+  const [q25Message, setQ25Message] = useState<string | null>(null);
   const [logoPreview, setLogoPreview] = useState(reportLogo?.dataUrl ?? "");
   const [logoFileName, setLogoFileName] = useState(reportLogo?.fileName ?? "");
   const [logoDataUrl, setLogoDataUrl] = useState("");
+  const [q25Amount, setQ25Amount] = useState(String(q25Balance).replace(".", ","));
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isSavingLogo, setIsSavingLogo] = useState(false);
+  const [isSavingQ25, setIsSavingQ25] = useState(false);
 
   const updatePasswordField = (field: keyof PasswordForm, value: string) => {
     setPasswordForm((current) => ({ ...current, [field]: value }));
@@ -127,6 +131,27 @@ export function AdminClient({ session, users, reportLogo }: AdminClientProps) {
     }
   };
 
+  const handleQ25Submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSavingQ25(true);
+    setQ25Message(null);
+
+    try {
+      const response = await fetch("/api/admin/q25-balance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: q25Amount })
+      });
+      const body = (await response.json().catch(() => null)) as { message?: string } | null;
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível guardar o montante.");
+      setQ25Message(body?.message ?? "Montante Q25 atualizado.");
+    } catch (error) {
+      setQ25Message(error instanceof Error ? error.message : "Não foi possível guardar o montante.");
+    } finally {
+      setIsSavingQ25(false);
+    }
+  };
+
   return (
     <>
       <section className="admin-settings-grid" aria-label="Definições do admin">
@@ -196,6 +221,26 @@ export function AdminClient({ session, users, reportLogo }: AdminClientProps) {
               Remover
             </button>
           </div>
+        </form>
+
+        <form className="admin-settings-card" onSubmit={handleQ25Submit}>
+          <div>
+            <p className="eyebrow">Totais</p>
+            <h2>Montante deixado pelos Q25</h2>
+          </div>
+          <label>
+            Montante
+            <input
+              inputMode="decimal"
+              placeholder="0,00"
+              value={q25Amount}
+              onChange={(event) => setQ25Amount(event.target.value)}
+            />
+          </label>
+          {q25Message ? <p className="form-message">{q25Message}</p> : null}
+          <button disabled={isSavingQ25} type="submit">
+            {isSavingQ25 ? "A guardar..." : "Guardar montante"}
+          </button>
         </form>
       </section>
 

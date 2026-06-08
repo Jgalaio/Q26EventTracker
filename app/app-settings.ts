@@ -68,3 +68,12 @@ export async function getReportLogo() {
   const logo = await readAppSetting<ReportLogo>("report_logo");
   return logo?.dataUrl ? logo : null;
 }
+
+export async function getQ25Balance() {
+  const setting = await readAppSetting<{ amount?: unknown } | number>("q25_balance");
+  if (typeof setting === "number" && Number.isFinite(setting)) return setting;
+  if (typeof setting === "object" && setting && typeof setting.amount === "number" && Number.isFinite(setting.amount)) {
+    return setting.amount;
+  }
+  return 0;
+}

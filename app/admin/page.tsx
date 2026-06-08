@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getReportLogo } from "../app-settings";
+import { getQ25Balance, getReportLogo } from "../app-settings";
 import { getSession, listAuthUsers } from "../auth";
 import { AdminClient } from "./admin-client";
 
@@ -9,7 +9,7 @@ export default async function AdminPage() {
   if (!session) redirect("/login?next=/admin");
   if (session.role !== "admin") redirect(session.role === "view" ? "/overview" : "/");
 
-  const [users, reportLogo] = await Promise.all([listAuthUsers(), getReportLogo()]);
+  const [users, reportLogo, q25Balance] = await Promise.all([listAuthUsers(), getReportLogo(), getQ25Balance()]);
 
   return (
     <main className="shell">
@@ -36,7 +36,7 @@ export default async function AdminPage() {
         </div>
       </section>
 
-      <AdminClient reportLogo={reportLogo} session={session} users={users} />
+      <AdminClient q25Balance={q25Balance} reportLogo={reportLogo} session={session} users={users} />
     </main>
   );
 }
