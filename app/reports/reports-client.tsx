@@ -359,7 +359,7 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
           </header>
 
           <p className="report-authors">
-            Relatório Elaborado Por: <strong>J. Galaio / Ana Lopes / Marta Amendoeira</strong>
+            Relatório Elaborado Por: <strong>J. Galaio / Ana Lopes</strong>
           </p>
 
           <div className="report-cover-grid">
