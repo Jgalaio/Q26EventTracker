@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
+import { getAppFavicon } from "./app-settings";
 import "./globals.css";
 
-export const metadata: Metadata = {
+const baseMetadata: Metadata = {
   title: "Tesouraria Q26",
   description: "Dashboard de tesouraria dos eventos Q26 ligado ao Supabase."
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  const favicon = await getAppFavicon();
+  return {
+    ...baseMetadata,
+    icons: favicon ? { icon: favicon.dataUrl } : undefined
+  };
+}
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (

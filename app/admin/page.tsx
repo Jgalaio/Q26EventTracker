@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getQ25Balance, getReportLogo } from "../app-settings";
+import { getAppFavicon, getQ25Balance, getReportLogo } from "../app-settings";
 import { getAuditLogs } from "../audit-log";
 import { getSession, listAuthUsers } from "../auth";
 import { AdminClient } from "./admin-client";
@@ -22,9 +22,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const params = searchParams ? await searchParams : {};
   const auditPage = parseLogPage(params.logPage);
-  const [users, reportLogo, q25Balance, audit] = await Promise.all([
+  const [users, reportLogo, appFavicon, q25Balance, audit] = await Promise.all([
     listAuthUsers(),
     getReportLogo(),
+    getAppFavicon(),
     getQ25Balance(),
     getAuditLogs(auditPage, 50)
   ]);
@@ -62,6 +63,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         auditLogError={audit.error}
         auditLogs={audit.logs}
         auditPage={auditPage}
+        appFavicon={appFavicon}
         q25Balance={q25Balance}
         reportLogo={reportLogo}
         session={session}

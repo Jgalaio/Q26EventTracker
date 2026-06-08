@@ -2,7 +2,7 @@
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
-import type { ReportLogo } from "../app-settings";
+import type { AppFavicon, ReportLogo } from "../app-settings";
 import type { AuditLogEntry } from "../audit-log";
 import { ROLE_LABELS, type AuthSession } from "../auth-types";
 
@@ -15,6 +15,7 @@ type AdminClientProps = {
   session: AuthSession;
   users: AdminUser[];
   reportLogo: ReportLogo | null;
+  appFavicon: AppFavicon | null;
   q25Balance: number;
   auditLogs: AuditLogEntry[];
   auditLogError: string | null;
@@ -60,6 +61,7 @@ export function AdminClient({
   session,
   users,
   reportLogo,
+  appFavicon,
   q25Balance,
   auditLogs,
   auditLogError,
@@ -69,13 +71,18 @@ export function AdminClient({
   const [passwordForm, setPasswordForm] = useState<PasswordForm>(emptyPasswordForm);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [logoMessage, setLogoMessage] = useState<string | null>(null);
+  const [faviconMessage, setFaviconMessage] = useState<string | null>(null);
   const [q25Message, setQ25Message] = useState<string | null>(null);
   const [logoPreview, setLogoPreview] = useState(reportLogo?.dataUrl ?? "");
   const [logoFileName, setLogoFileName] = useState(reportLogo?.fileName ?? "");
   const [logoDataUrl, setLogoDataUrl] = useState("");
+  const [faviconPreview, setFaviconPreview] = useState(appFavicon?.dataUrl ?? "");
+  const [faviconFileName, setFaviconFileName] = useState(appFavicon?.fileName ?? "");
+  const [faviconDataUrl, setFaviconDataUrl] = useState("");
   const [q25Amount, setQ25Amount] = useState(String(q25Balance).replace(".", ","));
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isSavingLogo, setIsSavingLogo] = useState(false);
+  const [isSavingFavicon, setIsSavingFavicon] = useState(false);
   const [isSavingQ25, setIsSavingQ25] = useState(false);
 
   const updatePasswordField = (field: keyof PasswordForm, value: string) => {
@@ -124,6 +131,26 @@ export function AdminClient({
     reader.readAsDataURL(file);
   };
 
+  const handleFaviconChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setFaviconMessage("Escolhe um ficheiro de imagem.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const value = typeof reader.result === "string" ? reader.result : "";
+      setFaviconPreview(value);
+      setFaviconDataUrl(value);
+      setFaviconFileName(file.name);
+      setFaviconMessage(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleLogoSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!logoDataUrl) {
@@ -165,6 +192,50 @@ export function AdminClient({
       setLogoMessage(error instanceof Error ? error.message : "Não foi possível remover o logo.");
     } finally {
       setIsSavingLogo(false);
+    }
+  };
+
+  const handleFaviconSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!faviconDataUrl) {
+      setFaviconMessage("Escolhe primeiro uma imagem.");
+      return;
+    }
+
+    setIsSavingFavicon(true);
+    setFaviconMessage(null);
+    try {
+      const response = await fetch("/api/admin/favicon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataUrl: faviconDataUrl, fileName: faviconFileName })
+      });
+      const body = (await response.json().catch(() => null)) as { message?: string } | null;
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível guardar o favicon.");
+      setFaviconDataUrl("");
+      setFaviconMessage(body?.message ?? "Favicon atualizado.");
+    } catch (error) {
+      setFaviconMessage(error instanceof Error ? error.message : "Não foi possível guardar o favicon.");
+    } finally {
+      setIsSavingFavicon(false);
+    }
+  };
+
+  const removeFavicon = async () => {
+    setIsSavingFavicon(true);
+    setFaviconMessage(null);
+    try {
+      const response = await fetch("/api/admin/favicon", { method: "DELETE" });
+      const body = (await response.json().catch(() => null)) as { message?: string } | null;
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível remover o favicon.");
+      setFaviconPreview("");
+      setFaviconDataUrl("");
+      setFaviconFileName("");
+      setFaviconMessage(body?.message ?? "Favicon removido.");
+    } catch (error) {
+      setFaviconMessage(error instanceof Error ? error.message : "Não foi possível remover o favicon.");
+    } finally {
+      setIsSavingFavicon(false);
     }
   };
 
@@ -255,6 +326,30 @@ export function AdminClient({
               {isSavingLogo ? "A guardar..." : "Guardar logo"}
             </button>
             <button className="secondary-button" disabled={isSavingLogo || !logoPreview} type="button" onClick={removeLogo}>
+              Remover
+            </button>
+          </div>
+        </form>
+
+        <form className="admin-settings-card" onSubmit={handleFaviconSubmit}>
+          <div>
+            <p className="eyebrow">Aplicação</p>
+            <h2>Alterar favicon</h2>
+          </div>
+          <div className="favicon-preview-box">
+            {faviconPreview ? <img alt="Favicon atual" src={faviconPreview} /> : <span>Q26</span>}
+          </div>
+          <label>
+            Imagem
+            <input accept="image/*" type="file" onChange={handleFaviconChange} />
+          </label>
+          {faviconFileName ? <p className="admin-file-name">{faviconFileName}</p> : null}
+          {faviconMessage ? <p className="form-message">{faviconMessage}</p> : null}
+          <div className="admin-inline-actions">
+            <button disabled={isSavingFavicon || !faviconDataUrl} type="submit">
+              {isSavingFavicon ? "A guardar..." : "Guardar favicon"}
+            </button>
+            <button className="secondary-button" disabled={isSavingFavicon || !faviconPreview} type="button" onClick={removeFavicon}>
               Remover
             </button>
           </div>

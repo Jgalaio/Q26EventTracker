@@ -3,6 +3,11 @@ export type ReportLogo = {
   fileName: string | null;
 };
 
+export type AppFavicon = {
+  dataUrl: string;
+  fileName: string | null;
+};
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ushhacwtmpmwmvpaitdx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB";
@@ -67,6 +72,11 @@ export async function deleteAppSetting(key: string) {
 export async function getReportLogo() {
   const logo = await readAppSetting<ReportLogo>("report_logo");
   return logo?.dataUrl ? logo : null;
+}
+
+export async function getAppFavicon() {
+  const favicon = await readAppSetting<AppFavicon>("app_favicon");
+  return favicon?.dataUrl ? favicon : null;
 }
 
 export async function getQ25Balance() {

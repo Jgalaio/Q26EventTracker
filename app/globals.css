@@ -2004,6 +2004,39 @@ td {
   font-weight: 800;
 }
 
+.favicon-preview-box {
+  align-items: center;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.88), rgba(247, 250, 255, 0.94)),
+    url("/report-background.png") center / cover no-repeat;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  height: 96px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 14px;
+}
+
+.favicon-preview-box img {
+  height: 48px;
+  object-fit: contain;
+  width: 48px;
+}
+
+.favicon-preview-box span {
+  align-items: center;
+  background: var(--blue);
+  border-radius: 8px;
+  color: white;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 800;
+  height: 48px;
+  justify-content: center;
+  width: 48px;
+}
+
 .admin-file-name {
   color: var(--muted);
   font-size: 0.82rem;
