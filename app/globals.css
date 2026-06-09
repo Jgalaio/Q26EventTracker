@@ -1126,11 +1126,39 @@ h2 {
   padding: 12px 16px;
 }
 
+.report-movement-sections {
+  display: grid;
+  gap: 14px;
+  padding: 0 16px 16px;
+}
+
+.report-movement-section {
+  display: grid;
+  gap: 8px;
+}
+
+.report-movement-section h4 {
+  border-bottom: 1px solid #c4d8ff;
+  color: #1f4f9d;
+  font-size: 0.86rem;
+  margin: 0;
+  padding-bottom: 6px;
+  text-transform: uppercase;
+}
+
 .report-table-wrap {
   overflow-x: auto;
 }
 
 .report-table {
+  min-width: 720px;
+}
+
+.report-entry-table {
+  min-width: 420px;
+}
+
+.report-exit-table {
   min-width: 720px;
 }
 
@@ -2756,6 +2784,20 @@ td {
     padding: 9px 12px;
   }
 
+  .report-movement-sections {
+    gap: 10px;
+    padding: 0 12px 12px;
+  }
+
+  .report-movement-section {
+    gap: 6px;
+  }
+
+  .report-movement-section h4 {
+    font-size: 0.72rem;
+    padding-bottom: 4px;
+  }
+
   .report-table-wrap {
     overflow: visible;
   }
@@ -2783,6 +2825,36 @@ td {
 
   .report-table th:nth-child(4),
   .report-table td:nth-child(4) {
+    width: 22%;
+  }
+
+  .report-entry-table th:nth-child(1),
+  .report-entry-table td:nth-child(1) {
+    width: 72%;
+  }
+
+  .report-entry-table th:nth-child(2),
+  .report-entry-table td:nth-child(2) {
+    width: 28%;
+  }
+
+  .report-exit-table th:nth-child(1),
+  .report-exit-table td:nth-child(1) {
+    width: 14%;
+  }
+
+  .report-exit-table th:nth-child(2),
+  .report-exit-table td:nth-child(2) {
+    width: 42%;
+  }
+
+  .report-exit-table th:nth-child(3),
+  .report-exit-table td:nth-child(3) {
+    width: 22%;
+  }
+
+  .report-exit-table th:nth-child(4),
+  .report-exit-table td:nth-child(4) {
     width: 22%;
   }
 

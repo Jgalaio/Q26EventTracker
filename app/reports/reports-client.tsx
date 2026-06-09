@@ -503,6 +503,8 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
         {visibleEvents.length ? (
           visibleEvents.map((item) => {
             const pie = eventPie(item.summary);
+            const entradas = item.movimentos.filter((movimento) => movimento.tipo === "entrada");
+            const saidas = item.movimentos.filter((movimento) => movimento.tipo !== "entrada");
 
             return (
               <article className="report-page report-event-page" key={item.event.slug}>
@@ -521,33 +523,67 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
                     <span>A pagamento {formatMoney(item.summary.aPagamento)}</span>
                     <span>Saldo {formatMoney(item.summary.lucro)}</span>
                   </div>
-                  <div className="report-table-wrap">
-                    <table className="report-table">
-                      <thead>
-                        <tr>
-                          <th>Tipo</th>
-                          <th>Item</th>
-                          <th>Data</th>
-                          <th>Montante</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {item.movimentos.length ? (
-                          item.movimentos.map((movimento) => (
-                            <tr key={movimento.id}>
-                              <td>{movementLabel(movimento.tipo)}</td>
-                              <td className="item-cell">{movimento.item}</td>
-                              <td>{formatDate(movimento.data_pagamento)}</td>
-                              <td className="money">{formatMoney(movimento.montante)}</td>
+
+                  <div className="report-movement-sections">
+                    <section className="report-movement-section" aria-label={`Entradas de ${item.event.nome}`}>
+                      <h4>Entradas</h4>
+                      <div className="report-table-wrap">
+                        <table className="report-table report-entry-table">
+                          <thead>
+                            <tr>
+                              <th>Item</th>
+                              <th>Montante</th>
                             </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={4}>Sem movimentos.</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                          </thead>
+                          <tbody>
+                            {entradas.length ? (
+                              entradas.map((movimento) => (
+                                <tr key={movimento.id}>
+                                  <td className="item-cell">{movimento.item}</td>
+                                  <td className="money">{formatMoney(movimento.montante)}</td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={2}>Sem entradas.</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+
+                    <section className="report-movement-section" aria-label={`Saídas de ${item.event.nome}`}>
+                      <h4>Saídas</h4>
+                      <div className="report-table-wrap">
+                        <table className="report-table report-exit-table">
+                          <thead>
+                            <tr>
+                              <th>Tipo</th>
+                              <th>Item</th>
+                              <th>Data</th>
+                              <th>Montante</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {saidas.length ? (
+                              saidas.map((movimento) => (
+                                <tr key={movimento.id}>
+                                  <td>{movementLabel(movimento.tipo)}</td>
+                                  <td className="item-cell">{movimento.item}</td>
+                                  <td>{formatDate(movimento.data_pagamento)}</td>
+                                  <td className="money">{formatMoney(movimento.montante)}</td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={4}>Sem saídas.</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
                   </div>
                 </section>
 
