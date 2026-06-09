@@ -505,6 +505,17 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
             const pie = eventPie(item.summary);
             const entradas = item.movimentos.filter((movimento) => movimento.tipo === "entrada");
             const saidas = item.movimentos.filter((movimento) => movimento.tipo !== "entrada");
+            const eventBarsMax = Math.max(item.summary.entradas, item.summary.saidas, Math.abs(item.summary.lucro), 1);
+            const eventBars = [
+              { label: "Entrada", value: item.summary.entradas, displayValue: item.summary.entradas, className: "bar-blue-solid" },
+              { label: "Despesa", value: item.summary.saidas, displayValue: item.summary.saidas, className: "bar-orange-solid" },
+              {
+                label: "Lucro",
+                value: Math.abs(item.summary.lucro),
+                displayValue: item.summary.lucro,
+                className: item.summary.lucro >= 0 ? "bar-green-solid" : "bar-red-solid"
+              }
+            ];
 
             return (
               <article className="report-page report-event-page" key={item.event.slug}>
@@ -587,20 +598,35 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
                   </div>
                 </section>
 
-                <section className="report-event-pie" aria-label={`Entradas versus despesas de ${item.event.nome}`}>
-                  <div className="pie-chart" style={{ background: pie.background }}>
-                    <span>{pie.entradasPercent}%</span>
-                  </div>
-                  <div className="pie-legend">
-                    <span>
-                      <i className="pie-blue" />
-                      Entradas {pie.entradasPercent}%
-                    </span>
-                    <span>
-                      <i className="pie-orange" />
-                      Despesas {pie.saidasPercent}%
-                    </span>
-                  </div>
+                <section className="report-event-graphics" aria-label={`Gráficos de ${item.event.nome}`}>
+                  <section className="report-event-bars" aria-label={`Entrada, despesa e lucro de ${item.event.nome}`}>
+                    <h4>Entrada, Despesa e Lucro</h4>
+                    <div className="report-event-bar-list">
+                      {eventBars.map((bar) => (
+                        <div className="report-event-bar-row" key={bar.label}>
+                          <span>{bar.label}</span>
+                          <i className={bar.className} style={{ width: barWidth(bar.value, eventBarsMax) }} />
+                          <strong>{formatMoney(bar.displayValue)}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="report-event-pie" aria-label={`Entradas versus despesas de ${item.event.nome}`}>
+                    <div className="pie-chart" style={{ background: pie.background }}>
+                      <span>{pie.entradasPercent}%</span>
+                    </div>
+                    <div className="pie-legend">
+                      <span>
+                        <i className="pie-blue" />
+                        Entradas {pie.entradasPercent}%
+                      </span>
+                      <span>
+                        <i className="pie-orange" />
+                        Despesas {pie.saidasPercent}%
+                      </span>
+                    </div>
+                  </section>
                 </section>
               </article>
             );

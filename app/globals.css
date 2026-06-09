@@ -1185,13 +1185,68 @@ h2 {
   margin: 0;
 }
 
-.report-event-pie {
+.report-event-graphics {
   align-items: center;
   border-top: 1px solid #c4d8ff;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding-top: 18px;
+}
+
+.report-event-bars {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid #c4d8ff;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+}
+
+.report-event-bars h4 {
+  color: #1f4f9d;
+  font-size: 0.78rem;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.report-event-bar-list {
+  display: grid;
+  gap: 8px;
+}
+
+.report-event-bar-row {
+  align-items: center;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 78px minmax(0, 1fr) 92px;
+}
+
+.report-event-bar-row span,
+.report-event-bar-row strong {
+  color: #375d93;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.report-event-bar-row strong {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.report-event-bar-row i {
+  border-radius: 999px;
+  display: block;
+  height: 10px;
+  min-width: 0;
+}
+
+.report-event-pie {
+  align-items: center;
   display: flex;
   gap: 20px;
   justify-content: flex-end;
-  padding-top: 18px;
 }
 
 .pie-chart {
@@ -2575,6 +2630,14 @@ td {
     flex-direction: column;
   }
 
+  .report-event-graphics {
+    grid-template-columns: 1fr;
+  }
+
+  .report-event-pie {
+    justify-content: flex-start;
+  }
+
   .reports-toolbar button {
     width: 100%;
   }
@@ -2865,9 +2928,41 @@ td {
     padding: 7px 8px;
   }
 
-  .report-event-pie {
-    gap: 14px;
+  .report-event-graphics {
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
     padding-top: 10px;
+  }
+
+  .report-event-bars {
+    gap: 7px;
+    padding: 8px;
+  }
+
+  .report-event-bars h4 {
+    font-size: 0.64rem;
+  }
+
+  .report-event-bar-list {
+    gap: 6px;
+  }
+
+  .report-event-bar-row {
+    gap: 6px;
+    grid-template-columns: 58px minmax(0, 1fr) 72px;
+  }
+
+  .report-event-bar-row span,
+  .report-event-bar-row strong {
+    font-size: 0.58rem;
+  }
+
+  .report-event-bar-row i {
+    height: 7px;
+  }
+
+  .report-event-pie {
+    gap: 12px;
   }
 
   .pie-chart {
