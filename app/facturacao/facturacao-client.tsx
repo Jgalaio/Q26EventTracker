@@ -52,12 +52,26 @@ function isMovementCounted(movimento: MovimentoDetalhe) {
   return movimento.contabilizar_totais !== false;
 }
 
+function isMarkedForLaterInvoice(movimento: MovimentoDetalhe) {
+  const value = movimento.raw?.faturar_mais_tarde;
+  return value === true || value === "sim" || value === "true";
+}
+
 function isFaturadaDespesa(movimento: MovimentoDetalhe) {
   return (
     movimento.tipo === "saida" &&
     movimento.fatura_com_nif === true &&
     movimento.evento_slug !== "contas" &&
     isMovementCounted(movimento)
+  );
+}
+
+function isLaterInvoiceExpense(movimento: MovimentoDetalhe) {
+  return (
+    movimento.tipo === "saida" &&
+    movimento.evento_slug !== "contas" &&
+    isMovementCounted(movimento) &&
+    isMarkedForLaterInvoice(movimento)
   );
 }
 
@@ -103,7 +117,7 @@ export function FacturacaoClient({ eventos, movimentos, error, session }: Factur
       .filter((movimento) => {
         const movementPosition = eventPositions.get(movimento.evento_slug);
         return (
-          isFaturadaDespesa(movimento) &&
+          isLaterInvoiceExpense(movimento) &&
           movimento.evento_slug !== selectedEvent.slug &&
           typeof movementPosition === "number" &&
           movementPosition < selectedPosition
@@ -320,7 +334,7 @@ export function FacturacaoClient({ eventos, movimentos, error, session }: Factur
                 ) : (
                   <tr>
                     <td className="empty-movement-row" colSpan={5}>
-                      Sem itens faturados em eventos anteriores.
+                      Sem itens marcados para faturar mais tarde em eventos anteriores.
                     </td>
                   </tr>
                 )}

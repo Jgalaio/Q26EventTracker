@@ -38,6 +38,7 @@ type MovementForm = {
   data_pagamento: string;
   numero_fatura: string;
   fatura_com_nif: "" | "sim" | "nao";
+  faturar_mais_tarde: boolean;
   tipo_pagamento: string;
   pago: "" | "sim" | "nao";
   contabilizar_totais: boolean;
@@ -81,6 +82,7 @@ const emptyMovementForm: MovementForm = {
   data_pagamento: "",
   numero_fatura: "",
   fatura_com_nif: "",
+  faturar_mais_tarde: false,
   tipo_pagamento: "",
   pago: "sim",
   contabilizar_totais: true
@@ -125,6 +127,11 @@ function isMovementCounted(movimento: MovimentoDetalhe) {
 
 function isPendingPayment(movimento: MovimentoDetalhe) {
   return movimento.tipo !== "entrada" && movimento.pago === false;
+}
+
+function isMarkedForLaterInvoice(movimento: MovimentoDetalhe) {
+  const value = movimento.raw?.faturar_mais_tarde;
+  return value === true || value === "sim" || value === "true";
 }
 
 function slugify(value: string) {
@@ -479,6 +486,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
       data_pagamento: movimento.data_pagamento ?? "",
       numero_fatura: movimento.numero_fatura ?? "",
       fatura_com_nif: booleanToForm(movimento.fatura_com_nif),
+      faturar_mais_tarde: isMarkedForLaterInvoice(movimento),
       tipo_pagamento:
         movimento.tipo === "entrada" && movimento.evento_slug !== "contas" ? entryPaymentLabel(movimento) : movimento.tipo_pagamento ?? "",
       pago: booleanToForm(movimento.pago),
@@ -606,7 +614,8 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
         descricao: isEntryMode ? null : movementForm.descricao.trim() || null,
         montante: amount,
         tipo_pagamento: isEntryMode ? entryPayment || null : movementForm.tipo_pagamento.trim() || null,
-        contabilizar_totais: isEntryMode ? true : movementForm.contabilizar_totais
+        contabilizar_totais: isEntryMode ? true : movementForm.contabilizar_totais,
+        ...(isEntryMode ? {} : { faturar_mais_tarde: movementForm.faturar_mais_tarde })
       }
     };
 
@@ -666,7 +675,8 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
         descricao: isEntryMode ? null : quickMovementForm.descricao.trim() || null,
         montante: amount,
         tipo_pagamento: isEntryMode ? entryPayment : quickMovementForm.tipo_pagamento.trim() || null,
-        contabilizar_totais: isEntryMode ? true : quickMovementForm.contabilizar_totais
+        contabilizar_totais: isEntryMode ? true : quickMovementForm.contabilizar_totais,
+        ...(isEntryMode ? {} : { faturar_mais_tarde: quickMovementForm.faturar_mais_tarde })
       }
     };
 
@@ -1130,6 +1140,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                         <th>Pagamento</th>
                         <th>Fatura</th>
                         <th>Fatura C/NIF</th>
+                        <th>Faturar depois</th>
                         <th>Pago</th>
                         <th>Totais gerais</th>
                         <th>Ações</th>
@@ -1273,6 +1284,22 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                             </select>
                           </td>
                           <td>
+                            <label className="table-checkbox" title="Mostrar este item em Facturação > Itens a acrescentar">
+                              <input
+                                aria-label="Faturar mais tarde"
+                                checked={quickMovementForm.faturar_mais_tarde}
+                                type="checkbox"
+                                onChange={(event) =>
+                                  setQuickMovementForm((current) => ({
+                                    ...current,
+                                    faturar_mais_tarde: event.target.checked
+                                  }))
+                                }
+                              />
+                              <span>{quickMovementForm.faturar_mais_tarde ? "Sim" : "Não"}</span>
+                            </label>
+                          </td>
+                          <td>
                             <select
                               aria-label="Pago"
                               value={quickMovementForm.pago}
@@ -1334,6 +1361,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                           <td>{movimento.tipo_pagamento ?? "—"}</td>
                           <td>{movimento.numero_fatura ?? "—"}</td>
                           <td>{movimento.fatura_com_nif === null ? "—" : movimento.fatura_com_nif ? "Sim" : "Não"}</td>
+                          <td>{isMarkedForLaterInvoice(movimento) ? "Sim" : "Não"}</td>
                           <td>{movimento.pago === null ? "—" : movimento.pago ? "Sim" : "Não"}</td>
                           <td>{isMovementCounted(movimento) ? "Sim" : "Não"}</td>
                           <td>{renderMovementActions(movimento)}</td>
@@ -1641,6 +1669,16 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                         <option value="sim">Sim</option>
                         <option value="nao">Não</option>
                       </select>
+                    </label>
+                    <label className="checkbox-field">
+                      <input
+                        checked={movementForm.faturar_mais_tarde}
+                        type="checkbox"
+                        onChange={(event) =>
+                          setMovementForm((current) => ({ ...current, faturar_mais_tarde: event.target.checked }))
+                        }
+                      />
+                      <span>Faturar mais tarde</span>
                     </label>
                     <label>
                       Pago
