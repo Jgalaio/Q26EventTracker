@@ -2,7 +2,7 @@
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
-import type { AppFavicon, ReportLogo } from "../app-settings";
+import type { AppFavicon, AppLogo, ReportLogo } from "../app-settings";
 import type { AuditLogEntry } from "../audit-log";
 import { ROLE_LABELS, type AuthSession } from "../auth-types";
 
@@ -15,6 +15,7 @@ type AdminClientProps = {
   session: AuthSession;
   users: AdminUser[];
   reportLogo: ReportLogo | null;
+  appLogo: AppLogo | null;
   appFavicon: AppFavicon | null;
   q25Balance: number;
   auditLogs: AuditLogEntry[];
@@ -61,6 +62,7 @@ export function AdminClient({
   session,
   users,
   reportLogo,
+  appLogo,
   appFavicon,
   q25Balance,
   auditLogs,
@@ -71,11 +73,15 @@ export function AdminClient({
   const [passwordForm, setPasswordForm] = useState<PasswordForm>(emptyPasswordForm);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [logoMessage, setLogoMessage] = useState<string | null>(null);
+  const [appLogoMessage, setAppLogoMessage] = useState<string | null>(null);
   const [faviconMessage, setFaviconMessage] = useState<string | null>(null);
   const [q25Message, setQ25Message] = useState<string | null>(null);
   const [logoPreview, setLogoPreview] = useState(reportLogo?.dataUrl ?? "");
   const [logoFileName, setLogoFileName] = useState(reportLogo?.fileName ?? "");
   const [logoDataUrl, setLogoDataUrl] = useState("");
+  const [appLogoPreview, setAppLogoPreview] = useState(appLogo?.dataUrl ?? "");
+  const [appLogoFileName, setAppLogoFileName] = useState(appLogo?.fileName ?? "");
+  const [appLogoDataUrl, setAppLogoDataUrl] = useState("");
   const [faviconPreview, setFaviconPreview] = useState(appFavicon?.dataUrl ?? "");
   const [faviconFileName, setFaviconFileName] = useState(appFavicon?.fileName ?? "");
   const [faviconDataUrl, setFaviconDataUrl] = useState("");
@@ -86,6 +92,7 @@ export function AdminClient({
   const [resetConfirmation, setResetConfirmation] = useState("");
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isSavingLogo, setIsSavingLogo] = useState(false);
+  const [isSavingAppLogo, setIsSavingAppLogo] = useState(false);
   const [isSavingFavicon, setIsSavingFavicon] = useState(false);
   const [isSavingQ25, setIsSavingQ25] = useState(false);
   const [isExportingDatabase, setIsExportingDatabase] = useState(false);
@@ -158,6 +165,26 @@ export function AdminClient({
     reader.readAsDataURL(file);
   };
 
+  const handleAppLogoChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setAppLogoMessage("Escolhe um ficheiro de imagem.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const value = typeof reader.result === "string" ? reader.result : "";
+      setAppLogoPreview(value);
+      setAppLogoDataUrl(value);
+      setAppLogoFileName(file.name);
+      setAppLogoMessage(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleLogoSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!logoDataUrl) {
@@ -181,6 +208,50 @@ export function AdminClient({
       setLogoMessage(error instanceof Error ? error.message : "Não foi possível guardar o logo.");
     } finally {
       setIsSavingLogo(false);
+    }
+  };
+
+  const handleAppLogoSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!appLogoDataUrl) {
+      setAppLogoMessage("Escolhe primeiro uma imagem.");
+      return;
+    }
+
+    setIsSavingAppLogo(true);
+    setAppLogoMessage(null);
+    try {
+      const response = await fetch("/api/admin/app-logo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataUrl: appLogoDataUrl, fileName: appLogoFileName })
+      });
+      const body = (await response.json().catch(() => null)) as { message?: string } | null;
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível guardar o logo da aplicação.");
+      setAppLogoDataUrl("");
+      setAppLogoMessage(body?.message ?? "Logo da aplicação atualizado.");
+    } catch (error) {
+      setAppLogoMessage(error instanceof Error ? error.message : "Não foi possível guardar o logo da aplicação.");
+    } finally {
+      setIsSavingAppLogo(false);
+    }
+  };
+
+  const removeAppLogo = async () => {
+    setIsSavingAppLogo(true);
+    setAppLogoMessage(null);
+    try {
+      const response = await fetch("/api/admin/app-logo", { method: "DELETE" });
+      const body = (await response.json().catch(() => null)) as { message?: string } | null;
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível remover o logo da aplicação.");
+      setAppLogoPreview("");
+      setAppLogoDataUrl("");
+      setAppLogoFileName("");
+      setAppLogoMessage(body?.message ?? "Logo da aplicação removido.");
+    } catch (error) {
+      setAppLogoMessage(error instanceof Error ? error.message : "Não foi possível remover o logo da aplicação.");
+    } finally {
+      setIsSavingAppLogo(false);
     }
   };
 
@@ -414,6 +485,30 @@ export function AdminClient({
           <button disabled={isSavingPassword} type="submit">
             {isSavingPassword ? "A guardar..." : "Guardar password"}
           </button>
+        </form>
+
+        <form className="admin-settings-card" onSubmit={handleAppLogoSubmit}>
+          <div>
+            <p className="eyebrow">Aplicação</p>
+            <h2>Alterar logo do topo</h2>
+          </div>
+          <div className="logo-preview-box app-logo-preview-box">
+            {appLogoPreview ? <img alt="Logo atual da aplicação" src={appLogoPreview} /> : <span>Q26</span>}
+          </div>
+          <label>
+            Imagem
+            <input accept="image/*" type="file" onChange={handleAppLogoChange} />
+          </label>
+          {appLogoFileName ? <p className="admin-file-name">{appLogoFileName}</p> : null}
+          {appLogoMessage ? <p className="form-message">{appLogoMessage}</p> : null}
+          <div className="admin-inline-actions">
+            <button disabled={isSavingAppLogo || !appLogoDataUrl} type="submit">
+              {isSavingAppLogo ? "A guardar..." : "Guardar logo"}
+            </button>
+            <button className="secondary-button" disabled={isSavingAppLogo || !appLogoPreview} type="button" onClick={removeAppLogo}>
+              Remover
+            </button>
+          </div>
         </form>
 
         <form className="admin-settings-card" onSubmit={handleLogoSubmit}>

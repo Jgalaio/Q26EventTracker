@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getReportLogo } from "../app-settings";
+import { getAppLogo, getReportLogo } from "../app-settings";
 import { getSession } from "../auth";
 
 type LoginPageProps = {
@@ -21,7 +21,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   if (session) redirect(session.role === "view" ? "/overview" : "/");
 
   const params: Record<string, string | string[] | undefined> = searchParams ? await searchParams : {};
-  const reportLogo = await getReportLogo();
+  const [appLogo, reportLogo] = await Promise.all([getAppLogo(), getReportLogo()]);
+  const loginLogo = appLogo ?? reportLogo;
   const next = safeNextPath(getSearchValue(params, "next"));
   const hasError = getSearchValue(params, "error") === "1";
 
@@ -29,9 +30,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <main className="login-shell">
       <section className="login-card">
         <div className="login-brand">
-          <div className={reportLogo ? "login-logo-card custom-login-logo-card" : "login-logo-card"}>
-            {reportLogo ? (
-              <img alt="Logo Q26" src={reportLogo.dataUrl} />
+          <div className={loginLogo ? "login-logo-card custom-login-logo-card" : "login-logo-card"}>
+            {loginLogo ? (
+              <img alt="Logo Q26" src={loginLogo.dataUrl} />
             ) : (
               <>
                 <span>Q26</span>
@@ -39,7 +40,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </>
             )}
           </div>
-          <p className="eyebrow">Q26</p>
           <h1>Login</h1>
         </div>
 

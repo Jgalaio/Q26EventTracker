@@ -2,8 +2,10 @@
 
 import { Fragment, useState } from "react";
 import Link from "next/link";
+import type { AppLogo } from "../app-settings";
 import { ROLE_LABELS, canAccessAdmin, canWrite, type AuthSession } from "../auth-types";
 import type { MovimentoDetalhe } from "../supabase-data";
+import { TopbarBrand } from "../topbar-brand";
 
 type Summary = {
   entradas: number;
@@ -30,6 +32,7 @@ type OverviewClientProps = {
   cashValue: number;
   error: string | null;
   session: AuthSession;
+  appLogo: AppLogo | null;
 };
 
 const moneyFormatter = new Intl.NumberFormat("pt-PT", {
@@ -64,7 +67,7 @@ function chartHeight(value: number, maxValue: number) {
   return `${Math.max(8, (value / maxValue) * 100)}%`;
 }
 
-export function OverviewClient({ rows, totals, cashValue, error, session }: OverviewClientProps) {
+export function OverviewClient({ rows, totals, cashValue, error, session, appLogo }: OverviewClientProps) {
   const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
   const countedRows = rows.filter((row) => row.contabilizarTotais).length;
   const chartItems = [
@@ -77,10 +80,7 @@ export function OverviewClient({ rows, totals, cashValue, error, session }: Over
   return (
     <main className="shell overview-shell">
       <section className="topbar">
-        <div>
-          <p className="eyebrow">Q26</p>
-          <h1>OverView</h1>
-        </div>
+        <TopbarBrand logo={appLogo} title="OverView" />
         <div className="top-actions">
           {canAccessAdmin(session.role) ? (
             <Link className="nav-button secondary-nav-button" href="/admin">

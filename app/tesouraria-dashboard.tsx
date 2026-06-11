@@ -3,8 +3,10 @@
 import { useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { AppLogo } from "./app-settings";
 import { ROLE_LABELS, canAccessAdmin, canDelete, canWrite, type AuthSession } from "./auth-types";
 import type { EventoResumo, MovimentoDetalhe } from "./supabase-data";
+import { TopbarBrand } from "./topbar-brand";
 
 type DashboardProps = {
   eventos: EventoResumo[];
@@ -12,6 +14,7 @@ type DashboardProps = {
   error: string | null;
   q25Balance: number;
   session: AuthSession;
+  appLogo: AppLogo | null;
 };
 
 type ModalMode = "create-event" | "edit-event" | "add-entry" | "add-exit" | "edit-entry" | "edit-exit" | null;
@@ -260,7 +263,7 @@ async function appWrite(resource: string, options: RequestInit) {
   return body ? JSON.parse(body) : null;
 }
 
-export function Dashboard({ eventos, movimentos, error, q25Balance, session }: DashboardProps) {
+export function Dashboard({ eventos, movimentos, error, q25Balance, session, appLogo }: DashboardProps) {
   const router = useRouter();
   const mayWrite = canWrite(session.role);
   const mayDelete = canDelete(session.role);
@@ -774,10 +777,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
   return (
     <main className="shell">
       <section className="topbar">
-        <div>
-          <p className="eyebrow">Q26</p>
-          <h1>Tesouraria</h1>
-        </div>
+        <TopbarBrand logo={appLogo} title="Tesouraria" />
         <div className="top-actions">
           {mayAccessAdmin ? (
             <Link className="nav-button secondary-nav-button" href="/admin">

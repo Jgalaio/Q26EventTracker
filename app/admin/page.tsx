@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getAppFavicon, getQ25Balance, getReportLogo } from "../app-settings";
+import { getAppFavicon, getAppLogo, getQ25Balance, getReportLogo } from "../app-settings";
 import { getAuditLogs } from "../audit-log";
 import { getSession, listAuthUsers } from "../auth";
+import { TopbarBrand } from "../topbar-brand";
 import { AdminClient } from "./admin-client";
 
 type AdminPageProps = {
@@ -22,10 +23,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const params = searchParams ? await searchParams : {};
   const auditPage = parseLogPage(params.logPage);
-  const [users, reportLogo, appFavicon, q25Balance, audit] = await Promise.all([
+  const [users, reportLogo, appFavicon, appLogo, q25Balance, audit] = await Promise.all([
     listAuthUsers(),
     getReportLogo(),
     getAppFavicon(),
+    getAppLogo(),
     getQ25Balance(),
     getAuditLogs(auditPage, 50)
   ]);
@@ -33,10 +35,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   return (
     <main className="shell">
       <section className="topbar">
-        <div>
-          <p className="eyebrow">Q26</p>
-          <h1>Admin</h1>
-        </div>
+        <TopbarBrand logo={appLogo} title="Admin" />
         <div className="top-actions">
           <Link className="nav-button" href="/">
             Tesouraria
@@ -64,6 +63,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         auditLogs={audit.logs}
         auditPage={auditPage}
         appFavicon={appFavicon}
+        appLogo={appLogo}
         q25Balance={q25Balance}
         reportLogo={reportLogo}
         session={session}

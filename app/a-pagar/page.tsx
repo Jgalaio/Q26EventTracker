@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getAppLogo } from "../app-settings";
 import { ROLE_LABELS } from "../auth-types";
 import { getSession } from "../auth";
 import { getTesourariaData, type MovimentoDetalhe } from "../supabase-data";
+import { TopbarBrand } from "../topbar-brand";
 import { PendingPaymentsClient } from "./pending-payments-client";
 
 function isPendingPayment(movimento: MovimentoDetalhe) {
@@ -14,7 +16,7 @@ export default async function PendingPaymentsPage() {
   if (!session) redirect("/login?next=/a-pagar");
   if (session.role === "view") redirect("/overview");
 
-  const { movimentos, error } = await getTesourariaData();
+  const [{ movimentos, error }, appLogo] = await Promise.all([getTesourariaData(), getAppLogo()]);
   const pendingPayments = movimentos
     .filter(isPendingPayment)
     .sort(
@@ -27,10 +29,7 @@ export default async function PendingPaymentsPage() {
   return (
     <main className="shell pending-shell">
       <section className="topbar">
-        <div>
-          <p className="eyebrow">Q26</p>
-          <h1>A pagar</h1>
-        </div>
+        <TopbarBrand logo={appLogo} title="A pagar" />
         <div className="top-actions">
           <Link className="nav-button" href="/">
             Tesouraria

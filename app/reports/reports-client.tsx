@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import type { ReportLogo } from "../app-settings";
+import type { AppLogo, ReportLogo } from "../app-settings";
 import { ROLE_LABELS, canAccessAdmin, type AuthSession } from "../auth-types";
 import type { EventoResumo, MovimentoDetalhe } from "../supabase-data";
+import { TopbarBrand } from "../topbar-brand";
 
 type ReportScope = "geral" | "evento";
 
@@ -34,6 +35,7 @@ type ReportsClientProps = {
   generatedAt: string;
   q25Balance: number;
   reportLogo: ReportLogo | null;
+  appLogo: AppLogo | null;
 };
 
 const moneyFormatter = new Intl.NumberFormat("pt-PT", {
@@ -173,7 +175,7 @@ function eventPie(summary: Summary) {
   };
 }
 
-export function ReportsClient({ eventos, movimentos, error, session, generatedAt, q25Balance, reportLogo }: ReportsClientProps) {
+export function ReportsClient({ eventos, movimentos, error, session, generatedAt, q25Balance, reportLogo, appLogo }: ReportsClientProps) {
   const eventList = useMemo(() => {
     return eventos
       .filter((event) => event.slug !== "contas")
@@ -271,10 +273,7 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
   return (
     <main className="shell reports-shell">
       <section className="topbar no-print">
-        <div>
-          <p className="eyebrow">Q26</p>
-          <h1>Relatórios</h1>
-        </div>
+        <TopbarBrand logo={appLogo} title="Relatórios" />
         <div className="top-actions">
           {canAccessAdmin(session.role) ? (
             <Link className="nav-button secondary-nav-button" href="/admin">

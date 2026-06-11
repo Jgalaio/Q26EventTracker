@@ -1,0 +1,65 @@
+import { NextRequest, NextResponse } from "next/server";
+import { writeAuditLog } from "../../../audit-log";
+import { deleteAppSetting, writeAppSetting } from "../../../app-settings";
+import { getSession } from "../../../auth";
+
+export async function POST(request: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ message: "Sessão expirada." }, { status: 401 });
+  if (session.role !== "admin") return NextResponse.json({ message: "Só Admin pode alterar o logo da aplicação." }, { status: 403 });
+
+  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const dataUrl = typeof body.dataUrl === "string" ? body.dataUrl : "";
+  const fileName = typeof body.fileName === "string" ? body.fileName : null;
+
+  if (!dataUrl.startsWith("data:image/")) {
+    return NextResponse.json({ message: "Escolhe uma imagem válida." }, { status: 400 });
+  }
+
+  if (dataUrl.length > 1_800_000) {
+    return NextResponse.json({ message: "A imagem é demasiado pesada. Usa um logo mais pequeno." }, { status: 400 });
+  }
+
+  try {
+    await writeAppSetting("app_logo", { dataUrl, fileName });
+    await writeAuditLog({
+      session,
+      action: "Alterou logo da aplicação",
+      resource: "app_settings",
+      resourceId: "app_logo",
+      summary: "Logo do topo atualizado",
+      details: { fileName }
+    });
+    return NextResponse.json({ message: "Logo da aplicação atualizado." });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        message: `Não consegui guardar no Supabase. Confirma se já correste o SQL de admin. ${
+          error instanceof Error ? error.message : ""
+        }`
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE() {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ message: "Sessão expirada." }, { status: 401 });
+  if (session.role !== "admin") return NextResponse.json({ message: "Só Admin pode alterar o logo da aplicação." }, { status: 403 });
+
+  try {
+    await deleteAppSetting("app_logo");
+    await writeAuditLog({
+      session,
+      action: "Removeu logo da aplicação",
+      resource: "app_settings",
+      resourceId: "app_logo",
+      summary: "Logo do topo removido",
+      details: {}
+    });
+    return NextResponse.json({ message: "Logo da aplicação removido." });
+  } catch (error) {
+    return NextResponse.json({ message: error instanceof Error ? error.message : "Não foi possível remover." }, { status: 500 });
+  }
+}

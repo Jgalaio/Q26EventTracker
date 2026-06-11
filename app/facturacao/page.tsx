@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getAppLogo } from "../app-settings";
 import { getSession } from "../auth";
 import { canWrite } from "../auth-types";
 import { getFaturacaoReports, getTesourariaData } from "../supabase-data";
@@ -9,10 +10,15 @@ export default async function FacturacaoPage() {
   if (!session) redirect("/login?next=/facturacao");
   if (!canWrite(session.role)) redirect("/overview");
 
-  const [{ eventos, movimentos, error }, reports] = await Promise.all([getTesourariaData(), getFaturacaoReports()]);
+  const [{ eventos, movimentos, error }, reports, appLogo] = await Promise.all([
+    getTesourariaData(),
+    getFaturacaoReports(),
+    getAppLogo()
+  ]);
 
   return (
     <FacturacaoClient
+      appLogo={appLogo}
       error={error}
       eventos={eventos}
       movimentos={movimentos}

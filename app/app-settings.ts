@@ -3,6 +3,11 @@ export type ReportLogo = {
   fileName: string | null;
 };
 
+export type AppLogo = {
+  dataUrl: string;
+  fileName: string | null;
+};
+
 export type AppFavicon = {
   dataUrl: string;
   fileName: string | null;
@@ -71,6 +76,11 @@ export async function deleteAppSetting(key: string) {
 
 export async function getReportLogo() {
   const logo = await readAppSetting<ReportLogo>("report_logo");
+  return logo?.dataUrl ? logo : null;
+}
+
+export async function getAppLogo() {
+  const logo = await readAppSetting<AppLogo>("app_logo");
   return logo?.dataUrl ? logo : null;
 }
 

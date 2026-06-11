@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getQ25Balance } from "../app-settings";
+import { getAppLogo, getQ25Balance } from "../app-settings";
 import { getSession } from "../auth";
 import { getTesourariaData, type EventoResumo, type MovimentoDetalhe } from "../supabase-data";
 import { OverviewClient, type OverviewRow } from "./overview-client";
@@ -101,7 +101,11 @@ export default async function OverviewPage() {
   const session = await getSession();
   if (!session) redirect("/login?next=/overview");
 
-  const [{ eventos, movimentos, error }, q25Balance] = await Promise.all([getTesourariaData(), getQ25Balance()]);
+  const [{ eventos, movimentos, error }, q25Balance, appLogo] = await Promise.all([
+    getTesourariaData(),
+    getQ25Balance(),
+    getAppLogo()
+  ]);
   const eventList = eventos
     .filter((event) => event.slug !== "contas")
     .sort((a, b) => a.ordem_folha - b.ordem_folha);
@@ -137,5 +141,5 @@ export default async function OverviewPage() {
   const accountBalance = accountEntradas - accountSaidas;
   const cashValue = totals.lucro + q25Balance - accountBalance;
 
-  return <OverviewClient cashValue={cashValue} error={error} rows={rows} session={session} totals={totals} />;
+  return <OverviewClient appLogo={appLogo} cashValue={cashValue} error={error} rows={rows} session={session} totals={totals} />;
 }

@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import type { AppLogo } from "../app-settings";
 import { ROLE_LABELS, canAccessAdmin, type AuthSession } from "../auth-types";
 import type { EventoResumo, FaturacaoReport, FaturacaoReportItem, MovimentoDetalhe } from "../supabase-data";
+import { TopbarBrand } from "../topbar-brand";
 
 type FacturacaoClientProps = {
   eventos: EventoResumo[];
@@ -12,6 +14,7 @@ type FacturacaoClientProps = {
   reportsError: string | null;
   error: string | null;
   session: AuthSession;
+  appLogo: AppLogo | null;
 };
 
 type DescriptionPopup = {
@@ -211,7 +214,7 @@ function PrintableInvoiceReport({ report }: { report: FaturacaoReport }) {
   );
 }
 
-export function FacturacaoClient({ eventos, movimentos, reports, reportsError, error, session }: FacturacaoClientProps) {
+export function FacturacaoClient({ eventos, movimentos, reports, reportsError, error, session, appLogo }: FacturacaoClientProps) {
   const eventList = useMemo(() => {
     return eventos
       .filter((event) => event.slug !== "contas")
@@ -378,10 +381,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
   return (
     <main className="shell billing-shell">
       <section className="topbar">
-        <div>
-          <p className="eyebrow">Q26</p>
-          <h1>Facturação</h1>
-        </div>
+        <TopbarBrand logo={appLogo} title="Facturação" />
         <div className="top-actions">
           {canAccessAdmin(session.role) ? (
             <Link className="nav-button secondary-nav-button" href="/admin">
