@@ -41,6 +41,53 @@ export type MovimentoDetalhe = {
   created_at: string;
 };
 
+export type FaturacaoReportItem = {
+  id: string;
+  evento_slug: string;
+  evento_nome: string;
+  item: string;
+  descricao: string | null;
+  data_pagamento: string | null;
+  tipo_pagamento: string | null;
+  numero_fatura: string | null;
+  montante: number;
+  raw?: Record<string, unknown>;
+};
+
+export type FaturacaoReportPayload = {
+  finalizado_em: string;
+  evento: {
+    id: string | null;
+    slug: string;
+    nome: string;
+  };
+  despesas_evento: FaturacaoReportItem[];
+  itens_acrescentados: FaturacaoReportItem[];
+  totais: {
+    despesas_evento: number;
+    itens_acrescentados: number;
+    total_faturado: number;
+    valor_fatura: number;
+    diferenca: number;
+  };
+};
+
+export type FaturacaoReport = {
+  id: string;
+  created_at: string;
+  created_by: string;
+  evento_id: string | null;
+  evento_slug: string;
+  evento_nome: string;
+  valor_fatura: number;
+  total_despesas: number;
+  total_itens_acrescentados: number;
+  total_faturado: number;
+  diferenca: number;
+  movimentos_ids: string[];
+  payload: FaturacaoReportPayload;
+};
+
 type FetchResult<T> = {
   data: T[];
   error: string | null;
@@ -85,4 +132,8 @@ export async function getTesourariaData() {
     movimentos: movimentos.data,
     error: eventos.error ?? movimentos.error
   };
+}
+
+export async function getFaturacaoReports(limit = 50) {
+  return fetchSupabase<FaturacaoReport>("faturas_relatorios", `select=*&order=created_at.desc&limit=${limit}`);
 }

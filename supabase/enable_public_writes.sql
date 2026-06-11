@@ -54,6 +54,25 @@ create table if not exists public.app_audit_logs (
 create index if not exists app_audit_logs_created_at_idx on public.app_audit_logs(created_at desc);
 create index if not exists app_audit_logs_resource_idx on public.app_audit_logs(resource, resource_id);
 
+create table if not exists public.faturas_relatorios (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  created_by text not null,
+  evento_id uuid references public.eventos(id) on delete set null,
+  evento_slug text not null,
+  evento_nome text not null,
+  valor_fatura numeric(12,2) not null default 0,
+  total_despesas numeric(12,2) not null default 0,
+  total_itens_acrescentados numeric(12,2) not null default 0,
+  total_faturado numeric(12,2) not null default 0,
+  diferenca numeric(12,2) not null default 0,
+  movimentos_ids uuid[] not null default '{}'::uuid[],
+  payload jsonb not null default '{}'::jsonb
+);
+
+create index if not exists faturas_relatorios_created_at_idx on public.faturas_relatorios(created_at desc);
+create index if not exists faturas_relatorios_evento_slug_idx on public.faturas_relatorios(evento_slug);
+
 insert into public.app_users (username, role, password_hash)
 values
   ('J.Galaio', 'admin', '325cb2800043914c9e9d09f6006aff8c90b55eeb4928d13aa4a3385003bcea26'),
@@ -188,6 +207,7 @@ grant delete on public.eventos to anon, authenticated;
 grant insert, update, delete on public.movimentos to anon, authenticated;
 grant select on public.eventos_resumo to anon, authenticated;
 grant select on public.movimentos_detalhe to anon, authenticated;
+grant select, insert on public.faturas_relatorios to anon, authenticated;
 revoke all on public.app_users from anon, authenticated;
 grant select, insert, update, delete on public.app_settings to anon, authenticated;
 grant select, insert on public.app_audit_logs to anon, authenticated;
@@ -203,9 +223,11 @@ drop policy if exists "Escrita publica movimentos delete" on public.movimentos;
 drop policy if exists "Escrita publica app users" on public.app_users;
 drop policy if exists "Escrita publica app settings" on public.app_settings;
 drop policy if exists "Escrita publica app audit logs" on public.app_audit_logs;
+drop policy if exists "Escrita publica faturas relatorios insert" on public.faturas_relatorios;
 drop policy if exists "Leitura publica app users" on public.app_users;
 drop policy if exists "Leitura publica app settings" on public.app_settings;
 drop policy if exists "Leitura publica app audit logs" on public.app_audit_logs;
+drop policy if exists "Leitura publica faturas relatorios" on public.faturas_relatorios;
 
 create policy "Escrita publica eventos insert"
 on public.eventos for insert
@@ -242,6 +264,7 @@ using (true);
 alter table public.app_users enable row level security;
 alter table public.app_settings enable row level security;
 alter table public.app_audit_logs enable row level security;
+alter table public.faturas_relatorios enable row level security;
 
 create policy "Leitura publica app settings"
 on public.app_settings for select
@@ -259,7 +282,17 @@ on public.app_audit_logs for select
 to anon, authenticated
 using (true);
 
+create policy "Leitura publica faturas relatorios"
+on public.faturas_relatorios for select
+to anon, authenticated
+using (true);
+
 create policy "Escrita publica app audit logs"
 on public.app_audit_logs for insert
+to anon, authenticated
+with check (true);
+
+create policy "Escrita publica faturas relatorios insert"
+on public.faturas_relatorios for insert
 to anon, authenticated
 with check (true);
