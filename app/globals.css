@@ -2329,6 +2329,40 @@ td {
   color: var(--ink);
 }
 
+.database-maintenance-card {
+  grid-column: span 2;
+}
+
+.database-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.database-reset-box {
+  background: #fff1f2;
+  border: 1px solid #f0b8c2;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.database-reset-box strong {
+  color: var(--red);
+  font-size: 0.95rem;
+}
+
+.database-reset-box span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.admin-settings-card .danger-admin-button {
+  background: var(--red);
+}
+
 .logo-preview-box {
   align-items: center;
   background:
@@ -2774,6 +2808,10 @@ td {
 
   .admin-settings-grid {
     grid-template-columns: 1fr;
+  }
+
+  .database-maintenance-card {
+    grid-column: auto;
   }
 
   .menu-actions {

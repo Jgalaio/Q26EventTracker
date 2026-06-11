@@ -80,10 +80,17 @@ export function AdminClient({
   const [faviconFileName, setFaviconFileName] = useState(appFavicon?.fileName ?? "");
   const [faviconDataUrl, setFaviconDataUrl] = useState("");
   const [q25Amount, setQ25Amount] = useState(String(q25Balance).replace(".", ","));
+  const [databaseImportText, setDatabaseImportText] = useState("");
+  const [databaseImportName, setDatabaseImportName] = useState("");
+  const [databaseMessage, setDatabaseMessage] = useState<string | null>(null);
+  const [resetConfirmation, setResetConfirmation] = useState("");
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isSavingLogo, setIsSavingLogo] = useState(false);
   const [isSavingFavicon, setIsSavingFavicon] = useState(false);
   const [isSavingQ25, setIsSavingQ25] = useState(false);
+  const [isExportingDatabase, setIsExportingDatabase] = useState(false);
+  const [isImportingDatabase, setIsImportingDatabase] = useState(false);
+  const [isResettingDatabase, setIsResettingDatabase] = useState(false);
 
   const updatePasswordField = (field: keyof PasswordForm, value: string) => {
     setPasswordForm((current) => ({ ...current, [field]: value }));
@@ -260,6 +267,108 @@ export function AdminClient({
     }
   };
 
+  const handleDatabaseImportChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const value = typeof reader.result === "string" ? reader.result : "";
+      setDatabaseImportText(value);
+      setDatabaseImportName(file.name);
+      setDatabaseMessage(null);
+    };
+    reader.readAsText(file);
+  };
+
+  const exportDatabase = async () => {
+    setIsExportingDatabase(true);
+    setDatabaseMessage(null);
+
+    try {
+      const response = await fetch("/api/admin/database");
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(body?.message ?? "Não foi possível exportar a base de dados.");
+      }
+
+      const backup = await response.json();
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      anchor.href = url;
+      anchor.download = `q26-backup-${stamp}.json`;
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setDatabaseMessage("Backup exportado.");
+    } catch (error) {
+      setDatabaseMessage(error instanceof Error ? error.message : "Não foi possível exportar a base de dados.");
+    } finally {
+      setIsExportingDatabase(false);
+    }
+  };
+
+  const importDatabase = async () => {
+    if (!databaseImportText) {
+      setDatabaseMessage("Escolhe primeiro um ficheiro JSON.");
+      return;
+    }
+
+    const confirmed = window.confirm("Importar este backup vai substituir a base de dados atual. Queres continuar?");
+    if (!confirmed) return;
+
+    setIsImportingDatabase(true);
+    setDatabaseMessage(null);
+    try {
+      const backup = JSON.parse(databaseImportText);
+      const response = await fetch("/api/admin/database", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ backup })
+      });
+      const body = (await response.json().catch(() => null)) as { message?: string } | null;
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível importar a base de dados.");
+      setDatabaseMessage(body?.message ?? "Base de dados importada.");
+    } catch (error) {
+      setDatabaseMessage(error instanceof Error ? error.message : "Não foi possível importar a base de dados.");
+    } finally {
+      setIsImportingDatabase(false);
+    }
+  };
+
+  const resetDatabase = async () => {
+    if (resetConfirmation !== "sim confirmo") {
+      setDatabaseMessage("Para recomeçar, escreve exatamente: sim confirmo");
+      return;
+    }
+
+    const confirmed = window.confirm("Esta ação apaga eventos, movimentos, relatórios e definições. Tens a certeza?");
+    if (!confirmed) return;
+
+    setIsResettingDatabase(true);
+    setDatabaseMessage(null);
+    try {
+      const response = await fetch("/api/admin/database", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmation: resetConfirmation })
+      });
+      const body = (await response.json().catch(() => null)) as { message?: string } | null;
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível limpar a base de dados.");
+      setResetConfirmation("");
+      setDatabaseImportText("");
+      setDatabaseImportName("");
+      setDatabaseMessage(body?.message ?? "Base de dados limpa.");
+    } catch (error) {
+      setDatabaseMessage(error instanceof Error ? error.message : "Não foi possível limpar a base de dados.");
+    } finally {
+      setIsResettingDatabase(false);
+    }
+  };
+
   return (
     <>
       <section className="admin-settings-grid" aria-label="Definições do admin">
@@ -374,6 +483,47 @@ export function AdminClient({
             {isSavingQ25 ? "A guardar..." : "Guardar montante"}
           </button>
         </form>
+
+        <section className="admin-settings-card database-maintenance-card">
+          <div>
+            <p className="eyebrow">Base de dados</p>
+            <h2>Importar / exportar / recomeçar</h2>
+          </div>
+          <div className="database-actions">
+            <button disabled={isExportingDatabase} type="button" onClick={exportDatabase}>
+              {isExportingDatabase ? "A exportar..." : "Exportar base de dados"}
+            </button>
+          </div>
+          <label>
+            Importar backup JSON
+            <input accept="application/json,.json" type="file" onChange={handleDatabaseImportChange} />
+          </label>
+          {databaseImportName ? <p className="admin-file-name">{databaseImportName}</p> : null}
+          <button disabled={isImportingDatabase || !databaseImportText} type="button" onClick={importDatabase}>
+            {isImportingDatabase ? "A importar..." : "Importar e substituir"}
+          </button>
+          <div className="database-reset-box">
+            <strong>Recomeçar de novo</strong>
+            <span>Limpa eventos, movimentos, relatórios e definições. Mantém utilizadores e log.</span>
+            <label>
+              Confirmação
+              <input
+                placeholder="sim confirmo"
+                value={resetConfirmation}
+                onChange={(event) => setResetConfirmation(event.target.value)}
+              />
+            </label>
+            <button
+              className="danger-admin-button"
+              disabled={isResettingDatabase || resetConfirmation !== "sim confirmo"}
+              type="button"
+              onClick={resetDatabase}
+            >
+              {isResettingDatabase ? "A limpar..." : "Recomeçar base de dados"}
+            </button>
+          </div>
+          {databaseMessage ? <p className="form-message">{databaseMessage}</p> : null}
+        </section>
       </section>
 
       <section className="admin-grid" aria-label="Utilizadores">
