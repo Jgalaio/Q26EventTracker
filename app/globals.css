@@ -1736,7 +1736,7 @@ h2 {
 }
 
 .table-wrap {
-  max-height: calc(100vh - 320px);
+  max-height: calc(100vh - 260px);
   overflow: auto;
 }
 
@@ -1774,7 +1774,7 @@ table {
   border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--ink);
-  min-height: 36px;
+  min-height: 32px;
   min-width: 0;
   padding: 0 9px;
   width: 100%;
@@ -1797,7 +1797,7 @@ table {
 th,
 td {
   border-bottom: 1px solid var(--line);
-  padding: 12px 14px;
+  padding: 8px 10px;
   text-align: left;
   vertical-align: top;
 }
@@ -1805,7 +1805,7 @@ td {
 th {
   background: var(--panel-soft);
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   position: sticky;
   text-transform: uppercase;
   top: 0;
@@ -1813,7 +1813,7 @@ th {
 }
 
 td {
-  font-size: 0.92rem;
+  font-size: 0.86rem;
 }
 
 .item-cell {
@@ -1828,7 +1828,7 @@ td {
 .row-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   min-width: 150px;
 }
 
@@ -1838,8 +1838,8 @@ td {
   border-radius: 6px;
   color: var(--ink);
   cursor: pointer;
-  min-height: 34px;
-  padding: 0 10px;
+  min-height: 30px;
+  padding: 0 8px;
 }
 
 .row-actions .danger-button {
