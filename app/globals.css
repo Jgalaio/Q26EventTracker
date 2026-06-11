@@ -114,6 +114,20 @@ h2 {
   text-decoration: none;
 }
 
+.warning-nav-button {
+  align-items: center;
+  background: #fff1f2;
+  border: 1px solid #f0b8c2;
+  border-radius: 999px;
+  color: var(--red);
+  display: inline-flex;
+  font-size: 0.84rem;
+  font-weight: 800;
+  min-height: 39px;
+  padding: 0 14px;
+  text-decoration: none;
+}
+
 .secondary-nav-button {
   background: var(--green);
 }
@@ -1762,6 +1776,17 @@ table {
 .entries-table tbody tr:nth-child(even) td,
 .outgoing-table tbody tr:nth-child(even) td {
   background: #f4f8ff;
+}
+
+.pending-payment-row td,
+.entries-table tbody tr.pending-payment-row td,
+.outgoing-table tbody tr.pending-payment-row td {
+  background: #fff1f2 !important;
+  border-bottom-color: #f0b8c2;
+}
+
+.pending-payment-row td:first-child {
+  box-shadow: inset 4px 0 0 var(--red);
 }
 
 .inline-add-row td {

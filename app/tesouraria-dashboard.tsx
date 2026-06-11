@@ -123,6 +123,10 @@ function isMovementCounted(movimento: MovimentoDetalhe) {
   return movimento.contabilizar_totais !== false;
 }
 
+function isPendingPayment(movimento: MovimentoDetalhe) {
+  return movimento.tipo !== "entrada" && movimento.pago === false;
+}
+
 function slugify(value: string) {
   return (
     value
@@ -273,6 +277,10 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
   const accountEvent = useMemo(() => {
     return eventos.find((event) => event.slug === "contas") ?? null;
   }, [eventos]);
+
+  const pendingPayments = useMemo(() => {
+    return movimentos.filter(isPendingPayment);
+  }, [movimentos]);
 
   const eventOnlyList = useMemo(() => {
     return eventos.filter((event) => event.slug !== "contas");
@@ -775,6 +783,11 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
           <Link className="nav-button" href="/overview">
             OverView
           </Link>
+          {pendingPayments.length ? (
+            <Link className="warning-nav-button" href="/a-pagar">
+              Faturas a pagar: {pendingPayments.length}
+            </Link>
+          ) : null}
           <div className="user-chip">
             <span>{session.username}</span>
             <strong>{ROLE_LABELS[session.role]}</strong>
@@ -1310,7 +1323,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                           <td>{renderMovementActions(movimento)}</td>
                         </tr>
                       ) : (
-                        <tr key={movimento.id}>
+                        <tr className={isPendingPayment(movimento) ? "pending-payment-row" : ""} key={movimento.id}>
                           <td>
                             <span className={`pill ${movimento.tipo}`}>{movementLabel(movimento.tipo)}</span>
                           </td>
@@ -1427,7 +1440,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                       <td>{renderMovementActions(movimento)}</td>
                     </tr>
                   ) : (
-                    <tr key={movimento.id}>
+                    <tr className={isPendingPayment(movimento) ? "pending-payment-row" : ""} key={movimento.id}>
                       <td>{movimento.evento_nome}</td>
                       <td className="item-cell">{movimento.item}</td>
                       <td>{renderDescription(movimento)}</td>
