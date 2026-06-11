@@ -86,6 +86,13 @@ const emptyMovementForm: MovementForm = {
   contabilizar_totais: true
 };
 
+function movementFormDefaults(tab?: "entrada" | "saida"): MovementForm {
+  return {
+    ...emptyMovementForm,
+    tipo_pagamento: tab === "entrada" ? "Dinheiro" : ""
+  };
+}
+
 function formatMoney(value: number | null | undefined) {
   return moneyFormatter.format(Number(value ?? 0));
 }
@@ -163,6 +170,22 @@ function normalizePayment(value: string | null | undefined) {
 function isContaPayment(value: string | null) {
   const normalized = normalizePayment(value);
   return normalized === "transferencia" || normalized === "c q26";
+}
+
+function isMultibancoPayment(value: string | null | undefined) {
+  return normalizePayment(value) === "multibanco";
+}
+
+function entryPaymentLabel(movimento: MovimentoDetalhe) {
+  return isMultibancoPayment(movimento.tipo_pagamento) ? "Multibanco" : "Dinheiro";
+}
+
+function accountEntryLabel(movimento: MovimentoDetalhe) {
+  return movimento.evento_slug === "contas" ? "Conta Q26" : entryPaymentLabel(movimento);
+}
+
+function isAccountEntry(movimento: MovimentoDetalhe) {
+  return movimento.tipo === "entrada" && (movimento.evento_slug === "contas" || isMultibancoPayment(movimento.tipo_pagamento));
 }
 
 function summarizeMovimentos(movimentos: MovimentoDetalhe[]): FinancialSummary {
@@ -342,7 +365,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
   }, [activeTab, eventMovimentos, normalizedQuery, pago]);
 
   const accountEntries = useMemo(() => {
-    return movimentos.filter((movimento) => movimento.evento_slug === "contas" && movimento.tipo === "entrada");
+    return movimentos.filter(isAccountEntry);
   }, [movimentos]);
 
   const accountSaidas = useMemo(() => {
@@ -426,7 +449,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
   const openQuickAdd = (tab: "entrada" | "saida") => {
     if (!selectedEvent || !mayWrite) return;
     setSaveMessage(null);
-    setQuickMovementForm(emptyMovementForm);
+    setQuickMovementForm(movementFormDefaults(tab));
     setQuickAddTab(tab);
     setActiveTab(tab);
   };
@@ -448,7 +471,8 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
       data_pagamento: movimento.data_pagamento ?? "",
       numero_fatura: movimento.numero_fatura ?? "",
       fatura_com_nif: booleanToForm(movimento.fatura_com_nif),
-      tipo_pagamento: movimento.tipo_pagamento ?? "",
+      tipo_pagamento:
+        movimento.tipo === "entrada" && movimento.evento_slug !== "contas" ? entryPaymentLabel(movimento) : movimento.tipo_pagamento ?? "",
       pago: booleanToForm(movimento.pago),
       contabilizar_totais: isMovementCounted(movimento)
     });
@@ -550,6 +574,8 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
     }
 
     const tipo = movementToEdit ? movementToEdit.tipo : isEntryMode ? "entrada" : "saida";
+    const isAccountSheetEntry = isEntryMode && movementToEdit?.evento_slug === "contas";
+    const entryPayment = movementForm.tipo_pagamento.trim() || (isAccountSheetEntry ? "" : "Dinheiro");
     const payload = {
       evento_id: isEditing ? undefined : selectedEvent?.id,
       tipo,
@@ -559,7 +585,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
       montante: amount,
       numero_fatura: isEntryMode ? null : movementForm.numero_fatura.trim() || null,
       fatura_com_nif: isEntryMode ? null : optionalBoolean(movementForm.fatura_com_nif),
-      tipo_pagamento: isEntryMode ? null : movementForm.tipo_pagamento.trim() || null,
+      tipo_pagamento: isEntryMode ? entryPayment || null : movementForm.tipo_pagamento.trim() || null,
       pago: isEntryMode ? null : optionalBoolean(movementForm.pago),
       contabilizar_totais: isEntryMode ? true : movementForm.contabilizar_totais,
       origem_tabela: movementToEdit ? movementToEdit.origem_tabela : manualOrigin(tipo),
@@ -571,6 +597,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
         item,
         descricao: isEntryMode ? null : movementForm.descricao.trim() || null,
         montante: amount,
+        tipo_pagamento: isEntryMode ? entryPayment || null : movementForm.tipo_pagamento.trim() || null,
         contabilizar_totais: isEntryMode ? true : movementForm.contabilizar_totais
       }
     };
@@ -608,6 +635,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
 
     const isEntryMode = quickAddTab === "entrada";
     const tipo = isEntryMode ? "entrada" : "saida";
+    const entryPayment = quickMovementForm.tipo_pagamento.trim() || "Dinheiro";
     const payload = {
       evento_id: selectedEvent.id,
       tipo,
@@ -617,7 +645,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
       montante: amount,
       numero_fatura: isEntryMode ? null : quickMovementForm.numero_fatura.trim() || null,
       fatura_com_nif: isEntryMode ? null : optionalBoolean(quickMovementForm.fatura_com_nif),
-      tipo_pagamento: isEntryMode ? null : quickMovementForm.tipo_pagamento.trim() || null,
+      tipo_pagamento: isEntryMode ? entryPayment : quickMovementForm.tipo_pagamento.trim() || null,
       pago: isEntryMode ? null : optionalBoolean(quickMovementForm.pago),
       contabilizar_totais: isEntryMode ? true : quickMovementForm.contabilizar_totais,
       origem_tabela: manualOrigin(tipo),
@@ -629,6 +657,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
         item,
         descricao: isEntryMode ? null : quickMovementForm.descricao.trim() || null,
         montante: amount,
+        tipo_pagamento: isEntryMode ? entryPayment : quickMovementForm.tipo_pagamento.trim() || null,
         contabilizar_totais: isEntryMode ? true : quickMovementForm.contabilizar_totais
       }
     };
@@ -1074,6 +1103,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                     {activeTab === "entrada" ? (
                       <tr>
                         <th>Item</th>
+                        <th>Método</th>
                         <th>Montante</th>
                         <th>Ações</th>
                       </tr>
@@ -1107,6 +1137,18 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                               }
                               placeholder="Item"
                             />
+                          </td>
+                          <td>
+                            <select
+                              aria-label="Método da entrada"
+                              value={quickMovementForm.tipo_pagamento}
+                              onChange={(event) =>
+                                setQuickMovementForm((current) => ({ ...current, tipo_pagamento: event.target.value }))
+                              }
+                            >
+                              <option value="Dinheiro">Dinheiro</option>
+                              <option value="Multibanco">Multibanco</option>
+                            </select>
                           </td>
                           <td>
                             <input
@@ -1263,6 +1305,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                       activeTab === "entrada" ? (
                         <tr key={movimento.id}>
                           <td className="item-cell">{movimento.item}</td>
+                          <td>{entryPaymentLabel(movimento)}</td>
                           <td className="money">{formatMoney(movimento.montante)}</td>
                           <td>{renderMovementActions(movimento)}</td>
                         </tr>
@@ -1303,7 +1346,9 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
               <p className="eyebrow">Contas</p>
               <h2>Conta Q26</h2>
               <span className="event-meta">
-                {accountEvent ? "Movimentos da folha Contas e despesas por Transferência ou C. Q26" : "Sem folha Contas carregada"}
+                {accountEvent
+                  ? "Movimentos da folha Contas, entradas por Multibanco e despesas por Transferência ou C. Q26"
+                  : "Sem folha Contas carregada"}
               </span>
             </div>
             <div className="event-totals">
@@ -1352,7 +1397,9 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
               <thead>
                 {activeTab === "entrada" ? (
                   <tr>
+                    <th>Evento</th>
                     <th>Item</th>
+                    <th>Método</th>
                     <th>Montante</th>
                     <th>Ações</th>
                   </tr>
@@ -1373,7 +1420,9 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                 {filteredAccountMovimentos.map((movimento) => (
                   activeTab === "entrada" ? (
                     <tr key={movimento.id}>
+                      <td>{movimento.evento_nome}</td>
                       <td className="item-cell">{movimento.item}</td>
+                      <td>{accountEntryLabel(movimento)}</td>
                       <td className="money">{formatMoney(movimento.montante)}</td>
                       <td>{renderMovementActions(movimento)}</td>
                     </tr>
@@ -1507,6 +1556,20 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session }: D
                     placeholder="0,00"
                   />
                 </label>
+                {(modalMode === "add-entry" || modalMode === "edit-entry") && selectedMovement?.evento_slug !== "contas" ? (
+                  <label>
+                    Método da entrada
+                    <select
+                      value={movementForm.tipo_pagamento || "Dinheiro"}
+                      onChange={(event) =>
+                        setMovementForm((current) => ({ ...current, tipo_pagamento: event.target.value }))
+                      }
+                    >
+                      <option value="Dinheiro">Dinheiro</option>
+                      <option value="Multibanco">Multibanco</option>
+                    </select>
+                  </label>
+                ) : null}
                 {modalMode === "add-exit" || modalMode === "edit-exit" ? (
                   <>
                     <label className="full">

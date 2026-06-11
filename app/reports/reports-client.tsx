@@ -78,6 +78,14 @@ function isContaPayment(value: string | null | undefined) {
   return payment === "transferencia" || payment === "c q26";
 }
 
+function isMultibancoPayment(value: string | null | undefined) {
+  return normalizePayment(value) === "multibanco";
+}
+
+function isAccountEntry(movimento: MovimentoDetalhe) {
+  return movimento.tipo === "entrada" && (movimento.evento_slug === "contas" || isMultibancoPayment(movimento.tipo_pagamento));
+}
+
 function isEventCounted(event: EventoResumo) {
   if (typeof event.contabilizar_totais === "boolean") return event.contabilizar_totais;
   return event.slug !== "decoracao";
@@ -215,7 +223,7 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
   }, [reportScope, visibleEvents]);
 
   const accountEntries = useMemo(() => {
-    return movimentos.filter((movimento) => movimento.evento_slug === "contas" && movimento.tipo === "entrada");
+    return movimentos.filter(isAccountEntry);
   }, [movimentos]);
 
   const accountSaidas = useMemo(() => {
