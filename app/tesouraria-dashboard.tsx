@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { AppLogo } from "./app-settings";
 import { ROLE_LABELS, canAccessAdmin, canDelete, canWrite, type AuthSession } from "./auth-types";
+import { NotesMenu } from "./notes-menu";
 import type { EventoResumo, MovimentoDetalhe } from "./supabase-data";
 import { TopbarBrand } from "./topbar-brand";
 
@@ -779,6 +780,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
       <section className="topbar">
         <TopbarBrand logo={appLogo} title="Tesouraria" />
         <div className="top-actions">
+          <NotesMenu role={session.role} />
           {mayAccessAdmin ? (
             <Link className="nav-button secondary-nav-button" href="/admin">
               Admin

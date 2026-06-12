@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { AppLogo, ReportLogo } from "../app-settings";
 import { ROLE_LABELS, canAccessAdmin, type AuthSession } from "../auth-types";
+import { NotesMenu } from "../notes-menu";
 import type { EventoResumo, MovimentoDetalhe } from "../supabase-data";
 import { TopbarBrand } from "../topbar-brand";
 
@@ -275,6 +276,7 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
       <section className="topbar no-print">
         <TopbarBrand logo={appLogo} title="Relatórios" />
         <div className="top-actions">
+          <NotesMenu role={session.role} />
           {canAccessAdmin(session.role) ? (
             <Link className="nav-button secondary-nav-button" href="/admin">
               Admin

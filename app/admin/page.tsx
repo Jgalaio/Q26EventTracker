@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getAppFavicon, getAppLogo, getQ25Balance, getReportLogo } from "../app-settings";
 import { getAuditLogs } from "../audit-log";
 import { getSession, listAuthUsers } from "../auth";
+import { NotesMenu } from "../notes-menu";
 import { TopbarBrand } from "../topbar-brand";
 import { AdminClient } from "./admin-client";
 
@@ -37,6 +38,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       <section className="topbar">
         <TopbarBrand logo={appLogo} title="Admin" />
         <div className="top-actions">
+          <NotesMenu role={session.role} />
           <Link className="nav-button" href="/">
             Tesouraria
           </Link>

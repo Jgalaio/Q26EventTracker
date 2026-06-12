@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { AppLogo } from "../app-settings";
 import { ROLE_LABELS, canAccessAdmin, type AuthSession } from "../auth-types";
+import { NotesMenu } from "../notes-menu";
 import type { EventoResumo, FaturacaoReport, FaturacaoReportItem, MovimentoDetalhe } from "../supabase-data";
 import { TopbarBrand } from "../topbar-brand";
 
@@ -383,6 +384,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
       <section className="topbar">
         <TopbarBrand logo={appLogo} title="Facturação" />
         <div className="top-actions">
+          <NotesMenu role={session.role} />
           {canAccessAdmin(session.role) ? (
             <Link className="nav-button secondary-nav-button" href="/admin">
               Admin

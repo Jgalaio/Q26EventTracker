@@ -60,6 +60,8 @@ const MOVEMENT_COLUMNS = [
 
 const SETTINGS_COLUMNS = ["key", "value", "updated_at"];
 
+const NOTES_COLUMNS = ["id", "titulo", "conteudo", "created_by", "updated_by", "created_at", "updated_at"];
+
 const INVOICE_REPORT_COLUMNS = [
   "id",
   "created_at",
@@ -153,11 +155,13 @@ function backupTables(value: JsonRecord) {
     eventos: pickColumns(source.eventos, EVENT_COLUMNS),
     movimentos: pickColumns(source.movimentos, MOVEMENT_COLUMNS),
     app_settings: pickColumns(source.app_settings, SETTINGS_COLUMNS),
+    notas: pickColumns(source.notas, NOTES_COLUMNS),
     faturas_relatorios: pickColumns(source.faturas_relatorios, INVOICE_REPORT_COLUMNS)
   };
 }
 
 async function deleteAllRows() {
+  await supabaseRequest("notas?id=not.is.null", "DELETE");
   await supabaseRequest("faturas_relatorios?id=not.is.null", "DELETE");
   await supabaseRequest("movimentos?id=not.is.null", "DELETE");
   await supabaseRequest("eventos?id=not.is.null", "DELETE");
@@ -176,10 +180,11 @@ export async function GET() {
   if (access.error) return access.error;
 
   try {
-    const [eventos, movimentos, appSettings, faturasRelatorios] = await Promise.all([
+    const [eventos, movimentos, appSettings, notas, faturasRelatorios] = await Promise.all([
       fetchAllRows("eventos", "ordem_folha.asc"),
       fetchAllRows("movimentos", "created_at.asc"),
       fetchAllRows("app_settings", "key.asc"),
+      fetchAllRows("notas", "updated_at.asc"),
       fetchAllRows("faturas_relatorios", "created_at.asc")
     ]);
 
@@ -192,6 +197,7 @@ export async function GET() {
         eventos: eventos.length,
         movimentos: movimentos.length,
         app_settings: appSettings.length,
+        notas: notas.length,
         faturas_relatorios: faturasRelatorios.length
       }
     });
@@ -203,6 +209,7 @@ export async function GET() {
         eventos,
         movimentos,
         app_settings: appSettings,
+        notas,
         faturas_relatorios: faturasRelatorios
       }
     });
@@ -222,7 +229,13 @@ export async function POST(request: NextRequest) {
   const backup = isRecord(body.backup) ? body.backup : body;
   const tables = backupTables(backup);
 
-  if (!tables.eventos.length && !tables.movimentos.length && !tables.app_settings.length && !tables.faturas_relatorios.length) {
+  if (
+    !tables.eventos.length &&
+    !tables.movimentos.length &&
+    !tables.app_settings.length &&
+    !tables.notas.length &&
+    !tables.faturas_relatorios.length
+  ) {
     return NextResponse.json({ message: "O ficheiro não tem dados válidos para importar." }, { status: 400 });
   }
 
@@ -231,6 +244,7 @@ export async function POST(request: NextRequest) {
     await insertRows("eventos", tables.eventos);
     await insertRows("movimentos", tables.movimentos);
     await insertRows("app_settings", tables.app_settings);
+    await insertRows("notas", tables.notas);
     await insertRows("faturas_relatorios", tables.faturas_relatorios);
 
     await writeAuditLog({
@@ -242,6 +256,7 @@ export async function POST(request: NextRequest) {
         eventos: tables.eventos.length,
         movimentos: tables.movimentos.length,
         app_settings: tables.app_settings.length,
+        notas: tables.notas.length,
         faturas_relatorios: tables.faturas_relatorios.length
       }
     });
@@ -273,7 +288,7 @@ export async function DELETE(request: NextRequest) {
       session: access.session,
       action: "Recomeçou base de dados",
       resource: "database",
-      summary: "Limpou eventos, movimentos, relatórios e definições",
+      summary: "Limpou eventos, movimentos, relatórios, notas e definições",
       details: { confirmation: body.confirmation }
     });
 

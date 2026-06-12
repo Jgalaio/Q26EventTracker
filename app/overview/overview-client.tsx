@@ -4,6 +4,7 @@ import { Fragment, useState } from "react";
 import Link from "next/link";
 import type { AppLogo } from "../app-settings";
 import { ROLE_LABELS, canAccessAdmin, canWrite, type AuthSession } from "../auth-types";
+import { NotesMenu } from "../notes-menu";
 import type { MovimentoDetalhe } from "../supabase-data";
 import { TopbarBrand } from "../topbar-brand";
 
@@ -82,6 +83,7 @@ export function OverviewClient({ rows, totals, cashValue, error, session, appLog
       <section className="topbar">
         <TopbarBrand logo={appLogo} title="OverView" />
         <div className="top-actions">
+          <NotesMenu role={session.role} />
           {canAccessAdmin(session.role) ? (
             <Link className="nav-button secondary-nav-button" href="/admin">
               Admin

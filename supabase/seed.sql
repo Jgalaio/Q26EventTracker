@@ -3,6 +3,7 @@
 
 begin;
 
+truncate table public.notas restart identity cascade;
 truncate table public.faturas_relatorios restart identity cascade;
 truncate table public.movimentos restart identity cascade;
 truncate table public.eventos restart identity cascade;

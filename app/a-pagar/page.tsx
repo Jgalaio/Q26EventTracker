@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getAppLogo } from "../app-settings";
 import { ROLE_LABELS } from "../auth-types";
 import { getSession } from "../auth";
+import { NotesMenu } from "../notes-menu";
 import { getTesourariaData, type MovimentoDetalhe } from "../supabase-data";
 import { TopbarBrand } from "../topbar-brand";
 import { PendingPaymentsClient } from "./pending-payments-client";
@@ -31,6 +32,7 @@ export default async function PendingPaymentsPage() {
       <section className="topbar">
         <TopbarBrand logo={appLogo} title="A pagar" />
         <div className="top-actions">
+          <NotesMenu role={session.role} />
           <Link className="nav-button" href="/">
             Tesouraria
           </Link>

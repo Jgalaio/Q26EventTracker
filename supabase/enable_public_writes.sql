@@ -54,6 +54,18 @@ create table if not exists public.app_audit_logs (
 create index if not exists app_audit_logs_created_at_idx on public.app_audit_logs(created_at desc);
 create index if not exists app_audit_logs_resource_idx on public.app_audit_logs(resource, resource_id);
 
+create table if not exists public.notas (
+  id uuid primary key default gen_random_uuid(),
+  titulo text not null,
+  conteudo text not null default '',
+  created_by text not null,
+  updated_by text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists notas_updated_at_idx on public.notas(updated_at desc);
+
 create table if not exists public.faturas_relatorios (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
@@ -207,6 +219,7 @@ grant delete on public.eventos to anon, authenticated;
 grant insert, update, delete on public.movimentos to anon, authenticated;
 grant select on public.eventos_resumo to anon, authenticated;
 grant select on public.movimentos_detalhe to anon, authenticated;
+grant select, insert, update, delete on public.notas to anon, authenticated;
 grant select, insert, delete on public.faturas_relatorios to anon, authenticated;
 revoke all on public.app_users from anon, authenticated;
 grant select, insert, update, delete on public.app_settings to anon, authenticated;
@@ -223,6 +236,10 @@ drop policy if exists "Escrita publica movimentos delete" on public.movimentos;
 drop policy if exists "Escrita publica app users" on public.app_users;
 drop policy if exists "Escrita publica app settings" on public.app_settings;
 drop policy if exists "Escrita publica app audit logs" on public.app_audit_logs;
+drop policy if exists "Leitura publica notas" on public.notas;
+drop policy if exists "Escrita publica notas insert" on public.notas;
+drop policy if exists "Escrita publica notas update" on public.notas;
+drop policy if exists "Escrita publica notas delete" on public.notas;
 drop policy if exists "Escrita publica faturas relatorios insert" on public.faturas_relatorios;
 drop policy if exists "Escrita publica faturas relatorios delete" on public.faturas_relatorios;
 drop policy if exists "Leitura publica app users" on public.app_users;
@@ -265,6 +282,7 @@ using (true);
 alter table public.app_users enable row level security;
 alter table public.app_settings enable row level security;
 alter table public.app_audit_logs enable row level security;
+alter table public.notas enable row level security;
 alter table public.faturas_relatorios enable row level security;
 
 create policy "Leitura publica app settings"
@@ -283,6 +301,11 @@ on public.app_audit_logs for select
 to anon, authenticated
 using (true);
 
+create policy "Leitura publica notas"
+on public.notas for select
+to anon, authenticated
+using (true);
+
 create policy "Leitura publica faturas relatorios"
 on public.faturas_relatorios for select
 to anon, authenticated
@@ -292,6 +315,22 @@ create policy "Escrita publica app audit logs"
 on public.app_audit_logs for insert
 to anon, authenticated
 with check (true);
+
+create policy "Escrita publica notas insert"
+on public.notas for insert
+to anon, authenticated
+with check (true);
+
+create policy "Escrita publica notas update"
+on public.notas for update
+to anon, authenticated
+using (true)
+with check (true);
+
+create policy "Escrita publica notas delete"
+on public.notas for delete
+to anon, authenticated
+using (true);
 
 create policy "Escrita publica faturas relatorios insert"
 on public.faturas_relatorios for insert

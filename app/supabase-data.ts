@@ -88,6 +88,16 @@ export type FaturacaoReport = {
   payload: FaturacaoReportPayload;
 };
 
+export type Nota = {
+  id: string;
+  titulo: string;
+  conteudo: string;
+  created_by: string;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 type FetchResult<T> = {
   data: T[];
   error: string | null;
@@ -136,4 +146,8 @@ export async function getTesourariaData() {
 
 export async function getFaturacaoReports(limit = 50) {
   return fetchSupabase<FaturacaoReport>("faturas_relatorios", `select=*&order=created_at.desc&limit=${limit}`);
+}
+
+export async function getNotas(limit = 100) {
+  return fetchSupabase<Nota>("notas", `select=*&order=updated_at.desc,created_at.desc&limit=${limit}`);
 }

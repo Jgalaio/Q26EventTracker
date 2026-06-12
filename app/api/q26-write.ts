@@ -29,6 +29,10 @@ type WriteAccess =
       error: NextResponse;
     };
 
+type AuditContext = {
+  justificacao?: string;
+};
+
 export async function requireWriteAccess(): Promise<WriteAccess> {
   const session = await getSession();
   if (!session) {
@@ -67,7 +71,7 @@ export function prepareWritePayload(
   body: JsonBody,
   session: AuthSession,
   isEditing: boolean,
-  auditTarget: "event" | "movement"
+  auditTarget: "event" | "movement" | "note"
 ): PreparedPayload {
   const { justification, ...payload } = body;
   const justificationText = typeof justification === "string" ? justification.trim() : "";
@@ -102,6 +106,7 @@ function baseResource(resource: string) {
 function resourceLabel(resource: string) {
   if (resource === "eventos") return "evento";
   if (resource === "movimentos") return "movimento";
+  if (resource === "notas") return "nota";
   return resource;
 }
 
@@ -126,11 +131,17 @@ function firstResponseRow(value: unknown) {
 
 function auditSummary(action: string, body: JsonBody | undefined, response: unknown) {
   const row = firstResponseRow(response);
-  const name = row?.nome ?? row?.item ?? body?.nome ?? body?.item;
+  const name = row?.nome ?? row?.item ?? row?.titulo ?? body?.nome ?? body?.item ?? body?.titulo;
   return typeof name === "string" && name.trim() ? `${action}: ${name}` : action;
 }
 
-export async function supabaseWrite(resource: string, method: string, body?: JsonBody, session?: AuthSession) {
+export async function supabaseWrite(
+  resource: string,
+  method: string,
+  body?: JsonBody,
+  session?: AuthSession,
+  auditContext?: AuditContext
+) {
   const response = await fetch(`${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${resource}`, {
     method,
     headers: {
@@ -163,7 +174,8 @@ export async function supabaseWrite(resource: string, method: string, body?: Jso
       details: {
         method,
         payload: body ?? null,
-        resource
+        resource,
+        ...auditContext
       }
     });
   }
