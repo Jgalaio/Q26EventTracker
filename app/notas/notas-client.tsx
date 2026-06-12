@@ -62,7 +62,7 @@ export function NotesPageClient({ initialNotes, initialSelectedId, notesError, r
   const router = useRouter();
   const initialVisibleId = initialNotes.find((note) => note.id === initialSelectedId)?.id ?? initialNotes[0]?.id ?? null;
   const [notes, setNotes] = useState(initialNotes);
-  const [selectedId, setSelectedId] = useState(initialVisibleId);
+  const [selectedId, setSelectedId] = useState<string | null>(initialVisibleId);
   const [mode, setMode] = useState<Mode>(() => (initialNotes.length || !canWrite(role) ? "view" : "create"));
   const [form, setForm] = useState<FormState>(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
