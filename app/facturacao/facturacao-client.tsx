@@ -408,10 +408,6 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
               Sair
             </button>
           </form>
-          <div className="status">
-            <span className="status-dot" />
-            Supabase
-          </div>
         </div>
       </section>
 

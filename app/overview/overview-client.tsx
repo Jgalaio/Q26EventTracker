@@ -113,10 +113,6 @@ export function OverviewClient({ rows, totals, cashValue, error, session, appLog
               Sair
             </button>
           </form>
-          <div className="status">
-            <span className="status-dot" />
-            Supabase
-          </div>
         </div>
       </section>
 
