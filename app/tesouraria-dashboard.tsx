@@ -809,10 +809,6 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
               Sair
             </button>
           </form>
-          <div className="status">
-            <span className="status-dot" />
-            Supabase
-          </div>
         </div>
       </section>
 
