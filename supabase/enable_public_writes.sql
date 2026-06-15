@@ -10,6 +10,9 @@ add column if not exists isento boolean not null default false;
 alter table public.eventos
 add column if not exists contabilizar_totais boolean not null default true;
 
+alter table public.eventos
+add column if not exists cor text;
+
 alter table public.movimentos
 add column if not exists descricao text;
 
@@ -171,6 +174,7 @@ select
   e.isento,
   e.isento_texto,
   e.contabilizar_totais,
+  e.cor,
   e.tipo,
   coalesce(sum(m.montante) filter (where m.tipo = 'entrada'), 0)::numeric(12,2) as total_entradas,
   coalesce(sum(m.montante) filter (where m.tipo = 'saida'), 0)::numeric(12,2) as total_saidas,

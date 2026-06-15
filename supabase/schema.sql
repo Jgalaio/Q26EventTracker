@@ -22,6 +22,7 @@ create table if not exists public.eventos (
   isento boolean not null default false,
   isento_texto text,
   contabilizar_totais boolean not null default true,
+  cor text,
   tipo text not null check (tipo in ('evento', 'categoria')),
   created_at timestamptz not null default now()
 );
@@ -31,6 +32,9 @@ add column if not exists isento boolean not null default false;
 
 alter table public.eventos
 add column if not exists contabilizar_totais boolean not null default true;
+
+alter table public.eventos
+add column if not exists cor text;
 
 update public.eventos
 set contabilizar_totais = false
@@ -211,6 +215,7 @@ select
   e.isento,
   e.isento_texto,
   e.contabilizar_totais,
+  e.cor,
   e.tipo,
   coalesce(sum(m.montante) filter (where m.tipo = 'entrada'), 0)::numeric(12,2) as total_entradas,
   coalesce(sum(m.montante) filter (where m.tipo = 'saida'), 0)::numeric(12,2) as total_saidas,

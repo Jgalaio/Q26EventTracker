@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type CSSProperties, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { AppLogo } from "./app-settings";
@@ -32,6 +32,7 @@ type EventForm = {
   data_fim: string;
   isento: "sim" | "nao";
   contabilizar_totais: "sim" | "nao";
+  cor: string;
   tipo: "evento" | "categoria";
 };
 
@@ -76,8 +77,20 @@ const emptyEventForm: EventForm = {
   data_fim: "",
   isento: "nao",
   contabilizar_totais: "sim",
+  cor: "",
   tipo: "evento"
 };
+
+const EVENT_COLOR_OPTIONS = [
+  { value: "", label: "Default", accent: "#1f66e5", border: "#c4d8ff", surface: "#ffffff" },
+  { value: "azul", label: "Azul", accent: "#1f66e5", border: "#9ebcff", surface: "#eef5ff" },
+  { value: "verde", label: "Verde", accent: "#25815c", border: "#9fd7bd", surface: "#ecf9f3" },
+  { value: "amarelo", label: "Amarelo", accent: "#b7791f", border: "#efd089", surface: "#fff8e7" },
+  { value: "vermelho", label: "Vermelho", accent: "#b23b55", border: "#efb2bf", surface: "#fff1f4" },
+  { value: "roxo", label: "Roxo", accent: "#7552c7", border: "#c8b9f3", surface: "#f4f0ff" },
+  { value: "ciano", label: "Ciano", accent: "#147d9f", border: "#9dd5e4", surface: "#eafaff" },
+  { value: "cinza", label: "Cinza", accent: "#556987", border: "#c1cad7", surface: "#f2f5f9" }
+] as const;
 
 const emptyMovementForm: MovementForm = {
   item: "",
@@ -127,6 +140,29 @@ function isEventCounted(event: EventoResumo) {
 
 function isMovementCounted(movimento: MovimentoDetalhe) {
   return movimento.contabilizar_totais !== false;
+}
+
+function getEventColorOption(value: string | null | undefined) {
+  return EVENT_COLOR_OPTIONS.find((option) => option.value === value);
+}
+
+function eventColorStyle(option: (typeof EVENT_COLOR_OPTIONS)[number]) {
+  return {
+    "--swatch-color": option.accent,
+    "--swatch-border": option.border,
+    "--swatch-bg": option.surface
+  } as CSSProperties;
+}
+
+function eventCardStyle(event: EventoResumo) {
+  const option = getEventColorOption(event.cor);
+  if (!event.cor || !option) return undefined;
+
+  return {
+    "--event-accent": option.accent,
+    "--event-border": option.border,
+    "--event-surface": option.surface
+  } as CSSProperties;
 }
 
 function isPendingPayment(movimento: MovimentoDetalhe) {
@@ -459,6 +495,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
       data_fim: selectedEvent.data_fim ?? "",
       isento: isEventIsento(selectedEvent) ? "sim" : "nao",
       contabilizar_totais: isEventCounted(selectedEvent) ? "sim" : "nao",
+      cor: selectedEvent.cor ?? "",
       tipo: selectedEvent.tipo
     });
     setJustification("");
@@ -526,6 +563,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
       isento: eventForm.isento === "sim",
       isento_texto: eventForm.isento === "sim" ? "Sim" : "Não",
       contabilizar_totais: eventForm.contabilizar_totais === "sim",
+      cor: eventForm.cor || null,
       tipo: eventForm.tipo
     };
 
@@ -549,6 +587,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
         isento: payload.isento,
         isento_texto: payload.isento_texto,
         contabilizar_totais: payload.contabilizar_totais,
+        cor: payload.cor,
         tipo: payload.tipo,
         justification
       })
@@ -932,9 +971,16 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
           {orderedEventos.map((event) => (
             <button
               aria-selected={selectedEvent?.slug === event.slug}
-              className={selectedEvent?.slug === event.slug ? "event-card selected" : "event-card"}
+              className={[
+                "event-card",
+                selectedEvent?.slug === event.slug ? "selected" : "",
+                event.cor && getEventColorOption(event.cor) ? "has-event-color" : ""
+              ]
+                .filter(Boolean)
+                .join(" ")}
               key={event.slug}
               role="tab"
+              style={eventCardStyle(event)}
               type="button"
               onClick={() => {
                 setSelectedSlug(event.slug);
@@ -1574,6 +1620,25 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                     <option value="nao">Não</option>
                   </select>
                 </label>
+                <div className="event-color-field full">
+                  <span>Cor do evento</span>
+                  <div className="event-color-options" role="radiogroup" aria-label="Cor do evento">
+                    {EVENT_COLOR_OPTIONS.map((option) => (
+                      <button
+                        aria-checked={eventForm.cor === option.value}
+                        className={eventForm.cor === option.value ? "event-color-option selected" : "event-color-option"}
+                        key={option.value || "default"}
+                        onClick={() => setEventForm((current) => ({ ...current, cor: option.value }))}
+                        role="radio"
+                        style={eventColorStyle(option)}
+                        type="button"
+                      >
+                        <span className="event-color-swatch" />
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="form-grid">

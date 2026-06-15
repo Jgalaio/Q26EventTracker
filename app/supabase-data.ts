@@ -10,6 +10,7 @@ export type EventoResumo = {
   isento?: boolean | null;
   isento_texto: string | null;
   contabilizar_totais?: boolean | null;
+  cor: string | null;
   tipo: "evento" | "categoria";
   total_entradas: number;
   total_saidas: number;
