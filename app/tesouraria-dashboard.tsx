@@ -350,7 +350,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
       const amount = Number(movimento.montante ?? 0);
       if (movimento.tipo === "entrada") summary.entradas += amount;
       if (movimento.tipo === "saida") summary.saidas += amount;
-      if (movimento.tipo === "a_pagamento") summary.aPagamento += amount;
+      if (movimento.tipo === "a_pagamento" || isPendingPayment(movimento)) summary.aPagamento += amount;
       summary.movimentos += 1;
     });
 
@@ -925,6 +925,10 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
             <article>
               <span>Saídas</span>
               <strong>{formatMoney(totals.saidas)}</strong>
+            </article>
+            <article>
+              <span>A Pagamento Total</span>
+              <strong>{formatMoney(totals.aPagamento)}</strong>
             </article>
             <article>
               <span>Saldo</span>

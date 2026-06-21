@@ -98,6 +98,10 @@ function isMovementCounted(movimento: MovimentoDetalhe) {
   return movimento.contabilizar_totais !== false;
 }
 
+function isPendingPayment(movimento: MovimentoDetalhe) {
+  return movimento.tipo !== "entrada" && movimento.pago === false;
+}
+
 function emptySummary(): Summary {
   return {
     entradas: 0,
@@ -120,9 +124,11 @@ function addMovimento(summary: Summary, movimento: MovimentoDetalhe) {
     return;
   }
 
-  if (movimento.tipo === "a_pagamento") {
+  if (movimento.tipo === "a_pagamento" || isPendingPayment(movimento)) {
     summary.aPagamento += amount;
-  } else {
+  }
+
+  if (movimento.tipo !== "a_pagamento") {
     summary.saidas += amount;
   }
 
@@ -584,7 +590,7 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
                           <tbody>
                             {saidas.length ? (
                               saidas.map((movimento) => (
-                                <tr key={movimento.id}>
+                                <tr className={isPendingPayment(movimento) ? "report-pending-payment-row" : ""} key={movimento.id}>
                                   <td>{movementLabel(movimento.tipo)}</td>
                                   <td className="item-cell">{movimento.item}</td>
                                   <td>{formatDate(movimento.data_pagamento)}</td>

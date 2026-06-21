@@ -29,6 +29,10 @@ function isAccountEntry(movimento: MovimentoDetalhe) {
   return movimento.tipo === "entrada" && (movimento.evento_slug === "contas" || isMultibancoPayment(movimento.tipo_pagamento));
 }
 
+function isPendingPayment(movimento: MovimentoDetalhe) {
+  return movimento.tipo !== "entrada" && movimento.pago === false;
+}
+
 function emptySummary(): Summary {
   return {
     entradas: 0,
@@ -51,9 +55,11 @@ function addMovimento(summary: Summary, movimento: MovimentoDetalhe) {
     return;
   }
 
-  if (movimento.tipo === "a_pagamento") {
+  if (movimento.tipo === "a_pagamento" || isPendingPayment(movimento)) {
     summary.aPagamento += amount;
-  } else {
+  }
+
+  if (movimento.tipo !== "a_pagamento") {
     summary.saidas += amount;
   }
 

@@ -1824,6 +1824,13 @@ h2 {
   background: rgba(255, 255, 255, 0.72);
 }
 
+.report-table tbody tr.report-pending-payment-row td {
+  background: #fff1f2;
+  border-bottom-color: #f0b8c2;
+  color: #8f1d37;
+  font-weight: 800;
+}
+
 .report-empty {
   color: var(--muted);
   font-weight: 700;
