@@ -987,15 +987,17 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
             </article>
             <article>
               <span>Saldo</span>
-              <strong>{formatMoney(eventProfit)}</strong>
+              <strong className={eventProfit >= 0 ? "metric-positive" : "metric-negative"}>{formatMoney(eventProfit)}</strong>
             </article>
             <article>
               <span>Lucro + Montante Q25</span>
-              <strong>{formatMoney(profitWithQ25Balance)}</strong>
+              <strong className={profitWithQ25Balance >= 0 ? "metric-positive" : "metric-negative"}>
+                {formatMoney(profitWithQ25Balance)}
+              </strong>
             </article>
             <article>
               <span>Valor Dinheiro</span>
-              <strong>{formatMoney(cashValue)}</strong>
+              <strong className={cashValue >= 0 ? "metric-positive" : "metric-negative"}>{formatMoney(cashValue)}</strong>
             </article>
             <article>
               <span>Eventos isentos</span>
@@ -1014,7 +1016,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
             </article>
             <article>
               <span>Saldo em conta</span>
-              <strong>{formatMoney(accountBalance)}</strong>
+              <strong className={accountBalance >= 0 ? "metric-positive" : "metric-negative"}>{formatMoney(accountBalance)}</strong>
             </article>
             <article>
               <span>Movimentos</span>
