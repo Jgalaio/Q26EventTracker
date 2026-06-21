@@ -1222,7 +1222,6 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                       <tr>
                         <th>Item</th>
                         <th>Método</th>
-                        <th>Recibo</th>
                         <th>Patrocínio</th>
                         <th>Fatura emitida</th>
                         <th>Montante</th>
@@ -1276,22 +1275,6 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                               <option value="Dinheiro">Dinheiro</option>
                               <option value="Multibanco">Multibanco</option>
                             </select>
-                          </td>
-                          <td>
-                            <label className="table-checkbox" title="Recibo emitido">
-                              <input
-                                aria-label="Recibo emitido"
-                                checked={quickMovementForm.recibo_emitido}
-                                type="checkbox"
-                                onChange={(event) =>
-                                  setQuickMovementForm((current) => ({
-                                    ...current,
-                                    recibo_emitido: event.target.checked
-                                  }))
-                                }
-                              />
-                              <span>{quickMovementForm.recibo_emitido ? "Sim" : "Não"}</span>
-                            </label>
                           </td>
                           <td>
                             {isMultibancoPayment(quickMovementForm.tipo_pagamento) ? (
@@ -1505,7 +1488,6 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                         <tr key={movimento.id}>
                           <td className="item-cell">{movimento.item}</td>
                           <td>{entryPaymentLabel(movimento)}</td>
-                          <td>{yesNo(isReceiptIssued(movimento))}</td>
                           <td>{yesNo(isSponsorEntry(movimento))}</td>
                           <td>{isSponsorEntry(movimento) ? yesNo(isInvoiceIssued(movimento)) : "—"}</td>
                           <td className="money">{formatMoney(movimento.montante)}</td>
@@ -1603,7 +1585,6 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                     <th>Evento</th>
                     <th>Item</th>
                     <th>Método</th>
-                    <th>Recibo</th>
                     <th>Patrocínio</th>
                     <th>Fatura emitida</th>
                     <th>Montante</th>
@@ -1629,7 +1610,6 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                       <td>{movimento.evento_nome}</td>
                       <td className="item-cell">{movimento.item}</td>
                       <td>{accountEntryLabel(movimento)}</td>
-                      <td>{yesNo(isReceiptIssued(movimento))}</td>
                       <td>{yesNo(isSponsorEntry(movimento))}</td>
                       <td>{isSponsorEntry(movimento) ? yesNo(isInvoiceIssued(movimento)) : "—"}</td>
                       <td className="money">{formatMoney(movimento.montante)}</td>
