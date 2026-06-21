@@ -51,6 +51,8 @@ type MovementForm = {
   contabilizar_totais: boolean;
 };
 
+type EntryKind = "faturacao" | "patrocinio";
+
 type FinancialSummary = {
   entradas: number;
   saidas: number;
@@ -93,6 +95,11 @@ const EVENT_COLOR_OPTIONS = [
   { value: "ciano", label: "Ciano", accent: "#147d9f", border: "#9dd5e4", surface: "#eafaff" },
   { value: "cinza", label: "Cinza", accent: "#556987", border: "#c1cad7", surface: "#f2f5f9" }
 ] as const;
+
+const ENTRY_KIND_OPTIONS: { value: EntryKind; label: string }[] = [
+  { value: "faturacao", label: "Facturação" },
+  { value: "patrocinio", label: "Patrocínio" }
+];
 
 const emptyMovementForm: MovementForm = {
   item: "",
@@ -184,6 +191,14 @@ function isRawFlagEnabled(value: unknown) {
 
 function isSponsorEntry(movimento: MovimentoDetalhe) {
   return isRawFlagEnabled(movimento.raw?.patrocinio);
+}
+
+function sponsorToEntryKind(isSponsor: boolean): EntryKind {
+  return isSponsor ? "patrocinio" : "faturacao";
+}
+
+function entryKindLabel(isSponsor: boolean) {
+  return isSponsor ? "Patrocínio" : "Facturação";
 }
 
 function isInvoiceIssued(movimento: MovimentoDetalhe) {
@@ -685,6 +700,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
         ...(isEntryMode
           ? {
               patrocinio: entrySponsorship,
+              tipo_entrada: entryKindLabel(entrySponsorship),
               fatura_emitida: entryInvoiceIssued
             }
           : { faturar_mais_tarde: movementForm.faturar_mais_tarde })
@@ -753,6 +769,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
         ...(isEntryMode
           ? {
               patrocinio: entrySponsorship,
+              tipo_entrada: entryKindLabel(entrySponsorship),
               fatura_emitida: entryInvoiceIssued
             }
           : { faturar_mais_tarde: quickMovementForm.faturar_mais_tarde })
@@ -1211,7 +1228,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                       <tr>
                         <th>Item</th>
                         <th>Método</th>
-                        <th>Patrocínio</th>
+                        <th>Tipo</th>
                         <th>Fatura emitida</th>
                         <th>Montante</th>
                         <th>Ações</th>
@@ -1264,21 +1281,24 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                             </select>
                           </td>
                           <td>
-                            <label className="table-checkbox" title="Entrada de patrocínio">
-                              <input
-                                aria-label="Patrocínio"
-                                checked={quickMovementForm.patrocinio}
-                                type="checkbox"
-                                onChange={(event) =>
-                                  setQuickMovementForm((current) => ({
-                                    ...current,
-                                    patrocinio: event.target.checked,
-                                    fatura_emitida: event.target.checked ? current.fatura_emitida : "nao"
-                                  }))
-                                }
-                              />
-                              <span>{quickMovementForm.patrocinio ? "Sim" : "Não"}</span>
-                            </label>
+                            <select
+                              aria-label="Tipo da entrada"
+                              value={sponsorToEntryKind(quickMovementForm.patrocinio)}
+                              onChange={(event) => {
+                                const isSponsor = event.target.value === "patrocinio";
+                                setQuickMovementForm((current) => ({
+                                  ...current,
+                                  patrocinio: isSponsor,
+                                  fatura_emitida: isSponsor ? current.fatura_emitida : "nao"
+                                }));
+                              }}
+                            >
+                              {ENTRY_KIND_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
                           </td>
                           <td>
                             {quickMovementForm.patrocinio ? (
@@ -1471,7 +1491,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                         <tr key={movimento.id}>
                           <td className="item-cell">{movimento.item}</td>
                           <td>{entryPaymentLabel(movimento)}</td>
-                          <td>{yesNo(isSponsorEntry(movimento))}</td>
+                          <td>{entryKindLabel(isSponsorEntry(movimento))}</td>
                           <td>{isSponsorEntry(movimento) ? yesNo(isInvoiceIssued(movimento)) : "—"}</td>
                           <td className="money">{formatMoney(movimento.montante)}</td>
                           <td>{renderMovementActions(movimento)}</td>
@@ -1568,7 +1588,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                     <th>Evento</th>
                     <th>Item</th>
                     <th>Método</th>
-                    <th>Patrocínio</th>
+                    <th>Tipo</th>
                     <th>Fatura emitida</th>
                     <th>Montante</th>
                     <th>Ações</th>
@@ -1593,7 +1613,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                       <td>{movimento.evento_nome}</td>
                       <td className="item-cell">{movimento.item}</td>
                       <td>{accountEntryLabel(movimento)}</td>
-                      <td>{yesNo(isSponsorEntry(movimento))}</td>
+                      <td>{entryKindLabel(isSponsorEntry(movimento))}</td>
                       <td>{isSponsorEntry(movimento) ? yesNo(isInvoiceIssued(movimento)) : "—"}</td>
                       <td className="money">{formatMoney(movimento.montante)}</td>
                       <td>{renderMovementActions(movimento)}</td>
@@ -1766,19 +1786,25 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                 ) : null}
                 {modalMode === "add-entry" || modalMode === "edit-entry" ? (
                   <>
-                    <label className="checkbox-field">
-                      <input
-                        checked={movementForm.patrocinio}
-                        type="checkbox"
-                        onChange={(event) =>
+                    <label>
+                      Tipo
+                      <select
+                        value={sponsorToEntryKind(movementForm.patrocinio)}
+                        onChange={(event) => {
+                          const isSponsor = event.target.value === "patrocinio";
                           setMovementForm((current) => ({
                             ...current,
-                            patrocinio: event.target.checked,
-                            fatura_emitida: event.target.checked ? current.fatura_emitida : "nao"
-                          }))
-                        }
-                      />
-                      <span>Patrocínios</span>
+                            patrocinio: isSponsor,
+                            fatura_emitida: isSponsor ? current.fatura_emitida : "nao"
+                          }));
+                        }}
+                      >
+                        {ENTRY_KIND_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
                     </label>
                     {movementForm.patrocinio ? (
                       <label>
