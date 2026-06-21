@@ -44,7 +44,6 @@ type MovementForm = {
   numero_fatura: string;
   fatura_com_nif: "" | "sim" | "nao";
   faturar_mais_tarde: boolean;
-  recibo_emitido: boolean;
   patrocinio: boolean;
   fatura_emitida: "sim" | "nao";
   tipo_pagamento: string;
@@ -103,7 +102,6 @@ const emptyMovementForm: MovementForm = {
   numero_fatura: "",
   fatura_com_nif: "",
   faturar_mais_tarde: false,
-  recibo_emitido: false,
   patrocinio: false,
   fatura_emitida: "nao",
   tipo_pagamento: "",
@@ -182,10 +180,6 @@ function isMarkedForLaterInvoice(movimento: MovimentoDetalhe) {
 
 function isRawFlagEnabled(value: unknown) {
   return value === true || value === "sim" || value === "true";
-}
-
-function isReceiptIssued(movimento: MovimentoDetalhe) {
-  return isRawFlagEnabled(movimento.raw?.recibo_emitido);
 }
 
 function isSponsorEntry(movimento: MovimentoDetalhe) {
@@ -554,7 +548,6 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
       numero_fatura: movimento.numero_fatura ?? "",
       fatura_com_nif: booleanToForm(movimento.fatura_com_nif),
       faturar_mais_tarde: isMarkedForLaterInvoice(movimento),
-      recibo_emitido: isReceiptIssued(movimento),
       patrocinio: isSponsorEntry(movimento),
       fatura_emitida: isInvoiceIssued(movimento) ? "sim" : "nao",
       tipo_pagamento:
@@ -692,7 +685,6 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
         contabilizar_totais: isEntryMode ? true : movementForm.contabilizar_totais,
         ...(isEntryMode
           ? {
-              recibo_emitido: movementForm.recibo_emitido,
               patrocinio: entrySponsorship,
               fatura_emitida: entryInvoiceIssued
             }
@@ -762,7 +754,6 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
         contabilizar_totais: isEntryMode ? true : quickMovementForm.contabilizar_totais,
         ...(isEntryMode
           ? {
-              recibo_emitido: quickMovementForm.recibo_emitido,
               patrocinio: entrySponsorship,
               fatura_emitida: entryInvoiceIssued
             }
@@ -1785,16 +1776,6 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                 ) : null}
                 {modalMode === "add-entry" || modalMode === "edit-entry" ? (
                   <>
-                    <label className="checkbox-field">
-                      <input
-                        checked={movementForm.recibo_emitido}
-                        type="checkbox"
-                        onChange={(event) =>
-                          setMovementForm((current) => ({ ...current, recibo_emitido: event.target.checked }))
-                        }
-                      />
-                      <span>Recibo emitido</span>
-                    </label>
                     {isMultibancoPayment(movementForm.tipo_pagamento || "Dinheiro") ? (
                       <label className="checkbox-field">
                         <input
