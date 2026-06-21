@@ -97,7 +97,7 @@ const EVENT_COLOR_OPTIONS = [
 ] as const;
 
 const ENTRY_KIND_OPTIONS: { value: EntryKind; label: string }[] = [
-  { value: "faturacao", label: "Facturação" },
+  { value: "faturacao", label: "Faturação" },
   { value: "patrocinio", label: "Patrocínio" }
 ];
 
@@ -198,7 +198,7 @@ function sponsorToEntryKind(isSponsor: boolean): EntryKind {
 }
 
 function entryKindLabel(isSponsor: boolean) {
-  return isSponsor ? "Patrocínio" : "Facturação";
+  return isSponsor ? "Patrocínio" : "Faturação";
 }
 
 function isInvoiceIssued(movimento: MovimentoDetalhe) {
@@ -882,7 +882,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
             Relatórios
           </Link>
           <Link className="nav-button secondary-nav-button" href="/facturacao">
-            Facturação
+            Faturação
           </Link>
           <Link className="nav-button" href="/overview">
             OverView
@@ -1429,7 +1429,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                             </select>
                           </td>
                           <td>
-                            <label className="table-checkbox" title="Mostrar este item em Facturação > Itens a acrescentar">
+                            <label className="table-checkbox" title="Mostrar este item em Faturação > Itens a acrescentar">
                               <input
                                 aria-label="Faturar mais tarde"
                                 checked={quickMovementForm.faturar_mais_tarde}

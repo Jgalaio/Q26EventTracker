@@ -382,7 +382,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
   return (
     <main className="shell billing-shell">
       <section className="topbar">
-        <TopbarBrand logo={appLogo} title="Facturação" />
+        <TopbarBrand logo={appLogo} title="Faturação" />
         <div className="top-actions">
           <NotesMenu role={session.role} />
           {canAccessAdmin(session.role) ? (

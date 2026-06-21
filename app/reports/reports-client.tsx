@@ -292,7 +292,7 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
             Tesouraria
           </Link>
           <Link className="nav-button secondary-nav-button" href="/facturacao">
-            Facturação
+            Faturação
           </Link>
           <Link className="nav-button" href="/overview">
             OverView
