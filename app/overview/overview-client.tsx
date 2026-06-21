@@ -104,6 +104,11 @@ export function OverviewClient({ rows, totals, cashValue, error, session, appLog
               Faturação
             </Link>
           ) : null}
+          {canWrite(session.role) ? (
+            <Link className="nav-button secondary-nav-button" href="/fat-patrocinios">
+              Fat. Patrocínios
+            </Link>
+          ) : null}
           <div className="user-chip">
             <span>{session.username}</span>
             <strong>{ROLE_LABELS[session.role]}</strong>

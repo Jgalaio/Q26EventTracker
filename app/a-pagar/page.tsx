@@ -42,6 +42,9 @@ export default async function PendingPaymentsPage() {
           <Link className="nav-button secondary-nav-button" href="/reports">
             Relatórios
           </Link>
+          <Link className="nav-button secondary-nav-button" href="/fat-patrocinios">
+            Fat. Patrocínios
+          </Link>
           <div className="user-chip">
             <span>{session.username}</span>
             <strong>{ROLE_LABELS[session.role]}</strong>

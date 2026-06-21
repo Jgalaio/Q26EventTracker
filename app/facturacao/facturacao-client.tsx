@@ -396,6 +396,9 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
           <Link className="nav-button secondary-nav-button" href="/reports">
             Relatórios
           </Link>
+          <Link className="nav-button secondary-nav-button" href="/fat-patrocinios">
+            Fat. Patrocínios
+          </Link>
           <Link className="nav-button" href="/overview">
             OverView
           </Link>

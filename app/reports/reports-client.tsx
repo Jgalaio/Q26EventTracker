@@ -294,6 +294,9 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
           <Link className="nav-button secondary-nav-button" href="/facturacao">
             Faturação
           </Link>
+          <Link className="nav-button secondary-nav-button" href="/fat-patrocinios">
+            Fat. Patrocínios
+          </Link>
           <Link className="nav-button" href="/overview">
             OverView
           </Link>

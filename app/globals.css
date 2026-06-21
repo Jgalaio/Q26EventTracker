@@ -2660,6 +2660,91 @@ table {
   opacity: 0.65;
 }
 
+.sponsor-invoices-shell {
+  width: min(1480px, calc(100% - 32px));
+}
+
+.sponsor-invoice-metrics article small {
+  color: var(--muted);
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  margin-top: 8px;
+}
+
+.sponsor-invoice-table-wrap {
+  max-height: calc(100vh - 330px);
+}
+
+.sponsor-invoice-table {
+  min-width: 1180px;
+}
+
+.sponsor-invoice-table th {
+  font-size: 0.64rem;
+  padding: 7px 8px;
+}
+
+.sponsor-invoice-table td {
+  font-size: 0.78rem;
+  padding: 8px;
+  vertical-align: top;
+}
+
+.invoice-status-select {
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  min-height: 30px;
+  padding: 0 8px;
+}
+
+.invoice-status-select.pending {
+  background: #fff8e7;
+  border: 1px solid #efd089;
+  color: #8a5a13;
+}
+
+.invoice-status-select.issued {
+  background: #ecf9f3;
+  border: 1px solid #9fd7bd;
+  color: #25815c;
+}
+
+.invoice-status-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.invoice-file-cell {
+  display: grid;
+  gap: 7px;
+  min-width: 250px;
+}
+
+.invoice-file-cell a {
+  color: var(--blue);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.invoice-file-cell span,
+.invoice-file-cell small {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.invoice-file-cell input[type="file"] {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  font-size: 0.74rem;
+  min-height: 32px;
+  padding: 6px;
+}
+
 .inline-add-row td {
   background: #f9fbff !important;
 }

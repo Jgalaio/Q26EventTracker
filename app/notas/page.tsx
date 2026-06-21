@@ -50,6 +50,11 @@ export default async function NotesPage({ searchParams }: NotesPageProps) {
               Faturação
             </Link>
           ) : null}
+          {canWrite(session.role) ? (
+            <Link className="nav-button secondary-nav-button" href="/fat-patrocinios">
+              Fat. Patrocínios
+            </Link>
+          ) : null}
           <Link className="nav-button secondary-nav-button" href="/overview">
             OverView
           </Link>
