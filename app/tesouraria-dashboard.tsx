@@ -657,8 +657,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
     const tipo = movementToEdit ? movementToEdit.tipo : isEntryMode ? "entrada" : "saida";
     const isAccountSheetEntry = isEntryMode && movementToEdit?.evento_slug === "contas";
     const entryPayment = movementForm.tipo_pagamento.trim() || (isAccountSheetEntry ? "" : "Dinheiro");
-    const entryIsMultibanco = isEntryMode && isMultibancoPayment(entryPayment);
-    const entrySponsorship = entryIsMultibanco ? movementForm.patrocinio : false;
+    const entrySponsorship = isEntryMode ? movementForm.patrocinio : false;
     const entryInvoiceIssued = entrySponsorship ? movementForm.fatura_emitida === "sim" : false;
     const payload = {
       evento_id: isEditing ? undefined : selectedEvent?.id,
@@ -726,8 +725,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
     const isEntryMode = quickAddTab === "entrada";
     const tipo = isEntryMode ? "entrada" : "saida";
     const entryPayment = quickMovementForm.tipo_pagamento.trim() || "Dinheiro";
-    const entryIsMultibanco = isEntryMode && isMultibancoPayment(entryPayment);
-    const entrySponsorship = entryIsMultibanco ? quickMovementForm.patrocinio : false;
+    const entrySponsorship = isEntryMode ? quickMovementForm.patrocinio : false;
     const entryInvoiceIssued = entrySponsorship ? quickMovementForm.fatura_emitida === "sim" : false;
     const payload = {
       evento_id: selectedEvent.id,
@@ -1257,9 +1255,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                               onChange={(event) =>
                                 setQuickMovementForm((current) => ({
                                   ...current,
-                                  tipo_pagamento: event.target.value,
-                                  patrocinio: event.target.value === "Multibanco" ? current.patrocinio : false,
-                                  fatura_emitida: event.target.value === "Multibanco" && current.patrocinio ? current.fatura_emitida : "nao"
+                                  tipo_pagamento: event.target.value
                                 }))
                               }
                             >
@@ -1268,28 +1264,24 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                             </select>
                           </td>
                           <td>
-                            {isMultibancoPayment(quickMovementForm.tipo_pagamento) ? (
-                              <label className="table-checkbox" title="Entrada de patrocínio">
-                                <input
-                                  aria-label="Patrocínio"
-                                  checked={quickMovementForm.patrocinio}
-                                  type="checkbox"
-                                  onChange={(event) =>
-                                    setQuickMovementForm((current) => ({
-                                      ...current,
-                                      patrocinio: event.target.checked,
-                                      fatura_emitida: event.target.checked ? current.fatura_emitida : "nao"
-                                    }))
-                                  }
-                                />
-                                <span>{quickMovementForm.patrocinio ? "Sim" : "Não"}</span>
-                              </label>
-                            ) : (
-                              "—"
-                            )}
+                            <label className="table-checkbox" title="Entrada de patrocínio">
+                              <input
+                                aria-label="Patrocínio"
+                                checked={quickMovementForm.patrocinio}
+                                type="checkbox"
+                                onChange={(event) =>
+                                  setQuickMovementForm((current) => ({
+                                    ...current,
+                                    patrocinio: event.target.checked,
+                                    fatura_emitida: event.target.checked ? current.fatura_emitida : "nao"
+                                  }))
+                                }
+                              />
+                              <span>{quickMovementForm.patrocinio ? "Sim" : "Não"}</span>
+                            </label>
                           </td>
                           <td>
-                            {isMultibancoPayment(quickMovementForm.tipo_pagamento) && quickMovementForm.patrocinio ? (
+                            {quickMovementForm.patrocinio ? (
                               <select
                                 aria-label="Fatura emitida"
                                 value={quickMovementForm.fatura_emitida}
@@ -1763,9 +1755,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                       onChange={(event) =>
                         setMovementForm((current) => ({
                           ...current,
-                          tipo_pagamento: event.target.value,
-                          patrocinio: event.target.value === "Multibanco" ? current.patrocinio : false,
-                          fatura_emitida: event.target.value === "Multibanco" && current.patrocinio ? current.fatura_emitida : "nao"
+                          tipo_pagamento: event.target.value
                         }))
                       }
                     >
@@ -1776,23 +1766,21 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                 ) : null}
                 {modalMode === "add-entry" || modalMode === "edit-entry" ? (
                   <>
-                    {isMultibancoPayment(movementForm.tipo_pagamento || "Dinheiro") ? (
-                      <label className="checkbox-field">
-                        <input
-                          checked={movementForm.patrocinio}
-                          type="checkbox"
-                          onChange={(event) =>
-                            setMovementForm((current) => ({
-                              ...current,
-                              patrocinio: event.target.checked,
-                              fatura_emitida: event.target.checked ? current.fatura_emitida : "nao"
-                            }))
-                          }
-                        />
-                        <span>Patrocínios</span>
-                      </label>
-                    ) : null}
-                    {isMultibancoPayment(movementForm.tipo_pagamento || "Dinheiro") && movementForm.patrocinio ? (
+                    <label className="checkbox-field">
+                      <input
+                        checked={movementForm.patrocinio}
+                        type="checkbox"
+                        onChange={(event) =>
+                          setMovementForm((current) => ({
+                            ...current,
+                            patrocinio: event.target.checked,
+                            fatura_emitida: event.target.checked ? current.fatura_emitida : "nao"
+                          }))
+                        }
+                      />
+                      <span>Patrocínios</span>
+                    </label>
+                    {movementForm.patrocinio ? (
                       <label>
                         Fatura emitida
                         <select
