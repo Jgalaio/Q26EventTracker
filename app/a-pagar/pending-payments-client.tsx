@@ -67,6 +67,7 @@ export function PendingPaymentsClient({ initialMovimentos, role }: PendingPaymen
           pago: true,
           raw: {
             ...(movimento.raw ?? {}),
+            faturar_mais_tarde: false,
             pago_atualizado: {
               data: new Date().toISOString(),
               origem: "pagina_a_pagar"
@@ -79,7 +80,7 @@ export function PendingPaymentsClient({ initialMovimentos, role }: PendingPaymen
       if (!response.ok) throw new Error(body?.message ?? "Não foi possível atualizar.");
 
       setMovimentos((current) => current.filter((item) => item.id !== movimento.id));
-      setMessage("Estado Pago atualizado.");
+      setMessage("Estado Pago atualizado e Faturar mais tarde removido.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Não foi possível atualizar.");
     } finally {
