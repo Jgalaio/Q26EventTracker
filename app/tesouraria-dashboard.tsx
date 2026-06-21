@@ -889,7 +889,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
           </Link>
           {pendingPayments.length ? (
             <Link className="warning-nav-button" href="/a-pagar">
-              Faturas a pagar: {pendingPayments.length}
+              Pagamentos em falta: {pendingPayments.length}
             </Link>
           ) : null}
           <div className="user-chip">
@@ -979,9 +979,11 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
               <span>Saídas</span>
               <strong>{formatMoney(totals.saidas)}</strong>
             </article>
-            <article>
-              <span>A Pagamento Total</span>
-              <strong>{formatMoney(totals.aPagamento)}</strong>
+            <article className={`payment-status-card ${totals.aPagamento > 0 ? "is-due" : "is-clear"}`}>
+              <Link className="payment-card-link" href="/a-pagar">
+                <span>Pagamentos em falta</span>
+                <strong>{formatMoney(totals.aPagamento)}</strong>
+              </Link>
             </article>
             <article>
               <span>Saldo</span>

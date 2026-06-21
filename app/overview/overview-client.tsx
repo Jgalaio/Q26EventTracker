@@ -74,7 +74,7 @@ export function OverviewClient({ rows, totals, cashValue, error, session, appLog
   const chartItems = [
     { label: "Entradas Totais", value: totals.entradas, className: "bar-blue" },
     { label: "Saídas Totais", value: totals.saidas, className: "bar-orange" },
-    { label: "A Pagamento Total", value: totals.aPagamento, className: "bar-muted" }
+    { label: "Pagamentos em falta", value: totals.aPagamento, className: "bar-muted" }
   ];
   const chartMax = Math.max(...chartItems.map((item) => item.value), 1);
 
@@ -140,10 +140,12 @@ export function OverviewClient({ rows, totals, cashValue, error, session, appLog
             <small>Fatura C/NIF: Não</small>
             <strong className="value-red">{formatMoney(totals.naoFaturado)}</strong>
           </article>
-          <article>
-            <span>A Pagamento Total</span>
-            <small>Valores pendentes</small>
-            <strong className="value-blue">{formatMoney(totals.aPagamento)}</strong>
+          <article className={`payment-status-card ${totals.aPagamento > 0 ? "is-due" : "is-clear"}`}>
+            <Link className="payment-card-link" href="/a-pagar">
+              <span>Pagamentos em falta</span>
+              <small>Valores pendentes</small>
+              <strong>{formatMoney(totals.aPagamento)}</strong>
+            </Link>
           </article>
           <article>
             <span>Pago Conta Q26</span>

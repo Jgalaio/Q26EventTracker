@@ -263,7 +263,7 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
   const chartItems = [
     { label: "Entradas Totais", value: totals.entradas, className: "cover-bar-blue" },
     { label: "Saídas Totais", value: totals.saidas, className: "cover-bar-orange" },
-    { label: "A Pagamento Total", value: totals.aPagamento, className: "cover-bar-yellow" }
+    { label: "Pagamentos em falta", value: totals.aPagamento, className: "cover-bar-yellow" }
   ];
   const chartMax = Math.max(...chartItems.map((item) => item.value), 1);
   const overviewChartMax = Math.max(
@@ -411,7 +411,7 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
                 <strong>{formatMoney(totals.saidas)}</strong>
               </article>
               <article>
-                <span>A Pagamento Total</span>
+                <span>Pagamentos em falta</span>
                 <small>Valores pendentes</small>
                 <strong>{formatMoney(totals.aPagamento)}</strong>
               </article>
@@ -463,7 +463,7 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
               <strong>{formatMoney(totals.saidas)}</strong>
             </article>
             <article>
-              <span>A pagamento</span>
+              <span>Pagamentos em falta</span>
               <strong>{formatMoney(totals.aPagamento)}</strong>
             </article>
             <article>
@@ -542,7 +542,7 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
                   <div className="report-event-totals">
                     <span>Entradas {formatMoney(item.summary.entradas)}</span>
                     <span>Saídas {formatMoney(item.summary.saidas)}</span>
-                    <span>A pagamento {formatMoney(item.summary.aPagamento)}</span>
+                    <span>Pagamentos em falta {formatMoney(item.summary.aPagamento)}</span>
                     <span>Saldo {formatMoney(item.summary.lucro)}</span>
                   </div>
 

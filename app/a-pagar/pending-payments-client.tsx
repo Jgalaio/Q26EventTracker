@@ -92,9 +92,9 @@ export function PendingPaymentsClient({ initialMovimentos, role }: PendingPaymen
     <>
       {message ? <section className="notice">{message}</section> : null}
 
-      <section className="metrics pending-metrics" aria-label="Resumo de faturas por pagar">
+      <section className="metrics pending-metrics" aria-label="Resumo de pagamentos em falta">
         <article>
-          <span>Faturas a pagamento</span>
+          <span>Pagamentos em falta</span>
           <strong>{movimentos.length}</strong>
         </article>
         <article>
@@ -103,11 +103,11 @@ export function PendingPaymentsClient({ initialMovimentos, role }: PendingPaymen
         </article>
       </section>
 
-      <section className="table-panel" aria-label="Registos por pagar">
+      <section className="table-panel" aria-label="Registos com pagamentos em falta">
         <div className="table-heading">
           <div>
             <p className="eyebrow">Consulta</p>
-            <h2>Registos com Pago = Não</h2>
+            <h2>Registos com pagamento em falta</h2>
           </div>
           <span>{formatMoney(pendingTotal)}</span>
         </div>
@@ -157,7 +157,7 @@ export function PendingPaymentsClient({ initialMovimentos, role }: PendingPaymen
               ) : (
                 <tr>
                   <td className="empty-movement-row" colSpan={10}>
-                    Não existem faturas por pagar.
+                    Não existem pagamentos em falta.
                   </td>
                 </tr>
               )}

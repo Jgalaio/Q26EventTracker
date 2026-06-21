@@ -920,6 +920,57 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.payment-card-link {
+  color: inherit;
+  display: block;
+  min-height: 108px;
+  padding: 18px;
+  text-decoration: none;
+}
+
+.metrics article.payment-status-card,
+.overview-card-grid article.payment-status-card {
+  padding: 0;
+}
+
+.overview-card-grid .payment-card-link {
+  min-height: 120px;
+}
+
+.payment-card-link:focus-visible {
+  border-radius: 8px;
+  outline: 3px solid rgba(31, 102, 229, 0.28);
+  outline-offset: -3px;
+}
+
+.payment-status-card {
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.payment-status-card:hover {
+  box-shadow: 0 18px 42px rgba(30, 92, 210, 0.16);
+}
+
+.payment-status-card.is-clear {
+  background: #ecf9f3;
+  border-color: #9fd7bd;
+}
+
+.payment-status-card.is-clear .payment-card-link strong {
+  color: #25815c;
+}
+
+.payment-status-card.is-due {
+  background: #fff1f4;
+  border-color: #efb2bf;
+}
+
+.payment-status-card.is-due .payment-card-link strong {
+  color: var(--red);
+}
+
 .reports-shell {
   width: min(1260px, calc(100% - 32px));
 }

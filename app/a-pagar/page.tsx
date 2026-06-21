@@ -30,7 +30,7 @@ export default async function PendingPaymentsPage() {
   return (
     <main className="shell pending-shell">
       <section className="topbar">
-        <TopbarBrand logo={appLogo} title="A pagar" />
+        <TopbarBrand logo={appLogo} title="Pagamentos em falta" />
         <div className="top-actions">
           <NotesMenu role={session.role} />
           <Link className="nav-button" href="/">
