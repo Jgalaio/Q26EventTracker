@@ -1139,6 +1139,15 @@ h2 {
   color: var(--red);
 }
 
+.billing-metrics .deposit-metric-card {
+  background: linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%);
+  border-color: #9ebcff;
+}
+
+.billing-metrics .deposit-metric-card span {
+  color: var(--blue);
+}
+
 .billing-grid {
   display: grid;
   gap: 16px;
@@ -1297,7 +1306,7 @@ h2 {
 .billing-report-summary {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .billing-report-summary article {
@@ -1322,6 +1331,15 @@ h2 {
 
 .billing-report-summary strong.negative {
   color: var(--red);
+}
+
+.billing-report-summary .deposit-report-card {
+  background: #eef5ff;
+  border-color: #9ebcff;
+}
+
+.billing-report-summary .deposit-report-card span {
+  color: var(--blue);
 }
 
 .billing-report-section {

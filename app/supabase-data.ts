@@ -65,12 +65,16 @@ export type FaturacaoReportPayload = {
   };
   despesas_evento: FaturacaoReportItem[];
   itens_acrescentados: FaturacaoReportItem[];
+  transferencias_sem_nif?: FaturacaoReportItem[];
   totais: {
     despesas_evento: number;
     itens_acrescentados: number;
     total_faturado: number;
     valor_fatura: number;
     diferenca: number;
+    transferencias_com_nif?: number;
+    transferencias_sem_nif?: number;
+    montante_depositar?: number;
   };
 };
 

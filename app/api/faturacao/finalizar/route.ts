@@ -92,10 +92,13 @@ export async function POST(request: NextRequest) {
   const valorFatura = numberValue(body.valor_fatura);
   const despesasEvento = parseItems(body.despesas_evento);
   const itensAcrescentados = parseItems(body.itens_acrescentados);
+  const transferenciasSemNif = parseItems(body.transferencias_sem_nif);
   const totalDespesas = despesasEvento.reduce((sum, item) => sum + item.montante, 0);
   const totalItensAcrescentados = itensAcrescentados.reduce((sum, item) => sum + item.montante, 0);
+  const totalTransferenciasSemNif = transferenciasSemNif.reduce((sum, item) => sum + item.montante, 0);
   const totalFaturado = totalDespesas + totalItensAcrescentados;
   const diferenca = valorFatura - totalFaturado;
+  const montanteDepositar = diferenca + totalDespesas + totalTransferenciasSemNif;
   const now = new Date().toISOString();
 
   if (!eventoSlug || !eventoNome) {
@@ -110,7 +113,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Não existem itens para faturar." }, { status: 400 });
   }
 
-  const movimentosIds = [...despesasEvento, ...itensAcrescentados].map((item) => item.id);
+  const movimentosIds = [...despesasEvento, ...itensAcrescentados, ...transferenciasSemNif].map((item) => item.id);
   const reportPayload = {
     finalizado_em: now,
     evento: {
@@ -120,12 +123,16 @@ export async function POST(request: NextRequest) {
     },
     despesas_evento: despesasEvento,
     itens_acrescentados: itensAcrescentados,
+    transferencias_sem_nif: transferenciasSemNif,
     totais: {
       despesas_evento: totalDespesas,
       itens_acrescentados: totalItensAcrescentados,
       total_faturado: totalFaturado,
       valor_fatura: valorFatura,
-      diferenca
+      diferenca,
+      transferencias_com_nif: totalDespesas,
+      transferencias_sem_nif: totalTransferenciasSemNif,
+      montante_depositar: montanteDepositar
     }
   };
 
@@ -177,6 +184,7 @@ export async function POST(request: NextRequest) {
         evento_slug: eventoSlug,
         valor_fatura: valorFatura,
         total_faturado: totalFaturado,
+        montante_depositar: montanteDepositar,
         movimentos_ids: movimentosIds
       }
     });

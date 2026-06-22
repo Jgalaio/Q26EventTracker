@@ -120,7 +120,7 @@ function movementToReportItem(movimento: MovimentoDetalhe): FaturacaoReportItem 
   };
 }
 
-function reportItems(report: FaturacaoReport, key: "despesas_evento" | "itens_acrescentados") {
+function reportItems(report: FaturacaoReport, key: "despesas_evento" | "itens_acrescentados" | "transferencias_sem_nif") {
   return Array.isArray(report.payload?.[key]) ? report.payload[key] : [];
 }
 
@@ -131,19 +131,26 @@ function reportCreatedAt(report: FaturacaoReport) {
 function reportTotals(report: FaturacaoReport) {
   const totalFaturado = Number(report.payload?.totais?.total_faturado ?? report.total_faturado ?? 0);
   const valorFatura = Number(report.payload?.totais?.valor_fatura ?? report.valor_fatura ?? 0);
+  const transferenciasComNif = Number(report.payload?.totais?.transferencias_com_nif ?? report.payload?.totais?.despesas_evento ?? report.total_despesas ?? 0);
+  const transferenciasSemNif = Number(report.payload?.totais?.transferencias_sem_nif ?? 0);
+  const diferenca = valorFatura - totalFaturado;
 
   return {
     despesasEvento: Number(report.payload?.totais?.despesas_evento ?? report.total_despesas ?? 0),
     itensAcrescentados: Number(report.payload?.totais?.itens_acrescentados ?? report.total_itens_acrescentados ?? 0),
     totalFaturado,
     valorFatura,
-    diferenca: valorFatura - totalFaturado
+    diferenca,
+    transferenciasComNif,
+    transferenciasSemNif,
+    montanteDepositar: Number(report.payload?.totais?.montante_depositar ?? diferenca + transferenciasComNif + transferenciasSemNif)
   };
 }
 
 function PrintableInvoiceReport({ report }: { report: FaturacaoReport }) {
   const despesasEvento = reportItems(report, "despesas_evento");
   const itensAcrescentados = reportItems(report, "itens_acrescentados");
+  const transferenciasSemNif = reportItems(report, "transferencias_sem_nif");
   const totals = reportTotals(report);
 
   const renderRows = (items: FaturacaoReportItem[], emptyText: string) =>
@@ -174,19 +181,27 @@ function PrintableInvoiceReport({ report }: { report: FaturacaoReport }) {
           <span>{report.evento_nome}</span>
         </div>
         <div>
-          <strong>{formatMoney(totals.totalFaturado)}</strong>
-          <span>{formatDate(reportCreatedAt(report).slice(0, 10))}</span>
+          <strong>{formatMoney(totals.montanteDepositar)}</strong>
+          <span>Montante a Depositar · {formatDate(reportCreatedAt(report).slice(0, 10))}</span>
         </div>
       </header>
 
       <section className="billing-report-summary">
         <article>
-          <span>Despesas do evento</span>
-          <strong>{formatMoney(totals.despesasEvento)}</strong>
+          <span>Total faturado</span>
+          <strong>{formatMoney(totals.totalFaturado)}</strong>
         </article>
         <article>
           <span>Itens acrescentados</span>
           <strong>{formatMoney(totals.itensAcrescentados)}</strong>
+        </article>
+        <article>
+          <span>Transferências c/NIF</span>
+          <strong>{formatMoney(totals.transferenciasComNif)}</strong>
+        </article>
+        <article>
+          <span>Transferências s/NIF</span>
+          <strong>{formatMoney(totals.transferenciasSemNif)}</strong>
         </article>
         <article>
           <span>Valor da fatura</span>
@@ -196,10 +211,14 @@ function PrintableInvoiceReport({ report }: { report: FaturacaoReport }) {
           <span>Diferença</span>
           <strong className={totals.diferenca >= 0 ? "positive" : "negative"}>{formatMoney(totals.diferenca)}</strong>
         </article>
+        <article className="deposit-report-card">
+          <span>Montante a Depositar</span>
+          <strong className={totals.montanteDepositar >= 0 ? "positive" : "negative"}>{formatMoney(totals.montanteDepositar)}</strong>
+        </article>
       </section>
 
       <section className="billing-report-section">
-        <h3>Despesas do evento</h3>
+        <h3>Transferências c/NIF</h3>
         <table>
           <thead>
             <tr>
@@ -210,7 +229,23 @@ function PrintableInvoiceReport({ report }: { report: FaturacaoReport }) {
               <th>Montante</th>
             </tr>
           </thead>
-          <tbody>{renderRows(despesasEvento, "Sem despesas do evento.")}</tbody>
+          <tbody>{renderRows(despesasEvento, "Sem transferências c/NIF.")}</tbody>
+        </table>
+      </section>
+
+      <section className="billing-report-section">
+        <h3>Transferências s/NIF</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Evento</th>
+              <th>Item</th>
+              <th>Fatura</th>
+              <th>Pagamento</th>
+              <th>Montante</th>
+            </tr>
+          </thead>
+          <tbody>{renderRows(transferenciasSemNif, "Sem transferências s/NIF.")}</tbody>
         </table>
       </section>
 
@@ -308,6 +343,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
   const billedExpensesTotal = currentExpensesTotal + previousExpensesTotal;
   const invoiceAmount = parseAmount(invoiceValue);
   const invoiceDifference = (Number.isFinite(invoiceAmount) ? invoiceAmount : 0) - billedExpensesTotal;
+  const depositAmount = invoiceDifference + currentExpensesTotal + transfersWithoutNifTotal;
 
   const togglePreviousExpense = (id: string) => {
     setSelectedPreviousIds((current) => {
@@ -357,6 +393,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
     if (!confirmed) return;
 
     const selectedPreviousItems = selectedPreviousExpenses.map(movementToReportItem);
+    const transfersWithoutNifItems = currentEventTransfersWithoutNif.map(movementToReportItem);
     const payload = {
       evento_id: selectedEvent.id,
       evento_slug: selectedEvent.slug,
@@ -364,12 +401,16 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
       valor_fatura: invoiceAmount,
       despesas_evento: currentEventExpenses.map(movementToReportItem),
       itens_acrescentados: selectedPreviousItems,
+      transferencias_sem_nif: transfersWithoutNifItems,
       totais: {
         despesas_evento: currentExpensesTotal,
         itens_acrescentados: previousExpensesTotal,
         total_faturado: billedExpensesTotal,
         valor_fatura: invoiceAmount,
-        diferenca: invoiceDifference
+        diferenca: invoiceDifference,
+        transferencias_com_nif: currentExpensesTotal,
+        transferencias_sem_nif: transfersWithoutNifTotal,
+        montante_depositar: depositAmount
       }
     };
 
@@ -501,6 +542,10 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
         <article>
           <span>Dif. Despesa/Fatura</span>
           <strong className={invoiceDifference >= 0 ? "positive" : "negative"}>{formatMoney(invoiceDifference)}</strong>
+        </article>
+        <article className="deposit-metric-card">
+          <span>Montante a Depositar</span>
+          <strong className={depositAmount >= 0 ? "positive" : "negative"}>{formatMoney(depositAmount)}</strong>
         </article>
       </section>
 
@@ -656,6 +701,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
                 <th>Total faturado</th>
                 <th>Valor da fatura</th>
                 <th>Diferença</th>
+                <th>A depositar</th>
                 <th>Por</th>
                 <th>Ações</th>
               </tr>
@@ -671,6 +717,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
                       <td className="money">{formatMoney(totals.totalFaturado)}</td>
                       <td className="money">{formatMoney(totals.valorFatura)}</td>
                       <td className="money">{formatMoney(totals.diferenca)}</td>
+                      <td className="money">{formatMoney(totals.montanteDepositar)}</td>
                       <td>{report.created_by}</td>
                       <td>
                         <button className="small-action-button" type="button" onClick={() => printReport(report)}>
@@ -682,7 +729,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
                 })
               ) : (
                 <tr>
-                  <td className="empty-movement-row" colSpan={7}>
+                  <td className="empty-movement-row" colSpan={8}>
                     Ainda não existem faturas finalizadas.
                   </td>
                 </tr>
