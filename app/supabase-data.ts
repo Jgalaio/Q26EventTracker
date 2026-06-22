@@ -105,6 +105,28 @@ type FetchResult<T> = {
   error: string | null;
 };
 
+type EventoLockRow = {
+  id: string;
+  fechado: boolean | null;
+};
+
+type EventoBaseRow = {
+  id: string;
+  slug: string;
+  nome: string;
+  folha_excel: string;
+  ordem_folha: number;
+  data_texto: string | null;
+  data_inicio: string | null;
+  data_fim: string | null;
+  isento?: boolean | null;
+  isento_texto: string | null;
+  contabilizar_totais?: boolean | null;
+  cor: string | null;
+  fechado?: boolean | null;
+  tipo: "evento" | "categoria";
+};
+
 const FALLBACK_SUPABASE_URL = "https://ushhacwtmpmwmvpaitdx.supabase.co";
 const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB";
 
@@ -131,26 +153,65 @@ async function fetchSupabase<T>(resource: string, query: string): Promise<FetchR
 }
 
 export async function getTesourariaData() {
-  const [eventos, movimentos] = await Promise.all([
+  const [eventos, movimentos, eventLocks] = await Promise.all([
     fetchSupabase<EventoResumo>("eventos_resumo", "select=*&order=ordem_folha.asc"),
     fetchSupabase<MovimentoDetalhe>(
       "movimentos_detalhe",
       "select=*&order=data_pagamento.desc.nullslast,evento_nome.asc,item.asc&limit=10000"
-    )
+    ),
+    fetchSupabase<EventoLockRow>("eventos", "select=id,fechado")
   ]);
+  const lockedById = new Map(eventLocks.data.map((event) => [event.id, event.fechado === true]));
 
   return {
-    eventos: eventos.data,
+    eventos: eventos.data.map((event) => ({
+      ...event,
+      fechado: lockedById.get(event.id) ?? event.fechado ?? false
+    })),
     movimentos: movimentos.data,
-    error: eventos.error ?? movimentos.error
+    error: eventos.error ?? movimentos.error ?? eventLocks.error
   };
 }
 
 export async function getClosedEvents() {
-  return fetchSupabase<EventoResumo>(
-    "eventos_resumo",
-    "select=*&fechado=eq.true&order=data_inicio.asc.nullslast,ordem_folha.asc"
-  );
+  const [eventos, resumo] = await Promise.all([
+    fetchSupabase<EventoBaseRow>(
+      "eventos",
+      "select=id,slug,nome,folha_excel,ordem_folha,data_texto,data_inicio,data_fim,isento,isento_texto,contabilizar_totais,cor,fechado,tipo&fechado=eq.true&order=data_inicio.asc.nullslast,ordem_folha.asc"
+    ),
+    fetchSupabase<EventoResumo>("eventos_resumo", "select=*&order=data_inicio.asc.nullslast,ordem_folha.asc")
+  ]);
+
+  const closedIds = new Set(eventos.data.map((event) => event.id));
+  const resumoFechados = resumo.data
+    .filter((event) => closedIds.has(event.id))
+    .map((event) => ({ ...event, fechado: true }));
+
+  if (resumoFechados.length) {
+    return {
+      data: resumoFechados,
+      error: eventos.error ?? resumo.error
+    };
+  }
+
+  if (!eventos.data.length) {
+    return {
+      data: [],
+      error: eventos.error
+    };
+  }
+
+  return {
+    data: eventos.data.map((event) => ({
+      ...event,
+      total_entradas: 0,
+      total_saidas: 0,
+      total_a_pagamento: 0,
+      saldo: 0,
+      total_movimentos: 0
+    })),
+    error: eventos.error
+  };
 }
 
 export async function getFaturacaoReports(limit = 50) {
