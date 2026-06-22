@@ -479,7 +479,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
 
       <section className="metrics billing-metrics" aria-label="Resumo de Fat.Finanças">
         <article>
-          <span>Despesas faturadas</span>
+          <span>Transferências c/NIF</span>
           <strong>{formatMoney(currentExpensesTotal)}</strong>
         </article>
         <article>
