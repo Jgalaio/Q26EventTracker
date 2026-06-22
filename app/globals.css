@@ -2746,6 +2746,17 @@ table {
   box-shadow: inset 4px 0 0 var(--red);
 }
 
+.target-movement-row td,
+.entries-table tbody tr.target-movement-row td,
+.outgoing-table tbody tr.target-movement-row td {
+  background: #fff8e7 !important;
+  border-bottom-color: #efd089;
+}
+
+.target-movement-row td:first-child {
+  box-shadow: inset 4px 0 0 var(--blue);
+}
+
 .pending-table {
   min-width: 1220px;
 }
@@ -3460,6 +3471,20 @@ td {
 
 .admin-log-table {
   min-width: 980px;
+}
+
+.admin-log-table .clickable-log-row {
+  cursor: pointer;
+}
+
+.admin-log-table .clickable-log-row:hover td,
+.admin-log-table .clickable-log-row:focus-visible td {
+  background: #eef5ff;
+}
+
+.admin-log-table .clickable-log-row:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
 }
 
 .admin-log-details {

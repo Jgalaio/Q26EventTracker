@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { AppLogo } from "./app-settings";
@@ -390,6 +390,8 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
   const mayWrite = canWrite(session.role);
   const mayDelete = canDelete(session.role);
   const mayAccessAdmin = canAccessAdmin(session.role);
+  const [targetEventParam, setTargetEventParam] = useState<string | null>(null);
+  const [targetMovementParam, setTargetMovementParam] = useState<string | null>(null);
   const [sectionMode, setSectionMode] = useState<SectionMode>("eventos");
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"entrada" | "saida">("entrada");
@@ -405,6 +407,12 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
   const [descriptionPopup, setDescriptionPopup] = useState<DescriptionPopup | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setTargetEventParam(params.get("event"));
+    setTargetMovementParam(params.get("movement"));
+  }, []);
 
   const accountEvent = useMemo(() => {
     return eventos.find((event) => event.slug === "contas") ?? null;
@@ -454,6 +462,11 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
     });
   }, [eventOnlyList]);
 
+  const targetMovement = useMemo(() => {
+    if (!targetMovementParam) return null;
+    return movimentos.find((movimento) => movimento.id === targetMovementParam) ?? null;
+  }, [movimentos, targetMovementParam]);
+
   const selectedEvent = useMemo(() => {
     return orderedEventos.find((event) => event.slug === selectedSlug) ?? orderedEventos[0] ?? null;
   }, [orderedEventos, selectedSlug]);
@@ -466,6 +479,28 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
     if (!selectedEvent) return [];
     return movimentos.filter((movimento) => movimento.evento_slug === selectedEvent.slug);
   }, [movimentos, selectedEvent]);
+
+  useEffect(() => {
+    if (targetMovement) {
+      setSectionMode(targetMovement.evento_slug === "contas" ? "contas" : "eventos");
+      if (targetMovement.evento_slug !== "contas") setSelectedSlug(targetMovement.evento_slug);
+      setActiveTab(targetMovement.tipo === "entrada" ? "entrada" : "saida");
+      setPago("todos");
+      setQuery("");
+      return;
+    }
+
+    if (targetEventParam) {
+      const targetEvent = orderedEventos.find((event) => event.id === targetEventParam || event.slug === targetEventParam);
+      if (targetEvent) {
+        setSectionMode("eventos");
+        setSelectedSlug(targetEvent.slug);
+        setActiveTab("entrada");
+        setPago("todos");
+        setQuery("");
+      }
+    }
+  }, [orderedEventos, targetEventParam, targetMovement]);
 
   const normalizedQuery = query.trim().toLowerCase();
   const tabCounts = useMemo(() => {
@@ -934,6 +969,14 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
       setIsSaving(false);
     }
   };
+
+  const movementRowClass = (movimento: MovimentoDetalhe) =>
+    [
+      isPendingPayment(movimento) ? "pending-payment-row" : "",
+      targetMovementParam === movimento.id ? "target-movement-row" : ""
+    ]
+      .filter(Boolean)
+      .join(" ");
 
   const renderMovementActions = (movimento: MovimentoDetalhe) => {
     const locked = isMovementLocked(movimento);
@@ -1665,7 +1708,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                     ) : null}
                     {filteredMovimentos.map((movimento) => (
                       activeTab === "entrada" ? (
-                        <tr key={movimento.id}>
+                        <tr className={movementRowClass(movimento)} key={movimento.id}>
                           <td className="item-cell">{movimento.item}</td>
                           <td>{entryPaymentLabel(movimento)}</td>
                           <td>{entryKindLabel(movementEntryKind(movimento))}</td>
@@ -1674,7 +1717,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                           <td>{renderMovementActions(movimento)}</td>
                         </tr>
                       ) : (
-                        <tr className={isPendingPayment(movimento) ? "pending-payment-row" : ""} key={movimento.id}>
+                        <tr className={movementRowClass(movimento)} key={movimento.id}>
                           <td>
                             <span className={`pill ${movimento.tipo}`}>{movementLabel(movimento.tipo)}</span>
                           </td>
@@ -1786,7 +1829,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
               <tbody>
                 {filteredAccountMovimentos.map((movimento) => (
                   activeTab === "entrada" ? (
-                    <tr key={movimento.id}>
+                    <tr className={movementRowClass(movimento)} key={movimento.id}>
                       <td>{movimento.evento_nome}</td>
                       <td className="item-cell">{movimento.item}</td>
                       <td>{accountEntryLabel(movimento)}</td>
@@ -1796,7 +1839,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                       <td>{renderMovementActions(movimento)}</td>
                     </tr>
                   ) : (
-                    <tr className={isPendingPayment(movimento) ? "pending-payment-row" : ""} key={movimento.id}>
+                    <tr className={movementRowClass(movimento)} key={movimento.id}>
                       <td>{movimento.evento_nome}</td>
                       <td className="item-cell">{movimento.item}</td>
                       <td>{renderDescription(movimento)}</td>

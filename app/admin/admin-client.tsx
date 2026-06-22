@@ -2,6 +2,7 @@
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { AppFavicon, AppLogo, ReportLogo } from "../app-settings";
 import type { AuditLogEntry } from "../audit-log";
 import { ROLE_LABELS, type AuthSession } from "../auth-types";
@@ -82,6 +83,13 @@ function formatDetails(details: Record<string, unknown>) {
   return "-";
 }
 
+function auditLogTarget(log: AuditLogEntry) {
+  if (!log.resource_id) return null;
+  if (log.resource === "eventos") return `/?event=${encodeURIComponent(log.resource_id)}`;
+  if (log.resource === "movimentos") return `/?movement=${encodeURIComponent(log.resource_id)}`;
+  return null;
+}
+
 export function AdminClient({
   session,
   users,
@@ -96,6 +104,7 @@ export function AdminClient({
   closedEvents,
   closedEventsError
 }: AdminClientProps) {
+  const router = useRouter();
   const [passwordForm, setPasswordForm] = useState<PasswordForm>(emptyPasswordForm);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [logoMessage, setLogoMessage] = useState<string | null>(null);
@@ -752,16 +761,37 @@ export function AdminClient({
             </thead>
             <tbody>
               {auditLogs.length ? (
-                auditLogs.map((log) => (
-                  <tr key={log.id}>
-                    <td>{formatLogDate(log.created_at)}</td>
-                    <td>{log.username}</td>
-                    <td>{ROLE_LABELS[log.role]}</td>
-                    <td>{log.action}</td>
-                    <td>{log.summary ?? "-"}</td>
-                    <td className="admin-log-details">{formatDetails(log.details)}</td>
-                  </tr>
-                ))
+                auditLogs.map((log) => {
+                  const target = auditLogTarget(log);
+                  return (
+                    <tr
+                      aria-label={target ? `Abrir ${log.summary ?? log.action}` : undefined}
+                      className={target ? "clickable-log-row" : undefined}
+                      key={log.id}
+                      role={target ? "link" : undefined}
+                      tabIndex={target ? 0 : undefined}
+                      title={target ? "Abrir item alterado" : undefined}
+                      onClick={target ? () => router.push(target) : undefined}
+                      onKeyDown={
+                        target
+                          ? (event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                router.push(target);
+                              }
+                            }
+                          : undefined
+                      }
+                    >
+                      <td>{formatLogDate(log.created_at)}</td>
+                      <td>{log.username}</td>
+                      <td>{ROLE_LABELS[log.role]}</td>
+                      <td>{log.action}</td>
+                      <td>{log.summary ?? "-"}</td>
+                      <td className="admin-log-details">{formatDetails(log.details)}</td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td className="empty-movement-row" colSpan={6}>
