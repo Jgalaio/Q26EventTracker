@@ -21,12 +21,13 @@ function isContaPayment(value: string | null) {
   return normalized === "transferencia" || normalized === "c q26";
 }
 
-function isMultibancoPayment(value: string | null | undefined) {
-  return normalizePayment(value) === "multibanco";
+function isBankEntryPayment(value: string | null | undefined) {
+  const payment = normalizePayment(value);
+  return payment === "multibanco" || payment === "transferencia";
 }
 
 function isAccountEntry(movimento: MovimentoDetalhe) {
-  return movimento.tipo === "entrada" && (movimento.evento_slug === "contas" || isMultibancoPayment(movimento.tipo_pagamento));
+  return movimento.tipo === "entrada" && (movimento.evento_slug === "contas" || isBankEntryPayment(movimento.tipo_pagamento));
 }
 
 function isPendingPayment(movimento: MovimentoDetalhe) {

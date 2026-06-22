@@ -283,12 +283,16 @@ function isContaPayment(value: string | null) {
   return normalized === "transferencia" || normalized === "c q26";
 }
 
-function isMultibancoPayment(value: string | null | undefined) {
-  return normalizePayment(value) === "multibanco";
+function isBankEntryPayment(value: string | null | undefined) {
+  const payment = normalizePayment(value);
+  return payment === "multibanco" || payment === "transferencia";
 }
 
 function entryPaymentLabel(movimento: MovimentoDetalhe) {
-  return isMultibancoPayment(movimento.tipo_pagamento) ? "Multibanco" : "Dinheiro";
+  const payment = normalizePayment(movimento.tipo_pagamento);
+  if (payment === "multibanco") return "Multibanco";
+  if (payment === "transferencia") return "Transferencia";
+  return "Dinheiro";
 }
 
 function accountEntryLabel(movimento: MovimentoDetalhe) {
@@ -296,7 +300,7 @@ function accountEntryLabel(movimento: MovimentoDetalhe) {
 }
 
 function isAccountEntry(movimento: MovimentoDetalhe) {
-  return movimento.tipo === "entrada" && (movimento.evento_slug === "contas" || isMultibancoPayment(movimento.tipo_pagamento));
+  return movimento.tipo === "entrada" && (movimento.evento_slug === "contas" || isBankEntryPayment(movimento.tipo_pagamento));
 }
 
 function summarizeMovimentos(movimentos: MovimentoDetalhe[]): FinancialSummary {
@@ -1314,6 +1318,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                             >
                               <option value="Dinheiro">Dinheiro</option>
                               <option value="Multibanco">Multibanco</option>
+                              <option value="Transferencia">Transferencia</option>
                             </select>
                           </td>
                           <td>
@@ -1573,7 +1578,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
               <h2>Conta Q26</h2>
               <span className="event-meta">
                 {accountEvent
-                  ? "Movimentos da folha Contas, entradas por Multibanco e despesas por Transferência ou C. Q26"
+                  ? "Movimentos da folha Contas, entradas por Multibanco ou Transferencia e despesas por Transferência ou C. Q26"
                   : "Sem folha Contas carregada"}
               </span>
             </div>
@@ -1819,6 +1824,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                     >
                       <option value="Dinheiro">Dinheiro</option>
                       <option value="Multibanco">Multibanco</option>
+                      <option value="Transferencia">Transferencia</option>
                     </select>
                   </label>
                 ) : null}
