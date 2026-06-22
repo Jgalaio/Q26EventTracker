@@ -36,7 +36,7 @@ type EventForm = {
   tipo: "evento" | "categoria";
 };
 
-type EntryKind = "faturacao" | "patrocinio" | "peditorio";
+type EntryKind = "faturacao" | "patrocinio" | "peditorio" | "deposito";
 
 type MovementForm = {
   item: string;
@@ -100,7 +100,8 @@ const EVENT_COLOR_OPTIONS = [
 const ENTRY_KIND_OPTIONS: { value: EntryKind; label: string }[] = [
   { value: "faturacao", label: "Faturação" },
   { value: "patrocinio", label: "Patrocínio" },
-  { value: "peditorio", label: "Peditório" }
+  { value: "peditorio", label: "Peditório" },
+  { value: "deposito", label: "Depósito" }
 ];
 
 const emptyMovementForm: MovementForm = {
@@ -202,6 +203,7 @@ function normalizeEntryKind(value: unknown): EntryKind | null {
 
   if (normalized === "patrocinio") return "patrocinio";
   if (normalized === "peditorio") return "peditorio";
+  if (normalized === "deposito") return "deposito";
   if (normalized === "faturacao" || normalized === "facturacao") return "faturacao";
   return null;
 }
@@ -220,6 +222,7 @@ function isSponsorEntry(movimento: MovimentoDetalhe) {
 function entryKindLabel(kind: EntryKind) {
   if (kind === "patrocinio") return "Patrocínio";
   if (kind === "peditorio") return "Peditório";
+  if (kind === "deposito") return "Depósito";
   return "Faturação";
 }
 
