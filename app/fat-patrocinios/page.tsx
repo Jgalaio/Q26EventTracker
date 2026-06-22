@@ -43,7 +43,7 @@ export default async function FatPatrociniosPage() {
   if (!canWrite(session.role)) redirect("/overview");
 
   const [{ movimentos, error }, appLogo] = await Promise.all([getTesourariaData(), getAppLogo()]);
-  const sponsorshipMovements = movimentos
+  const invoiceMovements = movimentos
     .filter(isInvoiceEntry)
     .sort(
       (a, b) =>
@@ -53,6 +53,6 @@ export default async function FatPatrociniosPage() {
     );
 
   return (
-    <FatPatrociniosClient appLogo={appLogo} error={error} initialMovimentos={sponsorshipMovements} session={session} />
+    <FatPatrociniosClient appLogo={appLogo} error={error} initialMovimentos={invoiceMovements} session={session} />
   );
 }

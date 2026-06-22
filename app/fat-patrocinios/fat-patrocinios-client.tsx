@@ -31,6 +31,16 @@ type SelectedFile = {
   size: number;
 };
 
+type InvoiceGroup = "patrocinios" | "faturacao";
+
+type InvoiceTotals = {
+  emitidas: number;
+  porEmitir: number;
+  total: number;
+  totalEmitido: number;
+  totalPorEmitir: number;
+};
+
 const MAX_FILE_DATA_URL_LENGTH = 2_500_000;
 
 const moneyFormatter = new Intl.NumberFormat("pt-PT", {
@@ -112,29 +122,46 @@ function readFileAsDataUrl(file: File) {
   });
 }
 
+function summarizeInvoices(items: MovimentoDetalhe[]): InvoiceTotals {
+  return items.reduce(
+    (acc, movimento) => {
+      acc.total += Number(movimento.montante ?? 0);
+      if (isInvoiceIssued(movimento)) {
+        acc.emitidas += 1;
+        acc.totalEmitido += Number(movimento.montante ?? 0);
+      } else {
+        acc.porEmitir += 1;
+        acc.totalPorEmitir += Number(movimento.montante ?? 0);
+      }
+      return acc;
+    },
+    { emitidas: 0, porEmitir: 0, total: 0, totalEmitido: 0, totalPorEmitir: 0 }
+  );
+}
+
 export function FatPatrociniosClient({ initialMovimentos, error, session, appLogo }: FatPatrociniosClientProps) {
   const [movimentos, setMovimentos] = useState(initialMovimentos);
   const [statusDrafts, setStatusDrafts] = useState<Record<string, "sim" | "nao">>({});
   const [selectedFiles, setSelectedFiles] = useState<Record<string, SelectedFile>>({});
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<InvoiceGroup, boolean>>({
+    patrocinios: false,
+    faturacao: false
+  });
   const [savingId, setSavingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const totals = useMemo(() => {
-    return movimentos.reduce(
-      (acc, movimento) => {
-        acc.total += Number(movimento.montante ?? 0);
-        if (isInvoiceIssued(movimento)) {
-          acc.emitidas += 1;
-          acc.totalEmitido += Number(movimento.montante ?? 0);
-        } else {
-          acc.porEmitir += 1;
-          acc.totalPorEmitir += Number(movimento.montante ?? 0);
-        }
-        return acc;
-      },
-      { emitidas: 0, porEmitir: 0, total: 0, totalEmitido: 0, totalPorEmitir: 0 }
-    );
-  }, [movimentos]);
+  const sponsorMovimentos = useMemo(() => movimentos.filter(isSponsorEntry), [movimentos]);
+  const billingMovimentos = useMemo(() => movimentos.filter((movimento) => !isSponsorEntry(movimento)), [movimentos]);
+  const totals = useMemo(() => summarizeInvoices(movimentos), [movimentos]);
+  const sponsorTotals = useMemo(() => summarizeInvoices(sponsorMovimentos), [sponsorMovimentos]);
+  const billingTotals = useMemo(() => summarizeInvoices(billingMovimentos), [billingMovimentos]);
+
+  const toggleGroup = (group: InvoiceGroup) => {
+    setCollapsedGroups((current) => ({
+      ...current,
+      [group]: !current[group]
+    }));
+  };
 
   const askJustification = () => {
     if (session.role !== "operator") return "";
@@ -276,6 +303,126 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
     }
   };
 
+  const renderInvoiceTable = (items: MovimentoDetalhe[], emptyText: string) => (
+    <div className="table-wrap sponsor-invoice-table-wrap">
+      <table className="outgoing-table sponsor-invoice-table">
+        <thead>
+          <tr>
+            <th>Evento</th>
+            <th>Item</th>
+            <th>Método</th>
+            <th>Tipo</th>
+            <th>Montante</th>
+            <th>Estado</th>
+            <th>Ficheiro</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.length ? (
+            items.map((movimento) => {
+              const issued = isInvoiceIssued(movimento);
+              const draftStatus = statusDrafts[movimento.id] ?? (issued ? "sim" : "nao");
+              const attachment = invoiceFile(movimento);
+              const selectedFile = selectedFiles[movimento.id];
+              const showUpload = draftStatus === "sim" && (!attachment || selectedFile);
+              const shouldShowSave = draftStatus === "sim" && (!issued || !attachment || Boolean(selectedFile));
+
+              return (
+                <tr key={movimento.id}>
+                  <td>{movimento.evento_nome}</td>
+                  <td className="item-cell">{movimento.item}</td>
+                  <td>{movimento.tipo_pagamento ?? "-"}</td>
+                  <td>{entryKindLabel(movimento)}</td>
+                  <td className="money">{formatMoney(movimento.montante)}</td>
+                  <td>
+                    <select
+                      className={draftStatus === "sim" ? "invoice-status-select issued" : "invoice-status-select pending"}
+                      disabled={savingId === movimento.id}
+                      value={draftStatus}
+                      onChange={(event) => changeStatus(movimento, event.target.value as "sim" | "nao")}
+                    >
+                      <option value="nao">Por emitir</option>
+                      <option value="sim">Emitida</option>
+                    </select>
+                  </td>
+                  <td>
+                    <div className="invoice-file-cell">
+                      {attachment ? (
+                        <a download={attachment.fileName} href={attachment.dataUrl} target="_blank" rel="noreferrer">
+                          {attachment.fileName}
+                        </a>
+                      ) : (
+                        <span>Sem ficheiro</span>
+                      )}
+                      {selectedFile ? <small>Novo: {selectedFile.fileName}</small> : null}
+                      {showUpload ? (
+                        <input
+                          accept="application/pdf,image/*"
+                          disabled={savingId === movimento.id}
+                          type="file"
+                          onChange={(event) => selectFile(movimento, event.target.files?.[0] ?? null)}
+                        />
+                      ) : null}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="row-actions">
+                      {shouldShowSave ? (
+                        <button disabled={savingId === movimento.id} type="button" onClick={() => saveIssuedInvoice(movimento)}>
+                          {attachment ? "Guardar" : issued ? "Anexar" : "Emitir"}
+                        </button>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })
+          ) : (
+            <tr>
+              <td className="empty-movement-row" colSpan={8}>
+                {emptyText}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  const renderInvoiceSection = (
+    group: InvoiceGroup,
+    eyebrow: string,
+    title: string,
+    items: MovimentoDetalhe[],
+    sectionTotals: InvoiceTotals,
+    emptyText: string
+  ) => {
+    const collapsed = collapsedGroups[group];
+
+    return (
+      <section className="table-panel sponsor-invoice-panel invoice-collapsible-panel" aria-label={title}>
+        <button
+          aria-expanded={!collapsed}
+          className="invoice-section-toggle"
+          onClick={() => toggleGroup(group)}
+          type="button"
+        >
+          <div>
+            <p className="eyebrow">{eyebrow}</p>
+            <h2>{title}</h2>
+          </div>
+          <div className="invoice-section-summary">
+            <span>{items.length} registos</span>
+            <strong>{formatMoney(sectionTotals.total)}</strong>
+            <small>{collapsed ? "Abrir" : "Fechar"}</small>
+          </div>
+        </button>
+        {collapsed ? null : renderInvoiceTable(items, emptyText)}
+      </section>
+    );
+  };
+
   return (
     <main className="shell sponsor-invoices-shell">
       <section className="topbar">
@@ -335,99 +482,23 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
         </article>
       </section>
 
-      <section className="table-panel sponsor-invoice-panel" aria-label="Faturas de entradas">
-        <div className="table-heading">
-          <div>
-            <p className="eyebrow">Entradas</p>
-            <h2>Faturas a emitir ou emitidas</h2>
-          </div>
-          <span>{formatMoney(totals.total)}</span>
-        </div>
-
-        <div className="table-wrap sponsor-invoice-table-wrap">
-          <table className="outgoing-table sponsor-invoice-table">
-            <thead>
-              <tr>
-                <th>Evento</th>
-                <th>Item</th>
-                <th>Método</th>
-                <th>Tipo</th>
-                <th>Montante</th>
-                <th>Estado</th>
-                <th>Ficheiro</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {movimentos.length ? (
-                movimentos.map((movimento) => {
-                  const issued = isInvoiceIssued(movimento);
-                  const draftStatus = statusDrafts[movimento.id] ?? (issued ? "sim" : "nao");
-                  const attachment = invoiceFile(movimento);
-                  const selectedFile = selectedFiles[movimento.id];
-                  const showUpload = draftStatus === "sim" && (!attachment || selectedFile);
-                  const shouldShowSave = draftStatus === "sim" && (!issued || !attachment || Boolean(selectedFile));
-
-                  return (
-                    <tr key={movimento.id}>
-                      <td>{movimento.evento_nome}</td>
-                      <td className="item-cell">{movimento.item}</td>
-                      <td>{movimento.tipo_pagamento ?? "-"}</td>
-                      <td>{entryKindLabel(movimento)}</td>
-                      <td className="money">{formatMoney(movimento.montante)}</td>
-                      <td>
-                        <select
-                          className={draftStatus === "sim" ? "invoice-status-select issued" : "invoice-status-select pending"}
-                          disabled={savingId === movimento.id}
-                          value={draftStatus}
-                          onChange={(event) => changeStatus(movimento, event.target.value as "sim" | "nao")}
-                        >
-                          <option value="nao">Por emitir</option>
-                          <option value="sim">Emitida</option>
-                        </select>
-                      </td>
-                      <td>
-                        <div className="invoice-file-cell">
-                          {attachment ? (
-                            <a download={attachment.fileName} href={attachment.dataUrl} target="_blank" rel="noreferrer">
-                              {attachment.fileName}
-                            </a>
-                          ) : (
-                            <span>Sem ficheiro</span>
-                          )}
-                          {selectedFile ? <small>Novo: {selectedFile.fileName}</small> : null}
-                          {showUpload ? (
-                            <input
-                              accept="application/pdf,image/*"
-                              disabled={savingId === movimento.id}
-                              type="file"
-                              onChange={(event) => selectFile(movimento, event.target.files?.[0] ?? null)}
-                            />
-                          ) : null}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="row-actions">
-                          {shouldShowSave ? (
-                            <button disabled={savingId === movimento.id} type="button" onClick={() => saveIssuedInvoice(movimento)}>
-                              {attachment ? "Guardar" : issued ? "Anexar" : "Emitir"}
-                            </button>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td className="empty-movement-row" colSpan={8}>
-                    Não existem entradas registadas para emissão de fatura.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      <section className="invoice-groups" aria-label="Faturas por tipo">
+        {renderInvoiceSection(
+          "patrocinios",
+          "Patrocínios",
+          "Faturas de patrocínios",
+          sponsorMovimentos,
+          sponsorTotals,
+          "Não existem patrocínios registados para emissão de fatura."
+        )}
+        {renderInvoiceSection(
+          "faturacao",
+          "Faturação",
+          "Faturas de faturação",
+          billingMovimentos,
+          billingTotals,
+          "Não existem entradas de faturação marcadas como precisa de fatura."
+        )}
       </section>
     </main>
   );

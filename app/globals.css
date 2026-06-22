@@ -2672,6 +2672,55 @@ table {
   margin-top: 8px;
 }
 
+.invoice-groups {
+  display: grid;
+  gap: 14px;
+}
+
+.invoice-collapsible-panel {
+  overflow: hidden;
+}
+
+.invoice-section-toggle {
+  align-items: center;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 16px;
+  text-align: left;
+  width: 100%;
+}
+
+.invoice-section-toggle h2 {
+  font-size: 1.05rem;
+  margin-top: 4px;
+}
+
+.invoice-section-summary {
+  align-items: flex-end;
+  display: grid;
+  gap: 3px;
+  justify-items: end;
+  min-width: 150px;
+}
+
+.invoice-section-summary span,
+.invoice-section-summary small {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.invoice-section-summary strong {
+  color: var(--green-ink);
+  font-size: 1.15rem;
+}
+
 .sponsor-invoice-table-wrap {
   max-height: calc(100vh - 330px);
 }
