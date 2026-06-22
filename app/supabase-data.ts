@@ -62,11 +62,6 @@ export type FaturacaoReportPayload = {
     slug: string;
     nome: string;
   };
-  eventos?: Array<{
-    id: string;
-    slug: string;
-    nome: string;
-  }>;
   despesas_evento: FaturacaoReportItem[];
   itens_acrescentados: FaturacaoReportItem[];
   totais: {
