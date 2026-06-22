@@ -109,12 +109,15 @@ function reportCreatedAt(report: FaturacaoReport) {
 }
 
 function reportTotals(report: FaturacaoReport) {
+  const totalFaturado = Number(report.payload?.totais?.total_faturado ?? report.total_faturado ?? 0);
+  const valorFatura = Number(report.payload?.totais?.valor_fatura ?? report.valor_fatura ?? 0);
+
   return {
     despesasEvento: Number(report.payload?.totais?.despesas_evento ?? report.total_despesas ?? 0),
     itensAcrescentados: Number(report.payload?.totais?.itens_acrescentados ?? report.total_itens_acrescentados ?? 0),
-    totalFaturado: Number(report.payload?.totais?.total_faturado ?? report.total_faturado ?? 0),
-    valorFatura: Number(report.payload?.totais?.valor_fatura ?? report.valor_fatura ?? 0),
-    diferenca: Number(report.payload?.totais?.diferenca ?? report.diferenca ?? 0)
+    totalFaturado,
+    valorFatura,
+    diferenca: valorFatura - totalFaturado
   };
 }
 
@@ -276,7 +279,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
   const previousExpensesTotal = selectedPreviousExpenses.reduce((sum, movimento) => sum + movementAmount(movimento), 0);
   const billedExpensesTotal = currentExpensesTotal + previousExpensesTotal;
   const invoiceAmount = parseAmount(invoiceValue);
-  const invoiceDifference = billedExpensesTotal - (Number.isFinite(invoiceAmount) ? invoiceAmount : 0);
+  const invoiceDifference = (Number.isFinite(invoiceAmount) ? invoiceAmount : 0) - billedExpensesTotal;
 
   const togglePreviousExpense = (id: string) => {
     setSelectedPreviousIds((current) => {

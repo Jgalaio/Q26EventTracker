@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
   const totalDespesas = despesasEvento.reduce((sum, item) => sum + item.montante, 0);
   const totalItensAcrescentados = itensAcrescentados.reduce((sum, item) => sum + item.montante, 0);
   const totalFaturado = totalDespesas + totalItensAcrescentados;
-  const diferenca = totalFaturado - valorFatura;
+  const diferenca = valorFatura - totalFaturado;
   const now = new Date().toISOString();
 
   if (!eventoSlug || !eventoNome) {
