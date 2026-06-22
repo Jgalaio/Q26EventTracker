@@ -1102,7 +1102,7 @@ h2 {
   padding: 8px;
 }
 
-.billing-event-option {
+.billing-controls label.billing-event-option {
   align-items: center;
   background: white;
   border: 1px solid #d8e7ff;
@@ -1118,10 +1118,16 @@ h2 {
   padding: 7px 8px;
 }
 
-.billing-event-option.selected {
+.billing-controls label.billing-event-option.selected {
   background: #eaf2ff;
   border-color: var(--blue);
   color: var(--green-ink);
+}
+
+.billing-event-option span {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .billing-controls .billing-event-option input {
