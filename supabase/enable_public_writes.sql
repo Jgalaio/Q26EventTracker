@@ -4,6 +4,51 @@
 
 create extension if not exists pgcrypto;
 
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'movimento_tipo') then
+    create type public.movimento_tipo as enum ('entrada', 'saida', 'a_pagamento');
+  end if;
+end $$;
+
+create table if not exists public.eventos (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  nome text not null,
+  folha_excel text not null unique,
+  ordem_folha integer not null,
+  data_texto text,
+  data_inicio date,
+  data_fim date,
+  isento boolean not null default false,
+  isento_texto text,
+  contabilizar_totais boolean not null default true,
+  cor text,
+  fechado boolean not null default false,
+  tipo text not null check (tipo in ('evento', 'categoria')),
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.movimentos (
+  id uuid primary key default gen_random_uuid(),
+  evento_id uuid not null references public.eventos(id) on delete cascade,
+  tipo public.movimento_tipo not null,
+  item text not null,
+  data_pagamento date,
+  montante numeric(12,2),
+  numero_fatura text,
+  fatura_com_nif boolean,
+  tipo_pagamento text,
+  pago boolean,
+  contabilizar_totais boolean not null default true,
+  origem_tabela text not null,
+  origem_linha integer not null,
+  formula_montante text,
+  raw jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  unique (evento_id, tipo, origem_tabela, origem_linha)
+);
+
 alter table public.eventos
 add column if not exists isento boolean not null default false;
 
@@ -21,6 +66,10 @@ add column if not exists descricao text;
 
 alter table public.movimentos
 add column if not exists contabilizar_totais boolean not null default true;
+
+create index if not exists movimentos_evento_id_idx on public.movimentos(evento_id);
+create index if not exists movimentos_tipo_idx on public.movimentos(tipo);
+create index if not exists movimentos_data_pagamento_idx on public.movimentos(data_pagamento);
 
 update public.eventos
 set isento = isento or lower(coalesce(isento_texto, '')) = 'sim';
