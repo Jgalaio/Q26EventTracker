@@ -1166,6 +1166,38 @@ h2 {
   max-height: calc(100vh - 430px);
 }
 
+.table-wrap.secondary-billing-table-wrap {
+  border-top: 1px solid var(--line);
+  max-height: 260px;
+}
+
+.billing-subsection-heading {
+  align-items: center;
+  background: #f8fbff;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 9px 14px;
+}
+
+.billing-subsection-heading strong {
+  color: var(--ink);
+  font-size: 0.84rem;
+}
+
+.billing-subsection-heading span {
+  color: var(--blue);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-align: right;
+}
+
+.billing-subsection-heading.separated {
+  background: #eef5ff;
+}
+
 .billing-panel table {
   min-width: 680px;
   table-layout: fixed;

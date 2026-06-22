@@ -72,6 +72,26 @@ function isFaturadaDespesa(movimento: MovimentoDetalhe) {
   );
 }
 
+function isTransferPayment(value: string | null | undefined) {
+  return (
+    value
+      ?.normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase() === "transferencia"
+  );
+}
+
+function isTransferenciaSemNifDespesa(movimento: MovimentoDetalhe) {
+  return (
+    movimento.tipo === "saida" &&
+    movimento.fatura_com_nif === false &&
+    movimento.evento_slug !== "contas" &&
+    isMovementCounted(movimento) &&
+    isTransferPayment(movimento.tipo_pagamento)
+  );
+}
+
 function isLaterInvoiceExpense(movimento: MovimentoDetalhe) {
   return (
     movimento.tipo === "saida" &&
@@ -254,6 +274,13 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
       .sort((a, b) => (a.data_pagamento ?? "").localeCompare(b.data_pagamento ?? "") || a.item.localeCompare(b.item));
   }, [movimentos, selectedEvent]);
 
+  const currentEventTransfersWithoutNif = useMemo(() => {
+    if (!selectedEvent) return [];
+    return movimentos
+      .filter((movimento) => movimento.evento_slug === selectedEvent.slug && isTransferenciaSemNifDespesa(movimento))
+      .sort((a, b) => (a.data_pagamento ?? "").localeCompare(b.data_pagamento ?? "") || a.item.localeCompare(b.item));
+  }, [movimentos, selectedEvent]);
+
   const previousExpenses = useMemo(() => {
     if (!selectedEvent) return [];
     const selectedPosition = eventPositions.get(selectedEvent.slug) ?? 0;
@@ -276,6 +303,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
   }, [previousExpenses, selectedPreviousIds]);
 
   const currentExpensesTotal = currentEventExpenses.reduce((sum, movimento) => sum + movementAmount(movimento), 0);
+  const transfersWithoutNifTotal = currentEventTransfersWithoutNif.reduce((sum, movimento) => sum + movementAmount(movimento), 0);
   const previousExpensesTotal = selectedPreviousExpenses.reduce((sum, movimento) => sum + movementAmount(movimento), 0);
   const billedExpensesTotal = currentExpensesTotal + previousExpensesTotal;
   const invoiceAmount = parseAmount(invoiceValue);
@@ -455,6 +483,10 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
           <strong>{formatMoney(currentExpensesTotal)}</strong>
         </article>
         <article>
+          <span>Transferências s/NIF</span>
+          <strong>{formatMoney(transfersWithoutNifTotal)}</strong>
+        </article>
+        <article>
           <span>Itens anteriores</span>
           <strong>{formatMoney(previousExpensesTotal)}</strong>
         </article>
@@ -480,6 +512,10 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
               <h2>{selectedEvent?.nome ?? "Sem evento"}</h2>
             </div>
             <span>{currentEventExpenses.length} itens</span>
+          </div>
+          <div className="billing-subsection-heading">
+            <strong>Fatura C/NIF: Sim</strong>
+            <span>{formatMoney(currentExpensesTotal)}</span>
           </div>
           <div className="table-wrap billing-table-wrap">
             <table>
@@ -507,6 +543,44 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
                   <tr>
                     <td className="empty-movement-row" colSpan={5}>
                       Sem despesas com Fatura C/NIF neste evento.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="billing-subsection-heading separated">
+            <strong>Transferências com Fatura C/NIF: Não</strong>
+            <span>
+              {currentEventTransfersWithoutNif.length} itens · {formatMoney(transfersWithoutNifTotal)}
+            </span>
+          </div>
+          <div className="table-wrap billing-table-wrap secondary-billing-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Descrição</th>
+                  <th>Data</th>
+                  <th>Pagamento</th>
+                  <th>Montante</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentEventTransfersWithoutNif.length ? (
+                  currentEventTransfersWithoutNif.map((movimento) => (
+                    <tr key={movimento.id}>
+                      <td>{movimento.item}</td>
+                      <td>{renderDescription(movimento)}</td>
+                      <td>{formatDate(movimento.data_pagamento)}</td>
+                      <td>{movimento.tipo_pagamento ?? "-"}</td>
+                      <td>{formatMoney(movimento.montante)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="empty-movement-row" colSpan={5}>
+                      Sem transferências com Fatura C/NIF: Não neste evento.
                     </td>
                   </tr>
                 )}
