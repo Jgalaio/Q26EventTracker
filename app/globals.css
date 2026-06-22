@@ -2761,6 +2761,16 @@ table {
   width: 100%;
 }
 
+.invoice-need-cell {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.invoice-need-cell .table-checkbox {
+  white-space: normal;
+}
+
 .inline-add-row .row-actions {
   min-width: 170px;
 }

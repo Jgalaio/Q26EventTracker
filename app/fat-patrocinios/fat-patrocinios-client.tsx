@@ -51,6 +51,36 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function normalizeEntryKind(value: unknown) {
+  if (typeof value !== "string") return "";
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function isSponsorEntry(movimento: MovimentoDetalhe) {
+  return normalizeEntryKind(movimento.raw?.tipo_entrada) === "patrocinio" || isRawFlagEnabled(movimento.raw?.patrocinio);
+}
+
+function entryKindLabel(movimento: MovimentoDetalhe) {
+  return isSponsorEntry(movimento) ? "Patrocínio" : "Faturação";
+}
+
+function invoiceTrackingRaw(movimento: MovimentoDetalhe, issued: boolean, extra: Record<string, unknown> = {}) {
+  const sponsor = isSponsorEntry(movimento);
+  return {
+    ...(movimento.raw ?? {}),
+    patrocinio: sponsor,
+    precisa_fatura: sponsor ? movimento.raw?.precisa_fatura ?? false : true,
+    tipo_entrada: sponsor ? "Patrocínio" : "Faturação",
+    fatura_emitida: issued,
+    fatura_patrocinio_atualizada_em: new Date().toISOString(),
+    ...extra
+  };
+}
+
 function isInvoiceIssued(movimento: MovimentoDetalhe) {
   return isRawFlagEnabled(movimento.raw?.fatura_emitida);
 }
@@ -151,13 +181,7 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
     try {
       const updated = await updateMovement(
         movimento,
-        {
-          ...(movimento.raw ?? {}),
-          patrocinio: true,
-          tipo_entrada: "Patrocínio",
-          fatura_emitida: false,
-          fatura_patrocinio_atualizada_em: new Date().toISOString()
-        },
+        invoiceTrackingRaw(movimento, false),
         justification
       );
       setMovimentos((current) => current.map((item) => (item.id === movimento.id ? updated : item)));
@@ -224,11 +248,7 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
       const now = new Date().toISOString();
       const updated = await updateMovement(
         movimento,
-        {
-          ...(movimento.raw ?? {}),
-          patrocinio: true,
-          tipo_entrada: "Patrocínio",
-          fatura_emitida: true,
+        invoiceTrackingRaw(movimento, true, {
           fatura_patrocinio: selectedFile
             ? {
                 ...selectedFile,
@@ -237,7 +257,7 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
               }
             : existingFile,
           fatura_patrocinio_atualizada_em: now
-        },
+        }),
         justification
       );
 
@@ -294,9 +314,9 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
       {error ? <section className="notice">Não consegui ligar ao Supabase. {error}</section> : null}
       {message ? <section className="notice">{message}</section> : null}
 
-      <section className="metrics sponsor-invoice-metrics" aria-label="Resumo de faturas de patrocínios">
+      <section className="metrics sponsor-invoice-metrics" aria-label="Resumo de faturas de entradas">
         <article>
-          <span>Patrocínios</span>
+          <span>Entradas</span>
           <strong>{movimentos.length}</strong>
         </article>
         <article>
@@ -315,10 +335,10 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
         </article>
       </section>
 
-      <section className="table-panel sponsor-invoice-panel" aria-label="Faturas de patrocínios">
+      <section className="table-panel sponsor-invoice-panel" aria-label="Faturas de entradas">
         <div className="table-heading">
           <div>
-            <p className="eyebrow">Patrocínios</p>
+            <p className="eyebrow">Entradas</p>
             <h2>Faturas a emitir ou emitidas</h2>
           </div>
           <span>{formatMoney(totals.total)}</span>
@@ -331,6 +351,7 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
                 <th>Evento</th>
                 <th>Item</th>
                 <th>Método</th>
+                <th>Tipo</th>
                 <th>Montante</th>
                 <th>Estado</th>
                 <th>Ficheiro</th>
@@ -352,6 +373,7 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
                       <td>{movimento.evento_nome}</td>
                       <td className="item-cell">{movimento.item}</td>
                       <td>{movimento.tipo_pagamento ?? "-"}</td>
+                      <td>{entryKindLabel(movimento)}</td>
                       <td className="money">{formatMoney(movimento.montante)}</td>
                       <td>
                         <select
@@ -398,8 +420,8 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
                 })
               ) : (
                 <tr>
-                  <td className="empty-movement-row" colSpan={7}>
-                    Não existem patrocínios registados para faturação.
+                  <td className="empty-movement-row" colSpan={8}>
+                    Não existem entradas registadas para emissão de fatura.
                   </td>
                 </tr>
               )}

@@ -25,6 +25,18 @@ function isSponsorEntry(movimento: MovimentoDetalhe) {
   );
 }
 
+function isFinanceInvoiceEntry(movimento: MovimentoDetalhe) {
+  return (
+    movimento.tipo === "entrada" &&
+    normalizeEntryKind(movimento.raw?.tipo_entrada) === "faturacao" &&
+    (isRawFlagEnabled(movimento.raw?.precisa_fatura) || isRawFlagEnabled(movimento.raw?.necessita_fatura))
+  );
+}
+
+function isInvoiceEntry(movimento: MovimentoDetalhe) {
+  return isSponsorEntry(movimento) || isFinanceInvoiceEntry(movimento);
+}
+
 export default async function FatPatrociniosPage() {
   const session = await getSession();
   if (!session) redirect("/login?next=/fat-patrocinios");
@@ -32,7 +44,7 @@ export default async function FatPatrociniosPage() {
 
   const [{ movimentos, error }, appLogo] = await Promise.all([getTesourariaData(), getAppLogo()]);
   const sponsorshipMovements = movimentos
-    .filter(isSponsorEntry)
+    .filter(isInvoiceEntry)
     .sort(
       (a, b) =>
         a.evento_nome.localeCompare(b.evento_nome) ||

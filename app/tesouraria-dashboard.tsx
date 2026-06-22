@@ -47,6 +47,7 @@ type MovementForm = {
   fatura_com_nif: "" | "sim" | "nao";
   faturar_mais_tarde: boolean;
   tipo_entrada: EntryKind;
+  precisa_fatura: boolean;
   patrocinio: boolean;
   fatura_emitida: "sim" | "nao";
   tipo_pagamento: string;
@@ -113,6 +114,7 @@ const emptyMovementForm: MovementForm = {
   fatura_com_nif: "",
   faturar_mais_tarde: false,
   tipo_entrada: "faturacao",
+  precisa_fatura: false,
   patrocinio: false,
   fatura_emitida: "nao",
   tipo_pagamento: "",
@@ -217,6 +219,21 @@ function movementEntryKind(movimento: MovimentoDetalhe): EntryKind {
 
 function isSponsorEntry(movimento: MovimentoDetalhe) {
   return movementEntryKind(movimento) === "patrocinio";
+}
+
+function isFinanceInvoiceEntry(movimento: MovimentoDetalhe) {
+  return (
+    movementEntryKind(movimento) === "faturacao" &&
+    (isRawFlagEnabled(movimento.raw?.precisa_fatura) || isRawFlagEnabled(movimento.raw?.necessita_fatura))
+  );
+}
+
+function needsEntryInvoice(movimento: MovimentoDetalhe) {
+  return isSponsorEntry(movimento) || isFinanceInvoiceEntry(movimento);
+}
+
+function formNeedsInvoice(form: MovementForm) {
+  return form.patrocinio || (form.tipo_entrada === "faturacao" && form.precisa_fatura);
 }
 
 function entryKindLabel(kind: EntryKind) {
@@ -585,6 +602,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
     setSaveMessage(null);
     setSelectedMovement(movimento);
     const entryKind = movementEntryKind(movimento);
+    const invoiceNeeded = needsEntryInvoice(movimento);
     setMovementForm({
       item: movimento.item,
       descricao: movimento.descricao ?? "",
@@ -594,8 +612,9 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
       fatura_com_nif: booleanToForm(movimento.fatura_com_nif),
       faturar_mais_tarde: isMarkedForLaterInvoice(movimento),
       tipo_entrada: entryKind,
+      precisa_fatura: entryKind === "faturacao" && invoiceNeeded,
       patrocinio: entryKind === "patrocinio",
-      fatura_emitida: isInvoiceIssued(movimento) ? "sim" : "nao",
+      fatura_emitida: invoiceNeeded && isInvoiceIssued(movimento) ? "sim" : "nao",
       tipo_pagamento:
         movimento.tipo === "entrada" && movimento.evento_slug !== "contas" ? entryPaymentLabel(movimento) : movimento.tipo_pagamento ?? "",
       pago: booleanToForm(movimento.pago),
@@ -705,7 +724,8 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
     const entryPayment = movementForm.tipo_pagamento.trim() || (isAccountSheetEntry ? "" : "Dinheiro");
     const entryKind = isEntryMode ? movementForm.tipo_entrada : "faturacao";
     const entrySponsorship = isEntryMode ? entryKind === "patrocinio" : false;
-    const entryInvoiceIssued = entrySponsorship ? movementForm.fatura_emitida === "sim" : false;
+    const entryNeedsInvoice = isEntryMode ? entrySponsorship || (entryKind === "faturacao" && movementForm.precisa_fatura) : false;
+    const entryInvoiceIssued = entryNeedsInvoice ? movementForm.fatura_emitida === "sim" : false;
     const payload = {
       evento_id: isEditing ? undefined : selectedEvent?.id,
       tipo,
@@ -732,6 +752,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
         ...(isEntryMode
           ? {
               patrocinio: entrySponsorship,
+              precisa_fatura: entryKind === "faturacao" ? movementForm.precisa_fatura : false,
               tipo_entrada: entryKindLabel(entryKind),
               fatura_emitida: entryInvoiceIssued
             }
@@ -775,7 +796,8 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
     const entryPayment = quickMovementForm.tipo_pagamento.trim() || "Dinheiro";
     const entryKind = isEntryMode ? quickMovementForm.tipo_entrada : "faturacao";
     const entrySponsorship = isEntryMode ? entryKind === "patrocinio" : false;
-    const entryInvoiceIssued = entrySponsorship ? quickMovementForm.fatura_emitida === "sim" : false;
+    const entryNeedsInvoice = isEntryMode ? entrySponsorship || (entryKind === "faturacao" && quickMovementForm.precisa_fatura) : false;
+    const entryInvoiceIssued = entryNeedsInvoice ? quickMovementForm.fatura_emitida === "sim" : false;
     const payload = {
       evento_id: selectedEvent.id,
       tipo,
@@ -802,6 +824,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
         ...(isEntryMode
           ? {
               patrocinio: entrySponsorship,
+              precisa_fatura: entryKind === "faturacao" ? quickMovementForm.precisa_fatura : false,
               tipo_entrada: entryKindLabel(entryKind),
               fatura_emitida: entryInvoiceIssued
             }
@@ -1331,8 +1354,10 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                                 setQuickMovementForm((current) => ({
                                   ...current,
                                   tipo_entrada: entryKind,
+                                  precisa_fatura: entryKind === "faturacao" ? current.precisa_fatura : false,
                                   patrocinio: isSponsor,
-                                  fatura_emitida: isSponsor ? current.fatura_emitida : "nao"
+                                  fatura_emitida:
+                                    isSponsor || (entryKind === "faturacao" && current.precisa_fatura) ? current.fatura_emitida : "nao"
                                 }));
                               }}
                             >
@@ -1344,23 +1369,41 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                             </select>
                           </td>
                           <td>
-                            {quickMovementForm.patrocinio ? (
-                              <select
-                                aria-label="Fatura emitida"
-                                value={quickMovementForm.fatura_emitida}
-                                onChange={(event) =>
-                                  setQuickMovementForm((current) => ({
-                                    ...current,
-                                    fatura_emitida: event.target.value as MovementForm["fatura_emitida"]
-                                  }))
-                                }
-                              >
-                                <option value="nao">Não</option>
-                                <option value="sim">Sim</option>
-                              </select>
-                            ) : (
-                              "—"
-                            )}
+                            <div className="invoice-need-cell">
+                              {quickMovementForm.tipo_entrada === "faturacao" ? (
+                                <label className="table-checkbox">
+                                  <input
+                                    checked={quickMovementForm.precisa_fatura}
+                                    type="checkbox"
+                                    onChange={(event) =>
+                                      setQuickMovementForm((current) => ({
+                                        ...current,
+                                        precisa_fatura: event.target.checked,
+                                        fatura_emitida: event.target.checked ? current.fatura_emitida : "nao"
+                                      }))
+                                    }
+                                  />
+                                  <span>Precisa fatura</span>
+                                </label>
+                              ) : null}
+                              {formNeedsInvoice(quickMovementForm) ? (
+                                <select
+                                  aria-label="Fatura emitida"
+                                  value={quickMovementForm.fatura_emitida}
+                                  onChange={(event) =>
+                                    setQuickMovementForm((current) => ({
+                                      ...current,
+                                      fatura_emitida: event.target.value as MovementForm["fatura_emitida"]
+                                    }))
+                                  }
+                                >
+                                  <option value="nao">Não</option>
+                                  <option value="sim">Sim</option>
+                                </select>
+                              ) : (
+                                "—"
+                              )}
+                            </div>
                           </td>
                           <td>
                             <input
@@ -1535,7 +1578,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                           <td className="item-cell">{movimento.item}</td>
                           <td>{entryPaymentLabel(movimento)}</td>
                           <td>{entryKindLabel(movementEntryKind(movimento))}</td>
-                          <td>{isSponsorEntry(movimento) ? yesNo(isInvoiceIssued(movimento)) : "—"}</td>
+                          <td>{needsEntryInvoice(movimento) ? yesNo(isInvoiceIssued(movimento)) : "—"}</td>
                           <td className="money">{formatMoney(movimento.montante)}</td>
                           <td>{renderMovementActions(movimento)}</td>
                         </tr>
@@ -1657,7 +1700,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                       <td className="item-cell">{movimento.item}</td>
                       <td>{accountEntryLabel(movimento)}</td>
                       <td>{entryKindLabel(movementEntryKind(movimento))}</td>
-                      <td>{isSponsorEntry(movimento) ? yesNo(isInvoiceIssued(movimento)) : "—"}</td>
+                      <td>{needsEntryInvoice(movimento) ? yesNo(isInvoiceIssued(movimento)) : "—"}</td>
                       <td className="money">{formatMoney(movimento.montante)}</td>
                       <td>{renderMovementActions(movimento)}</td>
                     </tr>
@@ -1840,8 +1883,10 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                           setMovementForm((current) => ({
                             ...current,
                             tipo_entrada: entryKind,
+                            precisa_fatura: entryKind === "faturacao" ? current.precisa_fatura : false,
                             patrocinio: isSponsor,
-                            fatura_emitida: isSponsor ? current.fatura_emitida : "nao"
+                            fatura_emitida:
+                              isSponsor || (entryKind === "faturacao" && current.precisa_fatura) ? current.fatura_emitida : "nao"
                           }));
                         }}
                       >
@@ -1852,7 +1897,23 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                         ))}
                       </select>
                     </label>
-                    {movementForm.patrocinio ? (
+                    {movementForm.tipo_entrada === "faturacao" ? (
+                      <label className="checkbox-field">
+                        <input
+                          checked={movementForm.precisa_fatura}
+                          type="checkbox"
+                          onChange={(event) =>
+                            setMovementForm((current) => ({
+                              ...current,
+                              precisa_fatura: event.target.checked,
+                              fatura_emitida: event.target.checked ? current.fatura_emitida : "nao"
+                            }))
+                          }
+                        />
+                        <span>Precisa de fatura</span>
+                      </label>
+                    ) : null}
+                    {formNeedsInvoice(movementForm) ? (
                       <label>
                         Fatura emitida
                         <select
