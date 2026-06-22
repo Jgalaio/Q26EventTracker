@@ -11,6 +11,7 @@ export type EventoResumo = {
   isento_texto: string | null;
   contabilizar_totais?: boolean | null;
   cor: string | null;
+  fechado?: boolean | null;
   tipo: "evento" | "categoria";
   total_entradas: number;
   total_saidas: number;
@@ -143,6 +144,13 @@ export async function getTesourariaData() {
     movimentos: movimentos.data,
     error: eventos.error ?? movimentos.error
   };
+}
+
+export async function getClosedEvents() {
+  return fetchSupabase<EventoResumo>(
+    "eventos_resumo",
+    "select=*&fechado=eq.true&order=data_inicio.asc.nullslast,ordem_folha.asc"
+  );
 }
 
 export async function getFaturacaoReports(limit = 50) {

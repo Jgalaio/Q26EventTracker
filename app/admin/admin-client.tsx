@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { AppFavicon, AppLogo, ReportLogo } from "../app-settings";
 import type { AuditLogEntry } from "../audit-log";
 import { ROLE_LABELS, type AuthSession } from "../auth-types";
+import type { EventoResumo } from "../supabase-data";
 
 type AdminUser = {
   username: string;
@@ -22,6 +23,8 @@ type AdminClientProps = {
   auditLogError: string | null;
   auditPage: number;
   auditHasNext: boolean;
+  closedEvents: EventoResumo[];
+  closedEventsError: string | null;
 };
 
 type PasswordForm = {
@@ -44,8 +47,29 @@ const logDateFormatter = new Intl.DateTimeFormat("pt-PT", {
   year: "numeric"
 });
 
+const adminDateFormatter = new Intl.DateTimeFormat("pt-PT", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric"
+});
+
+const adminMoneyFormatter = new Intl.NumberFormat("pt-PT", {
+  currency: "EUR",
+  maximumFractionDigits: 2,
+  style: "currency"
+});
+
 function formatLogDate(value: string) {
   return logDateFormatter.format(new Date(value));
+}
+
+function formatEventDate(value: string | null | undefined) {
+  if (!value) return "Sem data";
+  return adminDateFormatter.format(new Date(`${value}T00:00:00`));
+}
+
+function formatMoney(value: number | null | undefined) {
+  return adminMoneyFormatter.format(Number(value ?? 0));
 }
 
 function formatDetails(details: Record<string, unknown>) {
@@ -68,7 +92,9 @@ export function AdminClient({
   auditLogs,
   auditLogError,
   auditPage,
-  auditHasNext
+  auditHasNext,
+  closedEvents,
+  closedEventsError
 }: AdminClientProps) {
   const [passwordForm, setPasswordForm] = useState<PasswordForm>(emptyPasswordForm);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
@@ -89,6 +115,8 @@ export function AdminClient({
   const [databaseImportText, setDatabaseImportText] = useState("");
   const [databaseImportName, setDatabaseImportName] = useState("");
   const [databaseMessage, setDatabaseMessage] = useState<string | null>(null);
+  const [closedEventsState, setClosedEventsState] = useState(closedEvents);
+  const [closedEventsMessage, setClosedEventsMessage] = useState<string | null>(null);
   const [resetConfirmation, setResetConfirmation] = useState("");
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isSavingLogo, setIsSavingLogo] = useState(false);
@@ -98,6 +126,7 @@ export function AdminClient({
   const [isExportingDatabase, setIsExportingDatabase] = useState(false);
   const [isImportingDatabase, setIsImportingDatabase] = useState(false);
   const [isResettingDatabase, setIsResettingDatabase] = useState(false);
+  const [unlockingEventId, setUnlockingEventId] = useState<string | null>(null);
 
   const updatePasswordField = (field: keyof PasswordForm, value: string) => {
     setPasswordForm((current) => ({ ...current, [field]: value }));
@@ -440,6 +469,29 @@ export function AdminClient({
     }
   };
 
+  const unlockEvent = async (event: EventoResumo) => {
+    const confirmed = window.confirm(`Desbloquear o evento "${event.nome}" para voltar a permitir alterações?`);
+    if (!confirmed) return;
+
+    setUnlockingEventId(event.id);
+    setClosedEventsMessage(null);
+    try {
+      const response = await fetch(`/api/eventos/${event.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fechado: false })
+      });
+      const body = (await response.json().catch(() => null)) as { message?: string } | null;
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível desbloquear o evento.");
+      setClosedEventsState((current) => current.filter((item) => item.id !== event.id));
+      setClosedEventsMessage(`Evento "${event.nome}" desbloqueado.`);
+    } catch (error) {
+      setClosedEventsMessage(error instanceof Error ? error.message : "Não foi possível desbloquear o evento.");
+    } finally {
+      setUnlockingEventId(null);
+    }
+  };
+
   return (
     <>
       <section className="admin-settings-grid" aria-label="Definições do admin">
@@ -619,6 +671,46 @@ export function AdminClient({
           </div>
           {databaseMessage ? <p className="form-message">{databaseMessage}</p> : null}
         </section>
+      </section>
+
+      <section className="admin-closed-events-panel" aria-label="Eventos fechados">
+        <div className="admin-log-header">
+          <div>
+            <p className="eyebrow">Eventos</p>
+            <h2>Eventos fechados</h2>
+          </div>
+          <span>{closedEventsState.length} fechados</span>
+        </div>
+        {closedEventsError ? (
+          <p className="form-message">Não foi possível carregar os eventos fechados. {closedEventsError}</p>
+        ) : null}
+        {closedEventsMessage ? <p className="form-message">{closedEventsMessage}</p> : null}
+        <div className="closed-events-list">
+          {closedEventsState.length ? (
+            closedEventsState.map((event) => (
+              <article className="closed-event-card" key={event.id}>
+                <div>
+                  <span className="event-lock-badge">
+                    <span className="event-lock-glyph" aria-hidden="true" />
+                    Fechado
+                  </span>
+                  <strong>{event.nome}</strong>
+                  <small>
+                    {formatEventDate(event.data_inicio)} · {formatMoney(event.saldo)}
+                  </small>
+                </div>
+                <button disabled={unlockingEventId === event.id} type="button" onClick={() => unlockEvent(event)}>
+                  {unlockingEventId === event.id ? "A desbloquear..." : "Desbloquear"}
+                </button>
+              </article>
+            ))
+          ) : (
+            <div className="empty-closed-events">
+              <strong>Sem eventos fechados</strong>
+              <span>Quando fechares um evento na Tesouraria, ele aparece aqui para desbloquear.</span>
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="admin-grid" aria-label="Utilizadores">

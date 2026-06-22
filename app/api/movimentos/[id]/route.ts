@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
 import {
+  eventLockedResponse,
+  getMovementEventLockState,
   prepareWritePayload,
   readJsonBody,
   requireDeleteAccess,
@@ -16,6 +18,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   if (access.error) return access.error;
 
   const { id } = await context.params;
+  const lock = await getMovementEventLockState(id);
+  if (lock.error) return lock.error;
+  if (lock.event.fechado) return eventLockedResponse(lock.event.nome);
+
   const body = await readJsonBody(request);
   const prepared = prepareWritePayload(body, access.session, true, "movement");
   if (prepared.error) return prepared.error;
@@ -31,5 +37,9 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   if (deleteError) return deleteError;
 
   const { id } = await context.params;
+  const lock = await getMovementEventLockState(id);
+  if (lock.error) return lock.error;
+  if (lock.event.fechado) return eventLockedResponse(lock.event.nome);
+
   return supabaseWrite(`movimentos?id=eq.${encodeURIComponent(id)}`, "DELETE", undefined, access.session);
 }

@@ -35,6 +35,7 @@ const EVENT_COLUMNS = [
   "isento_texto",
   "contabilizar_totais",
   "cor",
+  "fechado",
   "tipo",
   "created_at"
 ];

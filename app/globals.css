@@ -2244,6 +2244,10 @@ h2 {
   box-shadow: inset 0 -4px 0 var(--event-accent);
 }
 
+.event-card.locked {
+  border-color: #9aa8bd;
+}
+
 .event-name {
   font-size: 0.88rem;
   font-weight: 700;
@@ -2279,6 +2283,53 @@ h2 {
 .event-status-badge.inline {
   margin-left: 8px;
   vertical-align: middle;
+}
+
+.event-lock-badge {
+  align-items: center;
+  background: #f2f5f9;
+  border: 1px solid #c6cfdd;
+  border-radius: 999px;
+  color: #43536c;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 800;
+  gap: 6px;
+  min-height: 22px;
+  padding: 3px 8px;
+  width: fit-content;
+}
+
+.event-lock-badge.compact {
+  font-size: 0.68rem;
+  min-height: 20px;
+  padding: 2px 6px;
+}
+
+.event-lock-badge.detail {
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.event-lock-glyph {
+  border: 2px solid currentColor;
+  border-radius: 3px;
+  display: inline-block;
+  height: 9px;
+  position: relative;
+  width: 10px;
+}
+
+.event-lock-glyph::before {
+  border: 2px solid currentColor;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  content: "";
+  height: 7px;
+  left: 1px;
+  position: absolute;
+  top: -8px;
+  width: 4px;
 }
 
 .positive {
@@ -2363,6 +2414,25 @@ h2 {
 
 .event-actions .danger-button {
   background: var(--red);
+}
+
+.event-actions .close-event-button {
+  border-color: #c6cfdd;
+  color: #43536c;
+}
+
+.event-locked-note,
+.locked-row-note {
+  align-items: center;
+  background: #f2f5f9;
+  border: 1px solid #c6cfdd;
+  border-radius: 6px;
+  color: #43536c;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 800;
+  min-height: 30px;
+  padding: 0 9px;
 }
 
 .event-summary-grid {
@@ -3133,6 +3203,79 @@ td {
 
 .admin-settings-card .danger-admin-button {
   background: var(--red);
+}
+
+.admin-closed-events-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 18px;
+}
+
+.closed-events-list {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.closed-event-card {
+  align-items: center;
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.closed-event-card > div {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.closed-event-card strong {
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.closed-event-card small,
+.empty-closed-events span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.closed-event-card button {
+  background: var(--blue);
+  border: 0;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-weight: 800;
+  min-height: 38px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.closed-event-card button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.empty-closed-events {
+  background: #f8fbff;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  grid-column: 1 / -1;
+  padding: 16px;
 }
 
 .logo-preview-box {

@@ -155,6 +155,10 @@ function isEventCounted(event: EventoResumo) {
   return event.slug !== "decoracao";
 }
 
+function isEventClosed(event: EventoResumo | null | undefined) {
+  return event?.fechado === true;
+}
+
 function isMovementCounted(movimento: MovimentoDetalhe) {
   return movimento.contabilizar_totais !== false;
 }
@@ -414,6 +418,10 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
     return eventos.filter((event) => event.slug !== "contas");
   }, [eventos]);
 
+  const eventClosedBySlug = useMemo(() => {
+    return new Map(eventos.map((event) => [event.slug, isEventClosed(event)]));
+  }, [eventos]);
+
   const totals = useMemo(() => {
     const eventStatus = new Map(
       eventOnlyList.map((event) => [event.slug, { counted: isEventCounted(event), isento: isEventIsento(event) }])
@@ -449,6 +457,10 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
   const selectedEvent = useMemo(() => {
     return orderedEventos.find((event) => event.slug === selectedSlug) ?? orderedEventos[0] ?? null;
   }, [orderedEventos, selectedSlug]);
+
+  const selectedEventClosed = isEventClosed(selectedEvent);
+
+  const isMovementLocked = (movimento: MovimentoDetalhe) => eventClosedBySlug.get(movimento.evento_slug) === true;
 
   const eventMovimentos = useMemo(() => {
     if (!selectedEvent) return [];
@@ -568,6 +580,10 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
 
   const openEditEvent = () => {
     if (!selectedEvent || !mayWrite) return;
+    if (selectedEventClosed) {
+      setSaveMessage("Este evento está fechado. Desbloqueia no Admin para voltar a editar.");
+      return;
+    }
     setSaveMessage(null);
     setSelectedMovement(null);
     setEventForm({
@@ -585,6 +601,10 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
 
   const openQuickAdd = (tab: "entrada" | "saida") => {
     if (!selectedEvent || !mayWrite) return;
+    if (selectedEventClosed) {
+      setSaveMessage("Este evento está fechado. Desbloqueia no Admin para adicionar novos dados.");
+      return;
+    }
     setSaveMessage(null);
     setQuickMovementForm(movementFormDefaults(tab));
     setQuickAddTab(tab);
@@ -599,6 +619,10 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
 
   const openEditMovement = (movimento: MovimentoDetalhe) => {
     if (!mayWrite) return;
+    if (isMovementLocked(movimento)) {
+      setSaveMessage("Este evento está fechado. Desbloqueia no Admin para alterar esta linha.");
+      return;
+    }
     setSaveMessage(null);
     setSelectedMovement(movimento);
     const entryKind = movementEntryKind(movimento);
@@ -663,6 +687,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
     }
 
     if (!selectedEvent) throw new Error("Escolhe um evento para editar.");
+    if (selectedEventClosed) throw new Error("Este evento está fechado. Desbloqueia no Admin para voltar a editar.");
     if (session.role === "operator" && !justification.trim()) throw new Error("Indica a justificação da alteração.");
     await appWrite(`eventos/${selectedEvent.id}`, {
       method: "PATCH",
@@ -683,6 +708,10 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
 
   const deleteEvent = async () => {
     if (!mayDelete || !selectedEvent) return;
+    if (selectedEventClosed) {
+      setSaveMessage("Este evento está fechado. Desbloqueia no Admin antes de apagar.");
+      return;
+    }
     const confirmed = window.confirm(
       `Apagar o evento "${selectedEvent.nome}"? Esta ação também apaga todas as entradas e saídas deste evento.`
     );
@@ -704,12 +733,39 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
     }
   };
 
+  const closeSelectedEvent = async () => {
+    if (!mayAccessAdmin || !selectedEvent || selectedEventClosed) return;
+    const confirmed = window.confirm(
+      `Fechar o evento "${selectedEvent.nome}"? Depois de fechado, não poderá receber alterações até ser desbloqueado no Admin.`
+    );
+    if (!confirmed) return;
+
+    setIsSaving(true);
+    setSaveMessage(null);
+    try {
+      await appWrite(`eventos/${selectedEvent.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ fechado: true })
+      });
+      setSaveMessage("Evento fechado.");
+      router.refresh();
+    } catch (caught) {
+      setSaveMessage(caught instanceof Error ? caught.message : "Não foi possível fechar o evento.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const saveMovement = async () => {
     const isEditing = modalMode === "edit-entry" || modalMode === "edit-exit";
     const isEntryMode = modalMode === "add-entry" || modalMode === "edit-entry";
     const movementToEdit = isEditing ? selectedMovement : null;
     if (!isEditing && !selectedEvent) throw new Error("Escolhe um evento antes de adicionar dados.");
+    if (!isEditing && selectedEventClosed) throw new Error("Este evento está fechado. Desbloqueia no Admin para adicionar dados.");
     if (isEditing && !movementToEdit) throw new Error("Escolhe uma linha para editar.");
+    if (movementToEdit && isMovementLocked(movementToEdit)) {
+      throw new Error("Este evento está fechado. Desbloqueia no Admin para alterar esta linha.");
+    }
 
     const item = movementForm.item.trim();
     const amount = numericAmount(movementForm.montante);
@@ -779,6 +835,10 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
 
   const saveQuickMovement = async () => {
     if (!selectedEvent || !quickAddTab) return;
+    if (selectedEventClosed) {
+      setSaveMessage("Este evento está fechado. Desbloqueia no Admin para adicionar dados.");
+      return;
+    }
 
     const item = quickMovementForm.item.trim();
     const amount = numericAmount(quickMovementForm.montante);
@@ -853,6 +913,10 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
   const deleteMovement = async (movimento: MovimentoDetalhe) => {
     if (!mayDelete) return;
     if (sectionMode === "contas" && activeTab === "saida") return;
+    if (isMovementLocked(movimento)) {
+      setSaveMessage("Este evento está fechado. Desbloqueia no Admin para apagar esta linha.");
+      return;
+    }
     const confirmed = window.confirm(`Apagar "${movimento.item}"?`);
     if (!confirmed) return;
 
@@ -871,20 +935,28 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
     }
   };
 
-  const renderMovementActions = (movimento: MovimentoDetalhe) => (
-    <div className="row-actions">
-      {mayWrite ? (
-        <button type="button" onClick={() => openEditMovement(movimento)}>
-          Editar
-        </button>
-      ) : null}
-      {mayDelete ? (
-        <button className="danger-button" disabled={isSaving} type="button" onClick={() => deleteMovement(movimento)}>
-          Apagar
-        </button>
-      ) : null}
-    </div>
-  );
+  const renderMovementActions = (movimento: MovimentoDetalhe) => {
+    const locked = isMovementLocked(movimento);
+
+    if (locked) {
+      return <span className="locked-row-note">Fechado</span>;
+    }
+
+    return (
+      <div className="row-actions">
+        {mayWrite ? (
+          <button type="button" onClick={() => openEditMovement(movimento)}>
+            Editar
+          </button>
+        ) : null}
+        {mayDelete ? (
+          <button className="danger-button" disabled={isSaving} type="button" onClick={() => deleteMovement(movimento)}>
+            Apagar
+          </button>
+        ) : null}
+      </div>
+    );
+  };
 
   const renderDescription = (movimento: MovimentoDetalhe) => {
     if (!movimento.descricao) return "—";
@@ -1094,7 +1166,8 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
               className={[
                 "event-card",
                 selectedEvent?.slug === event.slug ? "selected" : "",
-                event.cor && getEventColorOption(event.cor) ? "has-event-color" : ""
+                event.cor && getEventColorOption(event.cor) ? "has-event-color" : "",
+                isEventClosed(event) ? "locked" : ""
               ]
                 .filter(Boolean)
                 .join(" ")}
@@ -1113,6 +1186,12 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                 {event.tipo === "evento" ? formatDate(event.data_inicio) : "Categoria"}
               </span>
               {!isEventCounted(event) ? <span className="event-status-badge">Só registo</span> : null}
+              {isEventClosed(event) ? (
+                <span className="event-lock-badge compact">
+                  <span className="event-lock-glyph" aria-hidden="true" />
+                  Fechado
+                </span>
+              ) : null}
               <span className={Number(event.saldo) >= 0 ? "event-balance positive" : "event-balance negative"}>
                 {formatMoney(event.saldo)}
               </span>
@@ -1137,6 +1216,12 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                   {!isEventCounted(selectedEvent) ? (
                     <span className="event-status-badge detail">Só registo, não entra nos totais gerais</span>
                   ) : null}
+                  {selectedEventClosed ? (
+                    <span className="event-lock-badge detail">
+                      <span className="event-lock-glyph" aria-hidden="true" />
+                      Fechado, desbloquear no Admin
+                    </span>
+                  ) : null}
                 </div>
                 <div className="event-side">
                   <div className="event-totals">
@@ -1146,7 +1231,8 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                     </strong>
                   </div>
                   <div className="event-actions">
-                    {mayWrite ? (
+                    {selectedEventClosed ? <span className="event-locked-note">Evento fechado</span> : null}
+                    {mayWrite && !selectedEventClosed ? (
                       <>
                         <button type="button" onClick={() => openQuickAdd("entrada")}>
                           Adicionar entrada
@@ -1160,6 +1246,11 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                         {mayDelete ? (
                           <button className="danger-button" disabled={isSaving} type="button" onClick={deleteEvent}>
                             Apagar evento
+                          </button>
+                        ) : null}
+                        {mayAccessAdmin ? (
+                          <button className="secondary-event-button close-event-button" disabled={isSaving} type="button" onClick={closeSelectedEvent}>
+                            Fechar evento
                           </button>
                         ) : null}
                       </>
@@ -1271,7 +1362,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                   <span>
                     {formatMoney(activeTab === "entrada" ? tabCounts.totalEntradas : tabCounts.totalSaidas)}
                   </span>
-                  {mayWrite ? (
+                  {mayWrite && !selectedEventClosed ? (
                     <button
                       aria-label={`Adicionar ${activeTab === "entrada" ? "entrada" : "saída"}`}
                       className="inline-add-button"
@@ -1314,7 +1405,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                     )}
                   </thead>
                   <tbody>
-                    {mayWrite && quickAddTab === activeTab ? (
+                    {mayWrite && !selectedEventClosed && quickAddTab === activeTab ? (
                       activeTab === "entrada" ? (
                         <tr className="inline-add-row">
                           <td className="item-cell">

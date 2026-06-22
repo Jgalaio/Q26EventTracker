@@ -33,6 +33,22 @@ type AuditContext = {
   justificacao?: string;
 };
 
+type EventLockState = {
+  id: string;
+  nome: string;
+  fechado: boolean | null;
+};
+
+type EventLockResult =
+  | {
+      event: EventLockState;
+      error: null;
+    }
+  | {
+      event: null;
+      error: NextResponse;
+    };
+
 export async function requireWriteAccess(): Promise<WriteAccess> {
   const session = await getSession();
   if (!session) {
@@ -65,6 +81,79 @@ export async function readJsonBody(request: NextRequest) {
   } catch {
     return {};
   }
+}
+
+async function supabaseReadRows<T>(resource: string) {
+  const response = await fetch(`${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${resource}`, {
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      "Content-Type": "application/json"
+    },
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    const responseBody = await response.text();
+    return {
+      data: null,
+      error: NextResponse.json({ message: `${response.status} ${response.statusText}: ${responseBody}` }, { status: response.status })
+    };
+  }
+
+  return {
+    data: (await response.json()) as T[],
+    error: null
+  };
+}
+
+export async function getEventLockState(eventId: string): Promise<EventLockResult> {
+  const result = await supabaseReadRows<EventLockState>(
+    `eventos?id=eq.${encodeURIComponent(eventId)}&select=id,nome,fechado&limit=1`
+  );
+  if (result.error) return { event: null, error: result.error };
+
+  const event = result.data?.[0];
+  if (!event) {
+    return {
+      event: null,
+      error: NextResponse.json({ message: "Evento não encontrado." }, { status: 404 })
+    };
+  }
+
+  return { event, error: null };
+}
+
+export async function getMovementEventLockState(movementId: string): Promise<EventLockResult> {
+  const movementResult = await supabaseReadRows<{ evento_id: string | null }>(
+    `movimentos?id=eq.${encodeURIComponent(movementId)}&select=evento_id&limit=1`
+  );
+  if (movementResult.error) return { event: null, error: movementResult.error };
+
+  const eventId = movementResult.data?.[0]?.evento_id;
+  if (!eventId) {
+    return {
+      event: null,
+      error: NextResponse.json({ message: "Movimento não encontrado." }, { status: 404 })
+    };
+  }
+
+  return getEventLockState(eventId);
+}
+
+export function eventLockedResponse(eventName: string) {
+  return NextResponse.json(
+    { message: `O evento "${eventName}" está fechado. Desbloqueia no Admin antes de alterar.` },
+    { status: 423 }
+  );
+}
+
+export function bodyHasClosedState(body: JsonBody) {
+  return Object.prototype.hasOwnProperty.call(body, "fechado");
+}
+
+export function bodyOnlyUnlocksEvent(body: JsonBody) {
+  const allowedKeys = new Set(["fechado", "justification"]);
+  return body.fechado === false && Object.keys(body).every((key) => allowedKeys.has(key));
 }
 
 export function prepareWritePayload(
