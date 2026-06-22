@@ -101,7 +101,7 @@ export function OverviewClient({ rows, totals, cashValue, error, session, appLog
           ) : null}
           {canWrite(session.role) ? (
             <Link className="nav-button secondary-nav-button" href="/facturacao">
-              Faturação
+              Fat.Finanças
             </Link>
           ) : null}
           {canWrite(session.role) ? (

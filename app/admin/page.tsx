@@ -46,7 +46,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             Relatórios
           </Link>
           <Link className="nav-button secondary-nav-button" href="/facturacao">
-            Faturação
+            Fat.Finanças
           </Link>
           <Link className="nav-button secondary-nav-button" href="/fat-patrocinios">
             Fat. Patrocínios

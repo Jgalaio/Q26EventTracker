@@ -21,6 +21,12 @@ type ReportItem = {
   raw?: JsonRecord;
 };
 
+type ReportEvent = {
+  id: string;
+  slug: string;
+  nome: string;
+};
+
 function endpoint(resource: string) {
   return `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${resource}`;
 }
@@ -62,6 +68,18 @@ function parseItems(value: unknown): ReportItem[] {
     .filter((item) => item.id);
 }
 
+function parseEvents(value: unknown): ReportEvent[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(isRecord)
+    .map((event) => ({
+      id: stringValue(event.id),
+      slug: stringValue(event.slug),
+      nome: stringValue(event.nome)
+    }))
+    .filter((event) => event.id && event.slug && event.nome);
+}
+
 async function supabaseRequest<T>(resource: string, method: string, body?: JsonRecord) {
   const response = await fetch(endpoint(resource), {
     method,
@@ -89,6 +107,7 @@ export async function POST(request: NextRequest) {
   const eventoId = stringValue(body.evento_id);
   const eventoSlug = stringValue(body.evento_slug);
   const eventoNome = stringValue(body.evento_nome);
+  const selectedEvents = parseEvents(body.eventos);
   const valorFatura = numberValue(body.valor_fatura);
   const despesasEvento = parseItems(body.despesas_evento);
   const itensAcrescentados = parseItems(body.itens_acrescentados);
@@ -118,6 +137,7 @@ export async function POST(request: NextRequest) {
       slug: eventoSlug,
       nome: eventoNome
     },
+    eventos: selectedEvents,
     despesas_evento: despesasEvento,
     itens_acrescentados: itensAcrescentados,
     totais: {
@@ -175,6 +195,7 @@ export async function POST(request: NextRequest) {
       summary: `Fatura ${eventoNome}: ${totalFaturado.toFixed(2)}`,
       details: {
         evento_slug: eventoSlug,
+        eventos: selectedEvents,
         valor_fatura: valorFatura,
         total_faturado: totalFaturado,
         movimentos_ids: movimentosIds

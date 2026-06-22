@@ -1081,6 +1081,58 @@ h2 {
   padding: 0 11px;
 }
 
+.billing-event-picker {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.84rem;
+  font-weight: 800;
+  gap: 7px;
+  min-width: 0;
+}
+
+.billing-event-options {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  max-height: 152px;
+  overflow: auto;
+  padding: 8px;
+}
+
+.billing-event-option {
+  align-items: center;
+  background: white;
+  border: 1px solid #d8e7ff;
+  border-radius: 6px;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.78rem;
+  font-weight: 800;
+  gap: 8px;
+  line-height: 1.2;
+  min-height: 34px;
+  padding: 7px 8px;
+}
+
+.billing-event-option.selected {
+  background: #eaf2ff;
+  border-color: var(--blue);
+  color: var(--green-ink);
+}
+
+.billing-controls .billing-event-option input {
+  accent-color: var(--blue);
+  flex: 0 0 auto;
+  height: 15px;
+  min-height: 0;
+  padding: 0;
+  width: 15px;
+}
+
 .billing-actions {
   display: flex;
   justify-content: flex-end;

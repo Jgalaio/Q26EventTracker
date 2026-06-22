@@ -118,6 +118,12 @@ function reportTotals(report: FaturacaoReport) {
   };
 }
 
+function reportEventLabel(report: FaturacaoReport) {
+  const events = report.payload?.eventos;
+  if (Array.isArray(events) && events.length > 1) return `${events.length} eventos`;
+  return report.evento_nome;
+}
+
 function PrintableInvoiceReport({ report }: { report: FaturacaoReport }) {
   const despesasEvento = reportItems(report, "despesas_evento");
   const itensAcrescentados = reportItems(report, "itens_acrescentados");
@@ -148,7 +154,7 @@ function PrintableInvoiceReport({ report }: { report: FaturacaoReport }) {
         <div>
           <p className="eyebrow">Q26</p>
           <h2>Relatório de Fatura</h2>
-          <span>{report.evento_nome}</span>
+          <span>{reportEventLabel(report)}</span>
         </div>
         <div>
           <strong>{formatMoney(totals.totalFaturado)}</strong>
@@ -226,7 +232,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
       });
   }, [eventos]);
 
-  const [selectedSlug, setSelectedSlug] = useState(() => eventList[0]?.slug ?? "");
+  const [selectedSlugs, setSelectedSlugs] = useState<string[]>(() => (eventList[0]?.slug ? [eventList[0].slug] : []));
   const [invoiceValue, setInvoiceValue] = useState("");
   const [selectedPreviousIds, setSelectedPreviousIds] = useState<Set<string>>(new Set());
   const [clearedLaterInvoiceIds, setClearedLaterInvoiceIds] = useState<Set<string>>(new Set());
@@ -236,37 +242,56 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [billingMessage, setBillingMessage] = useState<string | null>(null);
 
-  const selectedEvent = useMemo(() => {
-    return eventList.find((event) => event.slug === selectedSlug) ?? eventList[0] ?? null;
-  }, [eventList, selectedSlug]);
+  const selectedEvents = useMemo(() => {
+    const selected = eventList.filter((event) => selectedSlugs.includes(event.slug));
+    return selected.length ? selected : eventList[0] ? [eventList[0]] : [];
+  }, [eventList, selectedSlugs]);
+
+  const selectedEventSlugs = useMemo(() => {
+    return new Set(selectedEvents.map((event) => event.slug));
+  }, [selectedEvents]);
+
+  const selectedEventLabel = useMemo(() => {
+    if (!selectedEvents.length) return "Sem evento";
+    if (selectedEvents.length === 1) return selectedEvents[0].nome;
+    return `${selectedEvents.length} eventos`;
+  }, [selectedEvents]);
 
   const eventPositions = useMemo(() => {
     return new Map(eventList.map((event, index) => [event.slug, index]));
   }, [eventList]);
 
   const currentEventExpenses = useMemo(() => {
-    if (!selectedEvent) return [];
+    if (!selectedEvents.length) return [];
     return movimentos
-      .filter((movimento) => movimento.evento_slug === selectedEvent.slug && isFaturadaDespesa(movimento))
-      .sort((a, b) => (a.data_pagamento ?? "").localeCompare(b.data_pagamento ?? "") || a.item.localeCompare(b.item));
-  }, [movimentos, selectedEvent]);
+      .filter((movimento) => selectedEventSlugs.has(movimento.evento_slug) && isFaturadaDespesa(movimento))
+      .sort(
+        (a, b) =>
+          a.evento_nome.localeCompare(b.evento_nome) ||
+          (a.data_pagamento ?? "").localeCompare(b.data_pagamento ?? "") ||
+          a.item.localeCompare(b.item)
+      );
+  }, [movimentos, selectedEventSlugs, selectedEvents.length]);
 
   const previousExpenses = useMemo(() => {
-    if (!selectedEvent) return [];
-    const selectedPosition = eventPositions.get(selectedEvent.slug) ?? 0;
+    if (!selectedEvents.length) return [];
+    const selectedPositions = selectedEvents
+      .map((event) => eventPositions.get(event.slug))
+      .filter((position): position is number => typeof position === "number");
+    const firstSelectedPosition = selectedPositions.length ? Math.min(...selectedPositions) : 0;
     return movimentos
       .filter((movimento) => {
         const movementPosition = eventPositions.get(movimento.evento_slug);
         return (
           isLaterInvoiceExpense(movimento) &&
           !clearedLaterInvoiceIds.has(movimento.id) &&
-          movimento.evento_slug !== selectedEvent.slug &&
+          !selectedEventSlugs.has(movimento.evento_slug) &&
           typeof movementPosition === "number" &&
-          movementPosition < selectedPosition
+          movementPosition < firstSelectedPosition
         );
       })
       .sort((a, b) => (b.data_pagamento ?? "").localeCompare(a.data_pagamento ?? "") || a.evento_nome.localeCompare(b.evento_nome));
-  }, [clearedLaterInvoiceIds, eventPositions, movimentos, selectedEvent]);
+  }, [clearedLaterInvoiceIds, eventPositions, movimentos, selectedEventSlugs, selectedEvents]);
 
   const selectedPreviousExpenses = useMemo(() => {
     return previousExpenses.filter((movimento) => selectedPreviousIds.has(movimento.id));
@@ -290,8 +315,13 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
     });
   };
 
-  const selectEvent = (slug: string) => {
-    setSelectedSlug(slug);
+  const toggleEvent = (slug: string) => {
+    setSelectedSlugs((current) => {
+      if (current.includes(slug)) {
+        return current.length > 1 ? current.filter((item) => item !== slug) : current;
+      }
+      return [...current, slug];
+    });
     setSelectedPreviousIds(new Set());
     setBillingMessage(null);
   };
@@ -302,8 +332,8 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
   };
 
   const finalizeInvoice = async () => {
-    if (!selectedEvent) {
-      setBillingMessage("Escolhe um evento antes de finalizar.");
+    if (!selectedEvents.length) {
+      setBillingMessage("Escolhe pelo menos um evento antes de finalizar.");
       return;
     }
 
@@ -322,14 +352,21 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
       return;
     }
 
-    const confirmed = window.confirm(`Finalizar e imprimir a fatura de ${selectedEvent.nome}?`);
+    const confirmed = window.confirm(`Finalizar e imprimir a fatura de ${selectedEventLabel}?`);
     if (!confirmed) return;
 
     const selectedPreviousItems = selectedPreviousExpenses.map(movementToReportItem);
+    const selectedEventsPayload = selectedEvents.map((event) => ({
+      id: event.id,
+      slug: event.slug,
+      nome: event.nome
+    }));
+    const reportEvent = selectedEvents.length === 1 ? selectedEvents[0] : null;
     const payload = {
-      evento_id: selectedEvent.id,
-      evento_slug: selectedEvent.slug,
-      evento_nome: selectedEvent.nome,
+      evento_id: reportEvent?.id ?? null,
+      evento_slug: reportEvent?.slug ?? "multiplos-eventos",
+      evento_nome: reportEvent?.nome ?? `${selectedEvents.length} eventos`,
+      eventos: selectedEventsPayload,
       valor_fatura: invoiceAmount,
       despesas_evento: currentEventExpenses.map(movementToReportItem),
       itens_acrescentados: selectedPreviousItems,
@@ -382,7 +419,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
   return (
     <main className="shell billing-shell">
       <section className="topbar">
-        <TopbarBrand logo={appLogo} title="Faturação" />
+        <TopbarBrand logo={appLogo} title="Fat.Finanças" />
         <div className="top-actions">
           <NotesMenu role={session.role} />
           {canAccessAdmin(session.role) ? (
@@ -417,17 +454,21 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
       {error ? <section className="notice">Não consegui ligar ao Supabase. {error}</section> : null}
       {reportsError ? <section className="notice">Não consegui carregar o histórico de faturas. {reportsError}</section> : null}
 
-      <section className="billing-controls" aria-label="Dados da faturação">
-        <label>
-          Evento
-          <select value={selectedEvent?.slug ?? ""} onChange={(event) => selectEvent(event.target.value)}>
-            {eventList.map((event) => (
-              <option key={event.slug} value={event.slug}>
-                {event.nome}
-              </option>
-            ))}
-          </select>
-        </label>
+      <section className="billing-controls" aria-label="Dados da Fat.Finanças">
+        <div className="billing-event-picker">
+          <span>Eventos</span>
+          <div className="billing-event-options" role="group" aria-label="Selecionar eventos">
+            {eventList.map((event) => {
+              const checked = selectedEventSlugs.has(event.slug);
+              return (
+                <label className={checked ? "billing-event-option selected" : "billing-event-option"} key={event.slug}>
+                  <input checked={checked} type="checkbox" onChange={() => toggleEvent(event.slug)} />
+                  <span>{event.nome}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
         <label>
           Valor da fatura
           <input
@@ -446,7 +487,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
 
       {billingMessage ? <section className="notice billing-message">{billingMessage}</section> : null}
 
-      <section className="metrics billing-metrics" aria-label="Resumo de faturação">
+      <section className="metrics billing-metrics" aria-label="Resumo de Fat.Finanças">
         <article>
           <span>Despesas faturadas</span>
           <strong>{formatMoney(currentExpensesTotal)}</strong>
@@ -473,8 +514,8 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
         <article className="billing-panel">
           <div className="table-heading">
             <div>
-              <p className="eyebrow">{selectedEvent ? formatDate(selectedEvent.data_inicio) : "Evento"}</p>
-              <h2>{selectedEvent?.nome ?? "Sem evento"}</h2>
+              <p className="eyebrow">{selectedEvents.length === 1 ? formatDate(selectedEvents[0].data_inicio) : "Eventos selecionados"}</p>
+              <h2>{selectedEventLabel}</h2>
             </div>
             <span>{currentEventExpenses.length} itens</span>
           </div>
@@ -503,7 +544,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
                 ) : (
                   <tr>
                     <td className="empty-movement-row" colSpan={5}>
-                      Sem despesas com Fatura C/NIF neste evento.
+                      Sem despesas com Fatura C/NIF nos eventos selecionados.
                     </td>
                   </tr>
                 )}
@@ -590,7 +631,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
                   return (
                     <tr key={report.id}>
                       <td>{formatDate(reportCreatedAt(report).slice(0, 10))}</td>
-                      <td>{report.evento_nome}</td>
+                      <td>{reportEventLabel(report)}</td>
                       <td className="money">{formatMoney(totals.totalFaturado)}</td>
                       <td className="money">{formatMoney(totals.valorFatura)}</td>
                       <td className="money">{formatMoney(totals.diferenca)}</td>

@@ -271,7 +271,7 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
             Tesouraria
           </Link>
           <Link className="nav-button secondary-nav-button" href="/facturacao">
-            Faturação
+            Fat.Finanças
           </Link>
           <Link className="nav-button secondary-nav-button" href="/reports">
             Relatórios

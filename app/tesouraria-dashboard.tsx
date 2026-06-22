@@ -908,7 +908,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
             Relatórios
           </Link>
           <Link className="nav-button secondary-nav-button" href="/facturacao">
-            Faturação
+            Fat.Finanças
           </Link>
           <Link className="nav-button secondary-nav-button" href="/fat-patrocinios">
             Fat. Patrocínios
@@ -1464,7 +1464,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
                             </select>
                           </td>
                           <td>
-                            <label className="table-checkbox" title="Mostrar este item em Faturação > Itens a acrescentar">
+                            <label className="table-checkbox" title="Mostrar este item em Fat.Finanças > Itens a acrescentar">
                               <input
                                 aria-label="Faturar mais tarde"
                                 checked={quickMovementForm.faturar_mais_tarde}
