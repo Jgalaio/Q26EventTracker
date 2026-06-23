@@ -2834,13 +2834,47 @@ h2 {
 .table-heading-actions {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
+  justify-content: flex-end;
 }
 
 .table-heading-actions > span {
   color: var(--green-ink);
   font-size: 1.15rem;
   font-weight: 700;
+}
+
+.entry-payment-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.entry-payment-breakdown span {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 3px;
+  min-width: 132px;
+  padding: 8px 10px;
+}
+
+.entry-payment-breakdown small {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.entry-payment-breakdown strong {
+  color: var(--blue);
+  font-size: 0.98rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  white-space: nowrap;
 }
 
 .inline-add-button {
@@ -4053,6 +4087,16 @@ td {
 
   .top-actions {
     justify-content: flex-start;
+  }
+
+  .table-heading-actions,
+  .entry-payment-breakdown {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .entry-payment-breakdown span {
+    min-width: min(100%, 150px);
   }
 
   .notes-dropdown {

@@ -537,15 +537,22 @@ export function Dashboard({
     return eventMovimentos.reduce(
       (acc, movimento) => {
         if (movimento.tipo === "entrada") {
+          const amount = Number(movimento.montante ?? 0);
+          const payment = normalizePayment(movimento.tipo_pagamento);
           acc.entradas += 1;
-          acc.totalEntradas += Number(movimento.montante ?? 0);
+          acc.totalEntradas += amount;
+          if (payment === "multibanco") {
+            acc.totalEntradasMultibanco += amount;
+          } else if (payment === "dinheiro" || !payment) {
+            acc.totalEntradasDinheiro += amount;
+          }
         } else {
           acc.saidas += 1;
           acc.totalSaidas += Number(movimento.montante ?? 0);
         }
         return acc;
       },
-      { entradas: 0, saidas: 0, totalEntradas: 0, totalSaidas: 0 }
+      { entradas: 0, saidas: 0, totalEntradas: 0, totalEntradasDinheiro: 0, totalEntradasMultibanco: 0, totalSaidas: 0 }
     );
   }, [eventMovimentos]);
 
@@ -1495,6 +1502,18 @@ export function Dashboard({
                   <h2>{filteredMovimentos.length} registos</h2>
                 </div>
                 <div className="table-heading-actions">
+                  {activeTab === "entrada" ? (
+                    <div className="entry-payment-breakdown" aria-label="Resumo por método de entrada">
+                      <span>
+                        <small>Valor Dinheiro</small>
+                        <strong>{formatMoney(tabCounts.totalEntradasDinheiro)}</strong>
+                      </span>
+                      <span>
+                        <small>Valor Multibanco</small>
+                        <strong>{formatMoney(tabCounts.totalEntradasMultibanco)}</strong>
+                      </span>
+                    </div>
+                  ) : null}
                   <span>
                     {formatMoney(activeTab === "entrada" ? tabCounts.totalEntradas : tabCounts.totalSaidas)}
                   </span>
