@@ -1108,6 +1108,16 @@ h2 {
   padding: 0 9px;
 }
 
+.small-action-button.secondary {
+  background: #eef5ff;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.small-action-button.danger {
+  background: #c63f5b;
+}
+
 .billing-actions button:disabled {
   cursor: not-allowed;
   opacity: 0.62;
@@ -1259,6 +1269,12 @@ h2 {
 .billing-history td {
   font-size: 0.76rem;
   padding: 7px 8px;
+}
+
+.history-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .billing-print-stage {
@@ -3073,6 +3089,15 @@ td {
 
 .description-modal {
   width: min(560px, 100%);
+}
+
+.invoice-edit-modal form {
+  display: grid;
+  gap: 18px;
+}
+
+.invoice-edit-modal textarea {
+  min-height: 104px;
 }
 
 .description-full-text {

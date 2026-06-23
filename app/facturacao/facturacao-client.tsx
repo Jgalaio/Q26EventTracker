@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import type { AppLogo } from "../app-settings";
 import { ROLE_LABELS, canAccessAdmin, type AuthSession } from "../auth-types";
@@ -23,6 +23,12 @@ type DescriptionPopup = {
   text: string;
 };
 
+type ReportEditState = {
+  report: FaturacaoReport;
+  valorFatura: string;
+  justification: string;
+};
+
 const moneyFormatter = new Intl.NumberFormat("pt-PT", {
   style: "currency",
   currency: "EUR",
@@ -37,6 +43,12 @@ const dateFormatter = new Intl.DateTimeFormat("pt-PT", {
 
 function formatMoney(value: number | null | undefined) {
   return moneyFormatter.format(Number(value ?? 0));
+}
+
+function formatAmountInput(value: number | null | undefined) {
+  return Number(value ?? 0)
+    .toFixed(2)
+    .replace(".", ",");
 }
 
 function formatDate(value: string | null | undefined) {
@@ -291,8 +303,10 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
   const [savedReports, setSavedReports] = useState(reports);
   const [printableReport, setPrintableReport] = useState<FaturacaoReport | null>(null);
   const [descriptionPopup, setDescriptionPopup] = useState<DescriptionPopup | null>(null);
+  const [editingReport, setEditingReport] = useState<ReportEditState | null>(null);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [billingMessage, setBillingMessage] = useState<string | null>(null);
+  const [reportActionMessage, setReportActionMessage] = useState<string | null>(null);
 
   const selectedEvent = useMemo(() => {
     return eventList.find((event) => event.slug === selectedSlug) ?? eventList[0] ?? null;
@@ -366,6 +380,83 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
   const printReport = (report: FaturacaoReport) => {
     setPrintableReport(report);
     window.setTimeout(() => window.print(), 120);
+  };
+
+  const openEditReport = (report: FaturacaoReport) => {
+    const totals = reportTotals(report);
+    setReportActionMessage(null);
+    setEditingReport({
+      report,
+      valorFatura: formatAmountInput(totals.valorFatura),
+      justification: ""
+    });
+  };
+
+  const saveReportEdit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingReport) return;
+
+    const valorFatura = parseAmount(editingReport.valorFatura);
+    const justification = editingReport.justification.trim();
+
+    if (!Number.isFinite(valorFatura)) {
+      setReportActionMessage("Indica um valor de fatura válido.");
+      return;
+    }
+
+    if (!justification) {
+      setReportActionMessage("Indica a justificação da alteração.");
+      return;
+    }
+
+    setReportActionMessage(null);
+    try {
+      const response = await fetch(`/api/faturacao/relatorios/${editingReport.report.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          valor_fatura: valorFatura,
+          justification
+        })
+      });
+      const body = (await response.json().catch(() => null)) as { message?: string; report?: FaturacaoReport } | null;
+      if (!response.ok || !body?.report) throw new Error(body?.message ?? "Não foi possível editar a fatura.");
+
+      setSavedReports((current) => current.map((report) => (report.id === body.report?.id ? (body.report as FaturacaoReport) : report)));
+      setPrintableReport((current) => (current?.id === body.report?.id ? (body.report as FaturacaoReport) : current));
+      setEditingReport(null);
+      setReportActionMessage("Fatura editada e registada no log.");
+    } catch (caught) {
+      setReportActionMessage(caught instanceof Error ? caught.message : "Não foi possível editar a fatura.");
+    }
+  };
+
+  const deleteReport = async (report: FaturacaoReport) => {
+    const justification = window.prompt(`Indica a justificação para apagar a fatura de ${report.evento_nome}:`)?.trim() ?? "";
+    if (!justification) {
+      setReportActionMessage("A justificação é obrigatória para apagar a fatura.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Apagar definitivamente a fatura de ${report.evento_nome}?`);
+    if (!confirmed) return;
+
+    setReportActionMessage(null);
+    try {
+      const response = await fetch(`/api/faturacao/relatorios/${report.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ justification })
+      });
+      const body = (await response.json().catch(() => null)) as { message?: string } | null;
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível apagar a fatura.");
+
+      setSavedReports((current) => current.filter((savedReport) => savedReport.id !== report.id));
+      setPrintableReport((current) => (current?.id === report.id ? null : current));
+      setReportActionMessage("Fatura apagada e registada no log.");
+    } catch (caught) {
+      setReportActionMessage(caught instanceof Error ? caught.message : "Não foi possível apagar a fatura.");
+    }
   };
 
   const finalizeInvoice = async () => {
@@ -517,6 +608,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
       </section>
 
       {billingMessage ? <section className="notice billing-message">{billingMessage}</section> : null}
+      {reportActionMessage ? <section className="notice billing-message">{reportActionMessage}</section> : null}
 
       <section className="metrics billing-metrics" aria-label="Resumo de Fat.Finanças">
         <article>
@@ -720,9 +812,19 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
                       <td className="money">{formatMoney(totals.montanteDepositar)}</td>
                       <td>{report.created_by}</td>
                       <td>
-                        <button className="small-action-button" type="button" onClick={() => printReport(report)}>
-                          Imprimir
-                        </button>
+                        <div className="history-actions">
+                          <button className="small-action-button" type="button" onClick={() => printReport(report)}>
+                            Consultar
+                          </button>
+                          <button className="small-action-button secondary" type="button" onClick={() => openEditReport(report)}>
+                            Editar
+                          </button>
+                          {canAccessAdmin(session.role) ? (
+                            <button className="small-action-button danger" type="button" onClick={() => deleteReport(report)}>
+                              Apagar
+                            </button>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -742,6 +844,75 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
       <section className="billing-print-stage" aria-hidden={!printableReport}>
         {printableReport ? <PrintableInvoiceReport report={printableReport} /> : null}
       </section>
+
+      {editingReport ? (
+        <div className="modal-backdrop" role="presentation">
+          <section aria-modal="true" className="modal invoice-edit-modal" role="dialog">
+            <form onSubmit={saveReportEdit}>
+              <div className="modal-heading">
+                <div>
+                  <p className="eyebrow">Fatura finalizada</p>
+                  <h2>Editar fatura</h2>
+                </div>
+                <button aria-label="Fechar" className="icon-button" onClick={() => setEditingReport(null)} type="button">
+                  ×
+                </button>
+              </div>
+              <div className="form-grid">
+                <label>
+                  Evento
+                  <input readOnly value={editingReport.report.evento_nome} />
+                </label>
+                <label>
+                  Total faturado
+                  <input readOnly value={formatMoney(reportTotals(editingReport.report).totalFaturado)} />
+                </label>
+                <label>
+                  Valor da fatura
+                  <input
+                    autoFocus
+                    inputMode="decimal"
+                    value={editingReport.valorFatura}
+                    onChange={(event) =>
+                      setEditingReport((current) => (current ? { ...current, valorFatura: event.target.value } : current))
+                    }
+                  />
+                </label>
+                <label>
+                  Montante a depositar
+                  <input
+                    readOnly
+                    value={formatMoney(
+                      (Number.isFinite(parseAmount(editingReport.valorFatura)) ? parseAmount(editingReport.valorFatura) : 0) -
+                        reportTotals(editingReport.report).totalFaturado +
+                        reportTotals(editingReport.report).transferenciasComNif +
+                        reportTotals(editingReport.report).transferenciasSemNif
+                    )}
+                  />
+                </label>
+                <label className="full">
+                  Justificação
+                  <textarea
+                    required
+                    rows={4}
+                    value={editingReport.justification}
+                    onChange={(event) =>
+                      setEditingReport((current) => (current ? { ...current, justification: event.target.value } : current))
+                    }
+                  />
+                </label>
+              </div>
+              {reportActionMessage ? <p className="form-message">{reportActionMessage}</p> : null}
+              <div className="modal-actions">
+                <button className="secondary-button" type="button" onClick={() => setEditingReport(null)}>
+                  Cancelar
+                </button>
+                <button type="submit">Guardar alteração</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
 
       {descriptionPopup ? (
         <div className="modal-backdrop" role="presentation">
