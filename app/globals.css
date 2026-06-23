@@ -3735,6 +3735,18 @@ td {
   background: #f7fbff;
 }
 
+.overview-total-row th,
+.overview-total-row td {
+  background: #1457c8;
+  border-top: 2px solid #0a3d9a;
+  color: white;
+  font-weight: 900;
+}
+
+.overview-total-row th {
+  text-align: left;
+}
+
 .overview-event-toggle {
   align-items: center;
   background: transparent;

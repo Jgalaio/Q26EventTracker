@@ -324,6 +324,20 @@ export function OverviewClient({ rows, totals, cashValue, error, session, appLog
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr className="overview-total-row">
+                <th scope="row">Totais</th>
+                <td className="money">{formatMoney(totals.entradas)}</td>
+                <td className="money">{formatMoney(totals.saidas)}</td>
+                <td className="money">{formatMoney(totals.aPagamento)}</td>
+                <td className="money">{formatMoney(totals.lucro)}</td>
+                <td className="money">{formatMoney(totals.faturado)}</td>
+                <td className="money">{formatMoney(totals.naoFaturado)}</td>
+                <td className="money">{formatMoney(totals.pagoQ26)}</td>
+                <td className="money">{formatMoney(totals.transferencias)}</td>
+                <td className="money">{formatMoney(totals.dinheiro)}</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </section>
