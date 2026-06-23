@@ -818,11 +818,12 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, showQ25Profi
     const entrySponsorship = isEntryMode ? entryKind === "patrocinio" : false;
     const entryNeedsInvoice = isEntryMode ? entrySponsorship || (entryKind === "faturacao" && movementForm.precisa_fatura) : false;
     const entryInvoiceIssued = entryNeedsInvoice ? movementForm.fatura_emitida === "sim" : false;
+    const description = movementForm.descricao.trim() || null;
     const payload = {
       evento_id: isEditing ? undefined : selectedEvent?.id,
       tipo,
       item,
-      descricao: isEntryMode ? null : movementForm.descricao.trim() || null,
+      descricao: description,
       data_pagamento: isEntryMode ? null : movementForm.data_pagamento || null,
       montante: amount,
       numero_fatura: isEntryMode ? null : movementForm.numero_fatura.trim() || null,
@@ -837,7 +838,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, showQ25Profi
         origem: "app",
         evento: movementToEdit ? movementToEdit.evento_nome : selectedEvent?.nome,
         item,
-        descricao: isEntryMode ? null : movementForm.descricao.trim() || null,
+        descricao: description,
         montante: amount,
         tipo_pagamento: isEntryMode ? entryPayment || null : movementForm.tipo_pagamento.trim() || null,
         contabilizar_totais: isEntryMode ? true : movementForm.contabilizar_totais,
@@ -894,11 +895,12 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, showQ25Profi
     const entrySponsorship = isEntryMode ? entryKind === "patrocinio" : false;
     const entryNeedsInvoice = isEntryMode ? entrySponsorship || (entryKind === "faturacao" && quickMovementForm.precisa_fatura) : false;
     const entryInvoiceIssued = entryNeedsInvoice ? quickMovementForm.fatura_emitida === "sim" : false;
+    const description = quickMovementForm.descricao.trim() || null;
     const payload = {
       evento_id: selectedEvent.id,
       tipo,
       item,
-      descricao: isEntryMode ? null : quickMovementForm.descricao.trim() || null,
+      descricao: description,
       data_pagamento: isEntryMode ? null : quickMovementForm.data_pagamento || null,
       montante: amount,
       numero_fatura: isEntryMode ? null : quickMovementForm.numero_fatura.trim() || null,
@@ -913,7 +915,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, showQ25Profi
         modo: "linha_rapida",
         evento: selectedEvent.nome,
         item,
-        descricao: isEntryMode ? null : quickMovementForm.descricao.trim() || null,
+        descricao: description,
         montante: amount,
         tipo_pagamento: isEntryMode ? entryPayment : quickMovementForm.tipo_pagamento.trim() || null,
         contabilizar_totais: isEntryMode ? true : quickMovementForm.contabilizar_totais,
@@ -1427,6 +1429,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, showQ25Profi
                     {activeTab === "entrada" ? (
                       <tr>
                         <th>Item</th>
+                        <th>Descrição</th>
                         <th>Método</th>
                         <th>Tipo</th>
                         <th>Fatura emitida</th>
@@ -1463,6 +1466,16 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, showQ25Profi
                                 setQuickMovementForm((current) => ({ ...current, item: event.target.value }))
                               }
                               placeholder="Item"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              aria-label="Descrição da entrada"
+                              value={quickMovementForm.descricao}
+                              onChange={(event) =>
+                                setQuickMovementForm((current) => ({ ...current, descricao: event.target.value }))
+                              }
+                              placeholder="Descrição"
                             />
                           </td>
                           <td>
@@ -1713,6 +1726,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, showQ25Profi
                       activeTab === "entrada" ? (
                         <tr className={movementRowClass(movimento)} key={movimento.id}>
                           <td className="item-cell">{movimento.item}</td>
+                          <td>{renderDescription(movimento)}</td>
                           <td>{entryPaymentLabel(movimento)}</td>
                           <td>{entryKindLabel(movementEntryKind(movimento))}</td>
                           <td>{needsEntryInvoice(movimento) ? yesNo(isInvoiceIssued(movimento)) : "—"}</td>
@@ -2067,6 +2081,14 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, showQ25Profi
                         </select>
                       </label>
                     ) : null}
+                    <label className="full">
+                      Descrição
+                      <textarea
+                        value={movementForm.descricao}
+                        onChange={(event) => setMovementForm((current) => ({ ...current, descricao: event.target.value }))}
+                        placeholder="Descrição da entrada"
+                      />
+                    </label>
                   </>
                 ) : null}
                 {modalMode === "add-exit" || modalMode === "edit-exit" ? (
