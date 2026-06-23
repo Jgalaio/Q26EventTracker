@@ -14,6 +14,7 @@ type DashboardProps = {
   movimentos: MovimentoDetalhe[];
   error: string | null;
   q25Balance: number;
+  showQ25ProfitCard: boolean;
   session: AuthSession;
   appLogo: AppLogo | null;
 };
@@ -385,7 +386,7 @@ async function appWrite(resource: string, options: RequestInit) {
   return body ? JSON.parse(body) : null;
 }
 
-export function Dashboard({ eventos, movimentos, error, q25Balance, session, appLogo }: DashboardProps) {
+export function Dashboard({ eventos, movimentos, error, q25Balance, showQ25ProfitCard, session, appLogo }: DashboardProps) {
   const router = useRouter();
   const mayWrite = canWrite(session.role);
   const mayDelete = canDelete(session.role);
@@ -1163,12 +1164,14 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, session, app
               <span>Saldo</span>
               <strong className={eventProfit >= 0 ? "metric-positive" : "metric-negative"}>{formatMoney(eventProfit)}</strong>
             </article>
-            <article>
-              <span>Lucro + Montante Q25</span>
-              <strong className={profitWithQ25Balance >= 0 ? "metric-positive" : "metric-negative"}>
-                {formatMoney(profitWithQ25Balance)}
-              </strong>
-            </article>
+            {showQ25ProfitCard ? (
+              <article>
+                <span>Lucro + Montante Q25</span>
+                <strong className={profitWithQ25Balance >= 0 ? "metric-positive" : "metric-negative"}>
+                  {formatMoney(profitWithQ25Balance)}
+                </strong>
+              </article>
+            ) : null}
             <article>
               <span>Valor Dinheiro</span>
               <strong className={cashValue >= 0 ? "metric-positive" : "metric-negative"}>{formatMoney(cashValue)}</strong>

@@ -20,6 +20,7 @@ type AdminClientProps = {
   appLogo: AppLogo | null;
   appFavicon: AppFavicon | null;
   q25Balance: number;
+  q25ProfitCardEnabled: boolean;
   auditLogs: AuditLogEntry[];
   auditLogError: string | null;
   auditPage: number;
@@ -97,6 +98,7 @@ export function AdminClient({
   appLogo,
   appFavicon,
   q25Balance,
+  q25ProfitCardEnabled,
   auditLogs,
   auditLogError,
   auditPage,
@@ -121,6 +123,7 @@ export function AdminClient({
   const [faviconFileName, setFaviconFileName] = useState(appFavicon?.fileName ?? "");
   const [faviconDataUrl, setFaviconDataUrl] = useState("");
   const [q25Amount, setQ25Amount] = useState(String(q25Balance).replace(".", ","));
+  const [showQ25ProfitCard, setShowQ25ProfitCard] = useState(q25ProfitCardEnabled);
   const [databaseImportText, setDatabaseImportText] = useState("");
   const [databaseImportName, setDatabaseImportName] = useState("");
   const [databaseMessage, setDatabaseMessage] = useState<string | null>(null);
@@ -364,7 +367,7 @@ export function AdminClient({
       const response = await fetch("/api/admin/q25-balance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: q25Amount })
+        body: JSON.stringify({ amount: q25Amount, showProfitCard: showQ25ProfitCard })
       });
       const body = (await response.json().catch(() => null)) as { message?: string } | null;
       if (!response.ok) throw new Error(body?.message ?? "Não foi possível guardar o montante.");
@@ -633,6 +636,14 @@ export function AdminClient({
               value={q25Amount}
               onChange={(event) => setQ25Amount(event.target.value)}
             />
+          </label>
+          <label className="admin-toggle-row">
+            <input
+              checked={showQ25ProfitCard}
+              type="checkbox"
+              onChange={(event) => setShowQ25ProfitCard(event.target.checked)}
+            />
+            <span>Mostrar cartão Lucro + Montante Q25</span>
           </label>
           {q25Message ? <p className="form-message">{q25Message}</p> : null}
           <button disabled={isSavingQ25} type="submit">

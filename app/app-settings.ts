@@ -13,6 +13,11 @@ export type AppFavicon = {
   fileName: string | null;
 };
 
+export type Q25Settings = {
+  amount: number;
+  showProfitCard: boolean;
+};
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ushhacwtmpmwmvpaitdx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB";
@@ -90,10 +95,25 @@ export async function getAppFavicon() {
 }
 
 export async function getQ25Balance() {
+  const settings = await getQ25Settings();
+  return settings.amount;
+}
+
+export async function getQ25Settings(): Promise<Q25Settings> {
   const setting = await readAppSetting<{ amount?: unknown } | number>("q25_balance");
-  if (typeof setting === "number" && Number.isFinite(setting)) return setting;
-  if (typeof setting === "object" && setting && typeof setting.amount === "number" && Number.isFinite(setting.amount)) {
-    return setting.amount;
+  if (typeof setting === "number" && Number.isFinite(setting)) {
+    return { amount: setting, showProfitCard: true };
   }
-  return 0;
+
+  if (typeof setting === "object" && setting) {
+    return {
+      amount: typeof setting.amount === "number" && Number.isFinite(setting.amount) ? setting.amount : 0,
+      showProfitCard:
+        typeof (setting as { showProfitCard?: unknown }).showProfitCard === "boolean"
+          ? (setting as { showProfitCard: boolean }).showProfitCard
+          : true
+    };
+  }
+
+  return { amount: 0, showProfitCard: true };
 }

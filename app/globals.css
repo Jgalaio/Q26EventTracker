@@ -3229,6 +3229,24 @@ td {
   padding: 9px 11px;
 }
 
+.admin-settings-card .admin-toggle-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.admin-settings-card .admin-toggle-row input {
+  accent-color: var(--blue);
+  flex: 0 0 auto;
+  min-height: 18px;
+  width: 18px;
+}
+
+.admin-settings-card .admin-toggle-row span {
+  color: var(--ink);
+  font-weight: 700;
+}
+
 .admin-settings-card button {
   background: var(--blue);
   border: 0;

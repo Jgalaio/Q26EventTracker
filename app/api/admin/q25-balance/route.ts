@@ -21,20 +21,21 @@ export async function POST(request: NextRequest) {
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const amount = parseAmount(body.amount);
+  const showProfitCard = typeof body.showProfitCard === "boolean" ? body.showProfitCard : true;
 
   if (!Number.isFinite(amount) || amount < 0) {
     return NextResponse.json({ message: "Indica um montante válido." }, { status: 400 });
   }
 
   try {
-    await writeAppSetting("q25_balance", { amount });
+    await writeAppSetting("q25_balance", { amount, showProfitCard });
     await writeAuditLog({
       session,
       action: "Alterou montante Q25",
       resource: "app_settings",
       resourceId: "q25_balance",
       summary: `Montante Q25 atualizado para ${amount}`,
-      details: { amount }
+      details: { amount, showProfitCard }
     });
     return NextResponse.json({ message: "Montante Q25 atualizado." });
   } catch (error) {
