@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import type { AppLogo } from "../app-settings";
 import { ROLE_LABELS, canAccessAdmin, type AuthSession } from "../auth-types";
@@ -159,6 +159,21 @@ function reportTotals(report: FaturacaoReport) {
   };
 }
 
+function sortEventsByDate(events: EventoResumo[]) {
+  return [...events].sort((a, b) => {
+    const aTime = a.data_inicio ? new Date(`${a.data_inicio}T00:00:00`).getTime() : Number.POSITIVE_INFINITY;
+    const bTime = b.data_inicio ? new Date(`${b.data_inicio}T00:00:00`).getTime() : Number.POSITIVE_INFINITY;
+    return aTime - bTime || a.ordem_folha - b.ordem_folha;
+  });
+}
+
+function getBillingEvents(events: EventoResumo[], reports: FaturacaoReport[]) {
+  const billedEventSlugs = new Set(reports.map((report) => report.evento_slug));
+  return sortEventsByDate(events.filter((event) => event.slug !== "contas")).filter(
+    (event) => event.fechado !== true && !billedEventSlugs.has(event.slug)
+  );
+}
+
 function PrintableInvoiceReport({ report }: { report: FaturacaoReport }) {
   const despesasEvento = reportItems(report, "despesas_evento");
   const itensAcrescentados = reportItems(report, "itens_acrescentados");
@@ -286,21 +301,19 @@ function PrintableInvoiceReport({ report }: { report: FaturacaoReport }) {
 }
 
 export function FacturacaoClient({ eventos, movimentos, reports, reportsError, error, session, appLogo }: FacturacaoClientProps) {
-  const eventList = useMemo(() => {
-    return eventos
-      .filter((event) => event.slug !== "contas")
-      .sort((a, b) => {
-        const aTime = a.data_inicio ? new Date(`${a.data_inicio}T00:00:00`).getTime() : Number.POSITIVE_INFINITY;
-        const bTime = b.data_inicio ? new Date(`${b.data_inicio}T00:00:00`).getTime() : Number.POSITIVE_INFINITY;
-        return aTime - bTime || a.ordem_folha - b.ordem_folha;
-      });
+  const [savedReports, setSavedReports] = useState(reports);
+  const orderedEventList = useMemo(() => {
+    return sortEventsByDate(eventos.filter((event) => event.slug !== "contas"));
   }, [eventos]);
+  const eventList = useMemo(() => {
+    const billedEventSlugs = new Set(savedReports.map((report) => report.evento_slug));
+    return orderedEventList.filter((event) => event.fechado !== true && !billedEventSlugs.has(event.slug));
+  }, [orderedEventList, savedReports]);
 
-  const [selectedSlug, setSelectedSlug] = useState(() => eventList[0]?.slug ?? "");
+  const [selectedSlug, setSelectedSlug] = useState(() => getBillingEvents(eventos, reports)[0]?.slug ?? "");
   const [invoiceValue, setInvoiceValue] = useState("");
   const [selectedPreviousIds, setSelectedPreviousIds] = useState<Set<string>>(new Set());
   const [clearedLaterInvoiceIds, setClearedLaterInvoiceIds] = useState<Set<string>>(new Set());
-  const [savedReports, setSavedReports] = useState(reports);
   const [printableReport, setPrintableReport] = useState<FaturacaoReport | null>(null);
   const [descriptionPopup, setDescriptionPopup] = useState<DescriptionPopup | null>(null);
   const [editingReport, setEditingReport] = useState<ReportEditState | null>(null);
@@ -312,9 +325,22 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
     return eventList.find((event) => event.slug === selectedSlug) ?? eventList[0] ?? null;
   }, [eventList, selectedSlug]);
 
+  useEffect(() => {
+    if (!eventList.length) {
+      if (selectedSlug) setSelectedSlug("");
+      return;
+    }
+
+    if (!eventList.some((event) => event.slug === selectedSlug)) {
+      setSelectedSlug(eventList[0].slug);
+      setSelectedPreviousIds(new Set());
+      setBillingMessage(null);
+    }
+  }, [eventList, selectedSlug]);
+
   const eventPositions = useMemo(() => {
-    return new Map(eventList.map((event, index) => [event.slug, index]));
-  }, [eventList]);
+    return new Map(orderedEventList.map((event, index) => [event.slug, index]));
+  }, [orderedEventList]);
 
   const currentEventExpenses = useMemo(() => {
     if (!selectedEvent) return [];
@@ -584,11 +610,15 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
         <label>
           Evento
           <select value={selectedEvent?.slug ?? ""} onChange={(event) => selectEvent(event.target.value)}>
-            {eventList.map((event) => (
-              <option key={event.slug} value={event.slug}>
-                {event.nome}
-              </option>
-            ))}
+            {eventList.length ? (
+              eventList.map((event) => (
+                <option key={event.slug} value={event.slug}>
+                  {event.nome}
+                </option>
+              ))
+            ) : (
+              <option value="">Sem eventos disponíveis</option>
+            )}
           </select>
         </label>
         <label>
@@ -607,6 +637,9 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
         </div>
       </section>
 
+      {!eventList.length ? (
+        <section className="notice billing-message">Não existem eventos abertos por faturar em Fat.Finanças.</section>
+      ) : null}
       {billingMessage ? <section className="notice billing-message">{billingMessage}</section> : null}
       {reportActionMessage ? <section className="notice billing-message">{reportActionMessage}</section> : null}
 
