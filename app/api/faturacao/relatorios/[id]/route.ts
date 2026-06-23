@@ -24,6 +24,13 @@ type FaturacaoReportRow = {
   payload: JsonRecord | null;
 };
 
+type AccountMovementRow = {
+  id: string;
+  item: string;
+  montante: number | null;
+  raw: JsonRecord | null;
+};
+
 type RouteContext = {
   params: Promise<{
     id: string;
@@ -115,6 +122,22 @@ async function getReport(id: string) {
   return rows[0] ?? null;
 }
 
+function accountMovementOrigin(reportId: string) {
+  return `faturacao_${reportId}`;
+}
+
+function accountMovementItem(eventoNome: string) {
+  return `Faturação - ${eventoNome}`;
+}
+
+async function getAccountMovement(reportId: string) {
+  const rows = await supabaseRequest<AccountMovementRow[]>(
+    `movimentos?origem_tabela=eq.${encodeURIComponent(accountMovementOrigin(reportId))}&select=id,item,montante,raw&limit=1`,
+    "GET"
+  );
+  return rows[0] ?? null;
+}
+
 export async function PATCH(request: NextRequest, { params }: RouteContext) {
   const access = await requireWriteAccess();
   if (access.error) return access.error;
@@ -177,6 +200,33 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     const nextReport = updated[0];
     if (!nextReport) throw new Error("A fatura foi alterada, mas a resposta veio vazia.");
 
+    const accountMovement = await getAccountMovement(report.id);
+    if (accountMovement) {
+      await supabaseRequest<AccountMovementRow[]>(`movimentos?id=eq.${encodeURIComponent(accountMovement.id)}`, "PATCH", {
+        item: accountMovementItem(report.evento_nome),
+        montante: montanteDepositar,
+        tipo_pagamento: "Conta Q26",
+        raw: {
+          ...(isRecord(accountMovement.raw) ? accountMovement.raw : {}),
+          origem: "faturacao",
+          relatorio_id: report.id,
+          evento_slug: report.evento_slug,
+          evento_nome: report.evento_nome,
+          item: accountMovementItem(report.evento_nome),
+          montante: montanteDepositar,
+          montante_depositar: montanteDepositar,
+          tipo_pagamento: "Conta Q26",
+          tipo_entrada: "Depósito",
+          ultima_alteracao: {
+            data: new Date().toISOString(),
+            utilizador: access.session.username,
+            role: access.session.role,
+            justificacao: justification
+          }
+        }
+      });
+    }
+
     await writeAuditLog({
       session: access.session,
       action: "Editou fatura",
@@ -189,6 +239,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         valor_fatura: valorFatura,
         diferenca,
         montante_depositar: montanteDepositar,
+        movimento_conta_id: accountMovement?.id ?? null,
         justificacao: justification
       }
     });
@@ -221,6 +272,11 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ message: "Fatura não encontrada." }, { status: 404 });
     }
 
+    const accountMovement = await getAccountMovement(report.id);
+    if (accountMovement) {
+      await supabaseRequest<AccountMovementRow[]>(`movimentos?id=eq.${encodeURIComponent(accountMovement.id)}`, "DELETE");
+    }
+
     await supabaseRequest<FaturacaoReportRow[]>(`faturas_relatorios?id=eq.${encodeURIComponent(report.id)}`, "DELETE");
 
     await writeAuditLog({
@@ -235,6 +291,7 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
         total_faturado: report.total_faturado,
         diferenca: report.diferenca,
         movimentos_ids: report.movimentos_ids,
+        movimento_conta_id: accountMovement?.id ?? null,
         justificacao: justification
       }
     });

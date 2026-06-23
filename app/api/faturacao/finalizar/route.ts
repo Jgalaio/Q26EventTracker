@@ -21,6 +21,12 @@ type ReportItem = {
   raw?: JsonRecord;
 };
 
+type EventRow = {
+  id: string;
+  slug: string;
+  nome: string;
+};
+
 function endpoint(resource: string) {
   return `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${resource}`;
 }
@@ -81,6 +87,19 @@ async function supabaseRequest<T>(resource: string, method: string, body?: JsonR
   return (responseText ? JSON.parse(responseText) : null) as T;
 }
 
+function accountMovementOrigin(reportId: string) {
+  return `faturacao_${reportId}`;
+}
+
+function accountMovementItem(eventoNome: string) {
+  return `Faturação - ${eventoNome}`;
+}
+
+async function getAccountEvent() {
+  const rows = await supabaseRequest<EventRow[]>("eventos?slug=eq.contas&select=id,slug,nome&limit=1", "GET");
+  return rows[0] ?? null;
+}
+
 export async function POST(request: NextRequest) {
   const access = await requireWriteAccess();
   if (access.error) return access.error;
@@ -137,6 +156,11 @@ export async function POST(request: NextRequest) {
   };
 
   try {
+    const accountEvent = await getAccountEvent();
+    if (!accountEvent) {
+      return NextResponse.json({ message: "Não encontrei a conta Q26 para registar o depósito." }, { status: 400 });
+    }
+
     const inserted = await supabaseRequest<JsonRecord[]>("faturas_relatorios", "POST", {
       created_by: access.session.username,
       evento_id: eventoId || null,
@@ -155,6 +179,37 @@ export async function POST(request: NextRequest) {
     if (!report?.id || typeof report.id !== "string") {
       throw new Error("O relatório foi guardado, mas a resposta veio incompleta.");
     }
+
+    const accountMovementRows = await supabaseRequest<JsonRecord[]>("movimentos", "POST", {
+      evento_id: accountEvent.id,
+      tipo: "entrada",
+      item: accountMovementItem(eventoNome),
+      descricao: null,
+      data_pagamento: null,
+      montante: montanteDepositar,
+      numero_fatura: null,
+      fatura_com_nif: null,
+      tipo_pagamento: "Conta Q26",
+      pago: null,
+      contabilizar_totais: true,
+      origem_tabela: accountMovementOrigin(report.id),
+      origem_linha: 1,
+      formula_montante: null,
+      raw: {
+        origem: "faturacao",
+        relatorio_id: report.id,
+        evento_slug: eventoSlug,
+        evento_nome: eventoNome,
+        item: accountMovementItem(eventoNome),
+        montante: montanteDepositar,
+        montante_depositar: montanteDepositar,
+        tipo_pagamento: "Conta Q26",
+        tipo_entrada: "Depósito",
+        finalizado_em: now,
+        created_by: access.session.username
+      }
+    });
+    const accountMovement = accountMovementRows[0];
 
     await Promise.all(
       itensAcrescentados.map((item) =>
@@ -185,6 +240,7 @@ export async function POST(request: NextRequest) {
         valor_fatura: valorFatura,
         total_faturado: totalFaturado,
         montante_depositar: montanteDepositar,
+        movimento_conta_id: typeof accountMovement?.id === "string" ? accountMovement.id : null,
         movimentos_ids: movimentosIds
       }
     });

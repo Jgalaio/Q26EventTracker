@@ -285,6 +285,7 @@ drop policy if exists "Leitura publica faturas relatorios" on public.faturas_rel
 drop policy if exists "Escrita publica app audit logs" on public.app_audit_logs;
 drop policy if exists "Escrita publica app users" on public.app_users;
 drop policy if exists "Escrita publica faturas relatorios insert" on public.faturas_relatorios;
+drop policy if exists "Escrita publica faturas relatorios update" on public.faturas_relatorios;
 drop policy if exists "Escrita publica faturas relatorios delete" on public.faturas_relatorios;
 
 create policy "Leitura publica eventos"
@@ -343,6 +344,12 @@ on public.faturas_relatorios for insert
 to anon, authenticated
 with check (true);
 
+create policy "Escrita publica faturas relatorios update"
+on public.faturas_relatorios for update
+to anon, authenticated
+using (true)
+with check (true);
+
 create policy "Escrita publica faturas relatorios delete"
 on public.faturas_relatorios for delete
 to anon, authenticated
@@ -354,7 +361,7 @@ grant select on public.movimentos to anon, authenticated;
 grant select on public.eventos_resumo to anon, authenticated;
 grant select on public.movimentos_detalhe to anon, authenticated;
 grant select, insert, update, delete on public.notas to anon, authenticated;
-grant select, insert, delete on public.faturas_relatorios to anon, authenticated;
+grant select, insert, update, delete on public.faturas_relatorios to anon, authenticated;
 revoke all on public.app_users from anon, authenticated;
 grant select, insert, update, delete on public.app_settings to anon, authenticated;
 grant select, insert on public.app_audit_logs to anon, authenticated;
