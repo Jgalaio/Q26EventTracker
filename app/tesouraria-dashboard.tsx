@@ -1193,6 +1193,12 @@ export function Dashboard({
               <strong>{formatMoney(accountBalance)}</strong>
             </div>
           )}
+          {sectionMode === "eventos" ? (
+            <div className="menu-info-pill" aria-label={`${totals.isentos} eventos isentos`}>
+              <span>Eventos isentos</span>
+              <strong>{totals.isentos}</strong>
+            </div>
+          ) : null}
           <button className="secondary-menu-button" type="button" onClick={resetFilters}>
             Limpar
           </button>
@@ -1263,10 +1269,6 @@ export function Dashboard({
               </strong>
               <small>Contado - Valor Dinheiro</small>
               {physicalCashMessage ? <em>{physicalCashMessage}</em> : null}
-            </article>
-            <article>
-              <span>Eventos isentos</span>
-              <strong>{totals.isentos}</strong>
             </article>
           </>
         ) : (

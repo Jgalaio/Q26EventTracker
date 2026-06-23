@@ -863,6 +863,32 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.menu-info-pill {
+  align-items: center;
+  align-self: end;
+  background: #eef5ff;
+  border: 1px solid #c7dcff;
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-flex;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 13px;
+  white-space: nowrap;
+}
+
+.menu-info-pill span {
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.menu-info-pill strong {
+  color: var(--blue);
+  font-size: 1.04rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
 .menu-actions button,
 .modal-actions button {
   background: var(--green);
@@ -1043,7 +1069,13 @@ h2 {
 }
 
 .metrics article.cash-check-card {
-  min-height: 156px;
+  align-content: start;
+  column-gap: 18px;
+  display: grid;
+  grid-column: span 2;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 132px;
+  row-gap: 6px;
 }
 
 .metrics article.cash-check-card.is-positive {
@@ -1066,8 +1098,13 @@ h2 {
   align-items: end;
   display: grid;
   gap: 8px;
+  grid-column: 1;
   grid-template-columns: minmax(0, 1fr) auto;
   margin-top: 10px;
+}
+
+.cash-check-card > span {
+  grid-column: 1 / -1;
 }
 
 .cash-count-form label {
@@ -1124,10 +1161,20 @@ h2 {
 }
 
 .metrics article.cash-check-card strong {
-  margin-top: 10px;
+  align-self: center;
+  grid-column: 2;
+  grid-row: 2;
+  margin-top: 12px;
+  text-align: right;
+}
+
+.cash-check-card small {
+  grid-column: 2;
+  text-align: right;
 }
 
 .cash-check-card em {
+  grid-column: 1 / -1;
   margin-top: 6px;
 }
 
@@ -3923,6 +3970,10 @@ td {
     grid-template-columns: 1fr;
   }
 
+  .metrics article.cash-check-card {
+    grid-column: auto;
+  }
+
   .event-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -4093,6 +4144,23 @@ td {
 
   .metrics article {
     min-height: 92px;
+  }
+
+  .metrics article.cash-check-card {
+    grid-template-columns: 1fr;
+  }
+
+  .cash-count-form,
+  .cash-check-card > span,
+  .metrics article.cash-check-card strong,
+  .cash-check-card small,
+  .cash-check-card em {
+    grid-column: 1;
+    text-align: left;
+  }
+
+  .metrics article.cash-check-card strong {
+    grid-row: auto;
   }
 
   .event-summary-grid {
