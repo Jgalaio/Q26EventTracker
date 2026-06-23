@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getAppLogo, getQ25Settings } from "./app-settings";
+import { getAppLogo, getPhysicalCashSettings, getQ25Settings } from "./app-settings";
 import { getSession } from "./auth";
 import { Dashboard } from "./tesouraria-dashboard";
 import { getTesourariaData } from "./supabase-data";
@@ -9,9 +9,10 @@ export default async function Home() {
   if (!session) redirect("/login?next=/");
   if (session.role === "view") redirect("/overview");
 
-  const [{ eventos, movimentos, error }, q25Settings, appLogo] = await Promise.all([
+  const [{ eventos, movimentos, error }, q25Settings, physicalCashSettings, appLogo] = await Promise.all([
     getTesourariaData(),
     getQ25Settings(),
+    getPhysicalCashSettings(),
     getAppLogo()
   ]);
 
@@ -21,6 +22,7 @@ export default async function Home() {
       error={error}
       eventos={eventos}
       movimentos={movimentos}
+      physicalCashCount={physicalCashSettings.amount}
       q25Balance={q25Settings.amount}
       showQ25ProfitCard={q25Settings.showProfitCard}
       session={session}

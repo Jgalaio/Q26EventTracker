@@ -15,6 +15,7 @@ type DashboardProps = {
   error: string | null;
   q25Balance: number;
   showQ25ProfitCard: boolean;
+  physicalCashCount: number | null;
   session: AuthSession;
   appLogo: AppLogo | null;
 };
@@ -132,6 +133,13 @@ function movementFormDefaults(tab?: "entrada" | "saida"): MovementForm {
 
 function formatMoney(value: number | null | undefined) {
   return moneyFormatter.format(Number(value ?? 0));
+}
+
+function formatAmountInput(value: number | null | undefined) {
+  if (value === null || typeof value === "undefined") return "";
+  return Number(value)
+    .toFixed(2)
+    .replace(".", ",");
 }
 
 function formatDate(value: string | null | undefined) {
@@ -357,8 +365,16 @@ function summarizeMovimentos(movimentos: MovimentoDetalhe[]): FinancialSummary {
 }
 
 function numericAmount(value: string) {
-  const normalized = value.trim().replace(",", ".");
+  const normalized = value.trim().replace(/\s/g, "");
   if (!normalized) return null;
+  if (normalized.includes(",") && normalized.includes(".")) {
+    const parsed = Number(normalized.replace(/\./g, "").replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  if (normalized.includes(",")) {
+    const parsed = Number(normalized.replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -386,7 +402,16 @@ async function appWrite(resource: string, options: RequestInit) {
   return body ? JSON.parse(body) : null;
 }
 
-export function Dashboard({ eventos, movimentos, error, q25Balance, showQ25ProfitCard, session, appLogo }: DashboardProps) {
+export function Dashboard({
+  eventos,
+  movimentos,
+  error,
+  q25Balance,
+  showQ25ProfitCard,
+  physicalCashCount,
+  session,
+  appLogo
+}: DashboardProps) {
   const router = useRouter();
   const mayWrite = canWrite(session.role);
   const mayDelete = canDelete(session.role);
@@ -407,7 +432,11 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, showQ25Profi
   const [selectedMovement, setSelectedMovement] = useState<MovimentoDetalhe | null>(null);
   const [descriptionPopup, setDescriptionPopup] = useState<DescriptionPopup | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [physicalCashAmount, setPhysicalCashAmount] = useState<number | null>(physicalCashCount);
+  const [physicalCashInput, setPhysicalCashInput] = useState(formatAmountInput(physicalCashCount));
+  const [physicalCashMessage, setPhysicalCashMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingPhysicalCash, setIsSavingPhysicalCash] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -575,6 +604,7 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, showQ25Profi
   const accountBalance = accountCounts.totalEntradas - accountCounts.totalSaidas;
   const profitWithQ25Balance = eventProfit + q25Balance;
   const cashValue = profitWithQ25Balance - accountBalance;
+  const physicalCashDifference = physicalCashAmount === null ? null : physicalCashAmount - cashValue;
 
   const filteredAccountMovimentos = useMemo(() => {
     const source = activeTab === "entrada" ? accountEntries : accountSaidas;
@@ -603,6 +633,34 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, showQ25Profi
     setActiveTab("entrada");
     setPago("todos");
     setQuery("");
+  };
+
+  const savePhysicalCashCount = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!mayWrite) return;
+
+    const amount = numericAmount(physicalCashInput);
+    if (amount === null || amount < 0) {
+      setPhysicalCashMessage("Indica o dinheiro físico contado.");
+      return;
+    }
+
+    setIsSavingPhysicalCash(true);
+    setPhysicalCashMessage(null);
+    try {
+      const body = (await appWrite("dinheiro-fisico", {
+        method: "POST",
+        body: JSON.stringify({ amount })
+      })) as { amount?: number; message?: string } | null;
+      const savedAmount = typeof body?.amount === "number" && Number.isFinite(body.amount) ? body.amount : amount;
+      setPhysicalCashAmount(savedAmount);
+      setPhysicalCashInput(formatAmountInput(savedAmount));
+      setPhysicalCashMessage(body?.message ?? "Dinheiro físico contado atualizado.");
+    } catch (caught) {
+      setPhysicalCashMessage(caught instanceof Error ? caught.message : "Não foi possível guardar o dinheiro contado.");
+    } finally {
+      setIsSavingPhysicalCash(false);
+    }
   };
 
   const openCreateEvent = () => {
@@ -1177,6 +1235,34 @@ export function Dashboard({ eventos, movimentos, error, q25Balance, showQ25Profi
             <article>
               <span>Valor Dinheiro</span>
               <strong className={cashValue >= 0 ? "metric-positive" : "metric-negative"}>{formatMoney(cashValue)}</strong>
+            </article>
+            <article className={`cash-check-card ${physicalCashDifference === null || physicalCashDifference >= 0 ? "is-positive" : "is-negative"}`}>
+              <span>Dif. Dinheiro Físico</span>
+              <form className="cash-count-form" onSubmit={savePhysicalCashCount}>
+                <label>
+                  <span>Dinheiro físico contado</span>
+                  <input
+                    disabled={!mayWrite || isSavingPhysicalCash}
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    value={physicalCashInput}
+                    onChange={(event) => {
+                      setPhysicalCashInput(event.target.value);
+                      setPhysicalCashMessage(null);
+                    }}
+                  />
+                </label>
+                {mayWrite ? (
+                  <button disabled={isSavingPhysicalCash} type="submit">
+                    {isSavingPhysicalCash ? "..." : "Guardar"}
+                  </button>
+                ) : null}
+              </form>
+              <strong className={physicalCashDifference === null || physicalCashDifference >= 0 ? "metric-positive" : "metric-negative"}>
+                {physicalCashDifference === null ? "—" : formatMoney(physicalCashDifference)}
+              </strong>
+              <small>Contado - Valor Dinheiro</small>
+              {physicalCashMessage ? <em>{physicalCashMessage}</em> : null}
             </article>
             <article>
               <span>Eventos isentos</span>

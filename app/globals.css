@@ -1042,6 +1042,95 @@ h2 {
   color: var(--red);
 }
 
+.metrics article.cash-check-card {
+  min-height: 156px;
+}
+
+.metrics article.cash-check-card.is-positive {
+  border-color: #9fd7bd;
+}
+
+.metrics article.cash-check-card.is-positive::before {
+  background: #25815c;
+}
+
+.metrics article.cash-check-card.is-negative {
+  border-color: #efb2bf;
+}
+
+.metrics article.cash-check-card.is-negative::before {
+  background: var(--red);
+}
+
+.cash-count-form {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: 10px;
+}
+
+.cash-count-form label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cash-count-form label span,
+.cash-check-card small,
+.cash-check-card em {
+  color: var(--muted);
+  display: block;
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.cash-count-form input {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.88rem;
+  height: 34px;
+  min-width: 0;
+  padding: 0 9px;
+}
+
+.cash-count-form input:disabled {
+  opacity: 0.7;
+}
+
+.cash-count-form button {
+  align-items: center;
+  background: var(--blue);
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 900;
+  height: 34px;
+  justify-content: center;
+  padding: 0 10px;
+}
+
+.cash-count-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.metrics article.cash-check-card strong {
+  margin-top: 10px;
+}
+
+.cash-check-card em {
+  margin-top: 6px;
+}
+
 .reports-shell {
   width: min(1260px, calc(100% - 32px));
 }

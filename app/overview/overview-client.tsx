@@ -31,6 +31,7 @@ type OverviewClientProps = {
   rows: OverviewRow[];
   totals: Summary;
   cashValue: number;
+  physicalCashCount: number | null;
   error: string | null;
   session: AuthSession;
   appLogo: AppLogo | null;
@@ -68,9 +69,10 @@ function chartHeight(value: number, maxValue: number) {
   return `${Math.max(8, (value / maxValue) * 100)}%`;
 }
 
-export function OverviewClient({ rows, totals, cashValue, error, session, appLogo }: OverviewClientProps) {
+export function OverviewClient({ rows, totals, cashValue, physicalCashCount, error, session, appLogo }: OverviewClientProps) {
   const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
   const countedRows = rows.filter((row) => row.contabilizarTotais).length;
+  const physicalCashDifference = physicalCashCount === null ? null : physicalCashCount - cashValue;
   const chartItems = [
     { label: "Entradas Totais", value: totals.entradas, className: "bar-blue" },
     { label: "Saídas Totais", value: totals.saidas, className: "bar-orange" },
@@ -171,6 +173,13 @@ export function OverviewClient({ rows, totals, cashValue, error, session, appLog
             <span>Valor Dinheiro</span>
             <small>Lucro + Montante Q25 - Saldo Conta Q26</small>
             <strong className={cashValue >= 0 ? "value-green" : "value-red"}>{formatMoney(cashValue)}</strong>
+          </article>
+          <article className="overview-money-card">
+            <span>Dif. Dinheiro Físico</span>
+            <small>Contado: {physicalCashCount === null ? "Por preencher" : formatMoney(physicalCashCount)}</small>
+            <strong className={physicalCashDifference === null || physicalCashDifference >= 0 ? "value-green" : "value-red"}>
+              {physicalCashDifference === null ? "—" : formatMoney(physicalCashDifference)}
+            </strong>
           </article>
         </div>
 

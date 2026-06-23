@@ -18,6 +18,10 @@ export type Q25Settings = {
   showProfitCard: boolean;
 };
 
+export type PhysicalCashSettings = {
+  amount: number | null;
+};
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ushhacwtmpmwmvpaitdx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB";
@@ -116,4 +120,17 @@ export async function getQ25Settings(): Promise<Q25Settings> {
   }
 
   return { amount: 0, showProfitCard: true };
+}
+
+export async function getPhysicalCashSettings(): Promise<PhysicalCashSettings> {
+  const setting = await readAppSetting<{ amount?: unknown } | number>("physical_cash_count");
+  if (typeof setting === "number" && Number.isFinite(setting)) {
+    return { amount: setting };
+  }
+
+  if (typeof setting === "object" && setting && typeof setting.amount === "number" && Number.isFinite(setting.amount)) {
+    return { amount: setting.amount };
+  }
+
+  return { amount: null };
 }
