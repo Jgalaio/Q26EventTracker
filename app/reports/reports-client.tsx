@@ -34,7 +34,6 @@ type ReportsClientProps = {
   error: string | null;
   session: AuthSession;
   generatedAt: string;
-  q25Balance: number;
   reportLogo: ReportLogo | null;
   appLogo: AppLogo | null;
 };
@@ -183,7 +182,7 @@ function eventPie(summary: Summary) {
   };
 }
 
-export function ReportsClient({ eventos, movimentos, error, session, generatedAt, q25Balance, reportLogo, appLogo }: ReportsClientProps) {
+export function ReportsClient({ eventos, movimentos, error, session, generatedAt, reportLogo, appLogo }: ReportsClientProps) {
   const eventList = useMemo(() => {
     return eventos
       .filter((event) => event.slug !== "contas")
@@ -255,11 +254,6 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
   const decorationSummary = useMemo(() => {
     return reportEvents.find((item) => item.event.slug === "decoracao")?.summary ?? emptySummary();
   }, [reportEvents]);
-
-  const totalWithQ25Balance = reportScope === "geral" ? totals.lucro + q25Balance : totals.lucro;
-  const q25SummaryLabel = reportScope === "geral" ? "SALDO + Q25" : "SALDO do evento";
-  const q25SummaryDescription =
-    reportScope === "geral" ? "Lucro + Montante deixado pelos Q25" : "Lucro do evento selecionado";
 
   const chartItems = [
     { label: "Entradas Totais", value: totals.entradas, className: "cover-bar-blue" },
@@ -423,11 +417,6 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
                 <span>SALDO Total</span>
                 <small>Lucro final</small>
                 <strong className={totals.lucro >= 0 ? "positive" : "negative"}>{formatMoney(totals.lucro)}</strong>
-              </article>
-              <article>
-                <span>{q25SummaryLabel}</span>
-                <small>{q25SummaryDescription}</small>
-                <strong className={totalWithQ25Balance >= 0 ? "positive" : "negative"}>{formatMoney(totalWithQ25Balance)}</strong>
               </article>
             </section>
           </div>

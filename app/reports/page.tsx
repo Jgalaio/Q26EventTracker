@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getAppLogo, getQ25Balance, getReportLogo } from "../app-settings";
+import { getAppLogo, getReportLogo } from "../app-settings";
 import { getSession } from "../auth";
 import { canWrite } from "../auth-types";
 import { getTesourariaData } from "../supabase-data";
@@ -10,10 +10,9 @@ export default async function ReportsPage() {
   if (!session) redirect("/login?next=/reports");
   if (!canWrite(session.role)) redirect("/overview");
 
-  const [{ eventos, movimentos, error }, reportLogo, q25Balance, appLogo] = await Promise.all([
+  const [{ eventos, movimentos, error }, reportLogo, appLogo] = await Promise.all([
     getTesourariaData(),
     getReportLogo(),
-    getQ25Balance(),
     getAppLogo()
   ]);
 
@@ -24,7 +23,6 @@ export default async function ReportsPage() {
       generatedAt={new Date().toISOString()}
       appLogo={appLogo}
       movimentos={movimentos}
-      q25Balance={q25Balance}
       reportLogo={reportLogo}
       session={session}
     />
