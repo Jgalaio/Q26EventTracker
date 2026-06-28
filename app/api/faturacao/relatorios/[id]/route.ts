@@ -63,6 +63,10 @@ function calculateDepositAmount(valorFatura: number, diferenca: number, transfer
   return valorFatura + diferenca + transferenciasComNif + transferenciasSemNif;
 }
 
+function calculateLegacyDepositAmount(diferenca: number, transferenciasComNif: number, transferenciasSemNif: number) {
+  return diferenca + transferenciasComNif + transferenciasSemNif;
+}
+
 function reportPayload(report: FaturacaoReportRow) {
   return isRecord(report.payload) ? report.payload : {};
 }
@@ -166,7 +170,10 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     const { totals, totalDespesas, totalItensAcrescentados, totalFaturado, transferenciasComNif, transferenciasSemNif } =
       reportTotals(report);
     const diferenca = valorFatura - totalFaturado;
-    const montanteDepositar = calculateDepositAmount(valorFatura, diferenca, transferenciasComNif, transferenciasSemNif);
+    const montanteDepositar =
+      totals.formula_montante_depositar === "valor_fatura_mais_diferenca"
+        ? calculateDepositAmount(valorFatura, diferenca, transferenciasComNif, transferenciasSemNif)
+        : calculateLegacyDepositAmount(diferenca, transferenciasComNif, transferenciasSemNif);
     const nextPayload = {
       ...payload,
       totais: {

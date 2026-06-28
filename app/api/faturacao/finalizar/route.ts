@@ -155,7 +155,8 @@ export async function POST(request: NextRequest) {
       diferenca,
       transferencias_com_nif: totalDespesas,
       transferencias_sem_nif: totalTransferenciasSemNif,
-      montante_depositar: montanteDepositar
+      montante_depositar: montanteDepositar,
+      formula_montante_depositar: "valor_fatura_mais_diferenca"
     }
   };
 
