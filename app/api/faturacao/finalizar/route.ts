@@ -49,8 +49,8 @@ function amountValue(value: unknown) {
   return Number.isFinite(number) ? number : 0;
 }
 
-function calculateDepositAmount(valorFatura: number, diferenca: number, transferenciasComNif: number, transferenciasSemNif: number) {
-  return valorFatura + diferenca + transferenciasComNif + transferenciasSemNif;
+function calculateDepositAmount(valorFatura: number, totalFaturado: number) {
+  return valorFatura + totalFaturado;
 }
 
 function parseItems(value: unknown): ReportItem[] {
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
   const totalTransferenciasSemNif = transferenciasSemNif.reduce((sum, item) => sum + item.montante, 0);
   const totalFaturado = totalDespesas + totalItensAcrescentados;
   const diferenca = valorFatura - totalFaturado;
-  const montanteDepositar = calculateDepositAmount(valorFatura, diferenca, totalDespesas, totalTransferenciasSemNif);
+  const montanteDepositar = calculateDepositAmount(valorFatura, totalFaturado);
   const now = new Date().toISOString();
 
   if (!eventoSlug || !eventoNome) {
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
       transferencias_com_nif: totalDespesas,
       transferencias_sem_nif: totalTransferenciasSemNif,
       montante_depositar: montanteDepositar,
-      formula_montante_depositar: "valor_fatura_mais_diferenca"
+      formula_montante_depositar: "valor_fatura_mais_total_faturado"
     }
   };
 

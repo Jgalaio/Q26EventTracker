@@ -75,7 +75,7 @@ export type FaturacaoReportPayload = {
     transferencias_com_nif?: number;
     transferencias_sem_nif?: number;
     montante_depositar?: number;
-    formula_montante_depositar?: "valor_fatura_mais_diferenca";
+    formula_montante_depositar?: "valor_fatura_mais_diferenca" | "valor_fatura_mais_total_faturado";
   };
 };
 

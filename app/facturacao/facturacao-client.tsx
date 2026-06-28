@@ -140,16 +140,28 @@ function reportCreatedAt(report: FaturacaoReport) {
   return report.payload?.finalizado_em ?? report.created_at;
 }
 
-function calculateDepositAmount(valorFatura: number, diferenca: number, transferenciasComNif: number, transferenciasSemNif: number) {
+function calculatePreviousDepositAmount(valorFatura: number, diferenca: number, transferenciasComNif: number, transferenciasSemNif: number) {
   return valorFatura + diferenca + transferenciasComNif + transferenciasSemNif;
+}
+
+function calculateDepositAmount(valorFatura: number, totalFaturado: number) {
+  return valorFatura + totalFaturado;
 }
 
 function calculateLegacyDepositAmount(diferenca: number, transferenciasComNif: number, transferenciasSemNif: number) {
   return diferenca + transferenciasComNif + transferenciasSemNif;
 }
 
-function usesNewDepositFormula(report: FaturacaoReport) {
-  return report.payload?.totais?.formula_montante_depositar === "valor_fatura_mais_diferenca";
+function previewDepositAmount(report: FaturacaoReport, valorFatura: number, totals: ReturnType<typeof reportTotals>) {
+  const diferenca = valorFatura - totals.totalFaturado;
+  const formula = report.payload?.totais?.formula_montante_depositar;
+  if (formula === "valor_fatura_mais_total_faturado") {
+    return calculateDepositAmount(valorFatura, totals.totalFaturado);
+  }
+  if (formula === "valor_fatura_mais_diferenca") {
+    return calculatePreviousDepositAmount(valorFatura, diferenca, totals.transferenciasComNif, totals.transferenciasSemNif);
+  }
+  return calculateLegacyDepositAmount(diferenca, totals.transferenciasComNif, totals.transferenciasSemNif);
 }
 
 function reportTotals(report: FaturacaoReport) {
@@ -399,12 +411,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
   const billedExpensesTotal = currentExpensesTotal + previousExpensesTotal;
   const invoiceAmount = parseAmount(invoiceValue);
   const invoiceDifference = (Number.isFinite(invoiceAmount) ? invoiceAmount : 0) - billedExpensesTotal;
-  const depositAmount = calculateDepositAmount(
-    Number.isFinite(invoiceAmount) ? invoiceAmount : 0,
-    invoiceDifference,
-    currentExpensesTotal,
-    transfersWithoutNifTotal
-  );
+  const depositAmount = calculateDepositAmount(Number.isFinite(invoiceAmount) ? invoiceAmount : 0, billedExpensesTotal);
 
   const togglePreviousExpense = (id: string) => {
     setSelectedPreviousIds((current) => {
@@ -549,7 +556,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
         transferencias_com_nif: currentExpensesTotal,
         transferencias_sem_nif: transfersWithoutNifTotal,
         montante_depositar: depositAmount,
-        formula_montante_depositar: "valor_fatura_mais_diferenca"
+        formula_montante_depositar: "valor_fatura_mais_total_faturado"
       }
     };
 
@@ -941,13 +948,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
                       const totals = reportTotals(editingReport.report);
                       const parsedValorFatura = parseAmount(editingReport.valorFatura);
                       const valorFatura = Number.isFinite(parsedValorFatura) ? parsedValorFatura : 0;
-                      const diferenca = valorFatura - totals.totalFaturado;
-                      const depositPreview = usesNewDepositFormula(editingReport.report)
-                        ? calculateDepositAmount(valorFatura, diferenca, totals.transferenciasComNif, totals.transferenciasSemNif)
-                        : calculateLegacyDepositAmount(diferenca, totals.transferenciasComNif, totals.transferenciasSemNif);
-                      return formatMoney(
-                        depositPreview
-                      );
+                      return formatMoney(previewDepositAmount(editingReport.report, valorFatura, totals));
                     })()}
                   />
                 </label>
