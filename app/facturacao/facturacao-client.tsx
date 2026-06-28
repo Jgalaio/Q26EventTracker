@@ -140,12 +140,17 @@ function reportCreatedAt(report: FaturacaoReport) {
   return report.payload?.finalizado_em ?? report.created_at;
 }
 
+function calculateDepositAmount(valorFatura: number, diferenca: number, transferenciasComNif: number, transferenciasSemNif: number) {
+  return valorFatura + diferenca + transferenciasComNif + transferenciasSemNif;
+}
+
 function reportTotals(report: FaturacaoReport) {
   const totalFaturado = Number(report.payload?.totais?.total_faturado ?? report.total_faturado ?? 0);
   const valorFatura = Number(report.payload?.totais?.valor_fatura ?? report.valor_fatura ?? 0);
   const transferenciasComNif = Number(report.payload?.totais?.transferencias_com_nif ?? report.payload?.totais?.despesas_evento ?? report.total_despesas ?? 0);
   const transferenciasSemNif = Number(report.payload?.totais?.transferencias_sem_nif ?? 0);
   const diferenca = valorFatura - totalFaturado;
+  const montanteDepositar = calculateDepositAmount(valorFatura, diferenca, transferenciasComNif, transferenciasSemNif);
 
   return {
     despesasEvento: Number(report.payload?.totais?.despesas_evento ?? report.total_despesas ?? 0),
@@ -155,7 +160,7 @@ function reportTotals(report: FaturacaoReport) {
     diferenca,
     transferenciasComNif,
     transferenciasSemNif,
-    montanteDepositar: Number(report.payload?.totais?.montante_depositar ?? diferenca + transferenciasComNif + transferenciasSemNif)
+    montanteDepositar
   };
 }
 
@@ -383,7 +388,12 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
   const billedExpensesTotal = currentExpensesTotal + previousExpensesTotal;
   const invoiceAmount = parseAmount(invoiceValue);
   const invoiceDifference = (Number.isFinite(invoiceAmount) ? invoiceAmount : 0) - billedExpensesTotal;
-  const depositAmount = invoiceDifference + currentExpensesTotal + transfersWithoutNifTotal;
+  const depositAmount = calculateDepositAmount(
+    Number.isFinite(invoiceAmount) ? invoiceAmount : 0,
+    invoiceDifference,
+    currentExpensesTotal,
+    transfersWithoutNifTotal
+  );
 
   const togglePreviousExpense = (id: string) => {
     setSelectedPreviousIds((current) => {
@@ -915,12 +925,15 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
                   Montante a depositar
                   <input
                     readOnly
-                    value={formatMoney(
-                      (Number.isFinite(parseAmount(editingReport.valorFatura)) ? parseAmount(editingReport.valorFatura) : 0) -
-                        reportTotals(editingReport.report).totalFaturado +
-                        reportTotals(editingReport.report).transferenciasComNif +
-                        reportTotals(editingReport.report).transferenciasSemNif
-                    )}
+                    value={(() => {
+                      const totals = reportTotals(editingReport.report);
+                      const parsedValorFatura = parseAmount(editingReport.valorFatura);
+                      const valorFatura = Number.isFinite(parsedValorFatura) ? parsedValorFatura : 0;
+                      const diferenca = valorFatura - totals.totalFaturado;
+                      return formatMoney(
+                        calculateDepositAmount(valorFatura, diferenca, totals.transferenciasComNif, totals.transferenciasSemNif)
+                      );
+                    })()}
                   />
                 </label>
                 <label className="full">

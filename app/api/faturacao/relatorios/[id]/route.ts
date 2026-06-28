@@ -59,6 +59,10 @@ function amountValue(value: unknown) {
   return Number.isFinite(number) ? number : 0;
 }
 
+function calculateDepositAmount(valorFatura: number, diferenca: number, transferenciasComNif: number, transferenciasSemNif: number) {
+  return valorFatura + diferenca + transferenciasComNif + transferenciasSemNif;
+}
+
 function reportPayload(report: FaturacaoReportRow) {
   return isRecord(report.payload) ? report.payload : {};
 }
@@ -162,7 +166,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     const { totals, totalDespesas, totalItensAcrescentados, totalFaturado, transferenciasComNif, transferenciasSemNif } =
       reportTotals(report);
     const diferenca = valorFatura - totalFaturado;
-    const montanteDepositar = diferenca + transferenciasComNif + transferenciasSemNif;
+    const montanteDepositar = calculateDepositAmount(valorFatura, diferenca, transferenciasComNif, transferenciasSemNif);
     const nextPayload = {
       ...payload,
       totais: {

@@ -49,6 +49,10 @@ function amountValue(value: unknown) {
   return Number.isFinite(number) ? number : 0;
 }
 
+function calculateDepositAmount(valorFatura: number, diferenca: number, transferenciasComNif: number, transferenciasSemNif: number) {
+  return valorFatura + diferenca + transferenciasComNif + transferenciasSemNif;
+}
+
 function parseItems(value: unknown): ReportItem[] {
   if (!Array.isArray(value)) return [];
   return value
@@ -117,7 +121,7 @@ export async function POST(request: NextRequest) {
   const totalTransferenciasSemNif = transferenciasSemNif.reduce((sum, item) => sum + item.montante, 0);
   const totalFaturado = totalDespesas + totalItensAcrescentados;
   const diferenca = valorFatura - totalFaturado;
-  const montanteDepositar = diferenca + totalDespesas + totalTransferenciasSemNif;
+  const montanteDepositar = calculateDepositAmount(valorFatura, diferenca, totalDespesas, totalTransferenciasSemNif);
   const now = new Date().toISOString();
 
   if (!eventoSlug || !eventoNome) {
