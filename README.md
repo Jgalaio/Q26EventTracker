@@ -25,7 +25,7 @@ O sistema de login tem três roles:
 
 As passwords não ficam gravadas em texto claro no projeto. Para sessões mais seguras em produção, define também `Q26_AUTH_SECRET` nas variáveis de ambiente do Vercel.
 
-No painel `/admin`, um Admin pode alterar a sua própria password e trocar o logo usado na capa do relatório. Essas alterações ficam guardadas no Supabase depois de correres `supabase/enable_public_writes.sql`.
+No painel `/admin`, um Admin pode alterar a sua própria password, gerir utilizadores, trocar roles e trocar o logo usado na capa do relatório. Essas alterações ficam guardadas no Supabase depois de correres `supabase/enable_public_writes.sql`.
 
 ## 1. Criar a base de dados
 
@@ -51,7 +51,7 @@ Para ativar os formulários (`Novo evento`, `Editar evento`, `Adicionar entrada`
 
 Se já tinhas corrido este ficheiro antes, volta a corrê-lo para criar as tabelas `app_users`, `app_settings` e `app_audit_logs`, ativar as funções `app_verify_login` / `app_change_password`, adicionar a coluna `descricao`, marcar `Decoração` como só registo e manter a edição/eliminação de eventos e movimentos ativa.
 
-O painel `Admin` permite alterar a password do utilizador atual, guardar/remover o logo personalizado do relatório e definir o `Montante deixado pelos Q25` usado nos cartões de totais. As passwords base são criadas no Supabase com hash e a app valida o login através de funções SQL, sem expor a coluna `password_hash` pela API pública.
+O painel `Admin` permite alterar a password do utilizador atual, criar/editar/apagar utilizadores, alterar roles, guardar/remover o logo personalizado do relatório e definir o `Montante deixado pelos Q25` usado nos cartões de totais. As passwords base são criadas no Supabase com hash e a app valida o login através de funções SQL, sem expor a coluna `password_hash` pela API pública.
 
 ## 2. Variáveis de ambiente
 
@@ -69,7 +69,10 @@ Opcionalmente, também podes adicionar as mesmas variáveis em Vercel > Project 
 NEXT_PUBLIC_SUPABASE_URL=https://ushhacwtmpmwmvpaitdx.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB
 Q26_AUTH_SECRET=troca-este-valor-por-um-segredo-longo
+SUPABASE_SERVICE_ROLE_KEY=chave-service-role-do-supabase
 ```
+
+`SUPABASE_SERVICE_ROLE_KEY` deve ficar apenas em variáveis de servidor. É necessária para a zona Admin conseguir criar, editar e apagar utilizadores sem abrir a tabela `app_users` ao público.
 
 ## 3. Correr localmente
 
@@ -102,6 +105,7 @@ No GitHub, adiciona estes secrets em Settings > Secrets and variables > Actions:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+SUPABASE_SERVICE_ROLE_KEY
 ```
 
 Depois liga esse repositório ao Vercel. O Vercel faz deploy automático quando houver push para `main`.

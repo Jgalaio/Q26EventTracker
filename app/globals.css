@@ -3566,7 +3566,8 @@ td {
   gap: 7px;
 }
 
-.admin-settings-card input {
+.admin-settings-card input,
+.admin-settings-card select {
   background: #f8fbff;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -3578,6 +3579,11 @@ td {
 
 .admin-settings-card input[readonly] {
   color: var(--muted);
+}
+
+.admin-settings-card input:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
 }
 
 .admin-settings-card input[type="file"] {
@@ -3834,6 +3840,107 @@ td {
   font-size: 0.9rem;
   line-height: 1.45;
   margin: 12px 0 0;
+}
+
+.admin-users-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 18px;
+}
+
+.admin-users-layout {
+  align-items: start;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+}
+
+.admin-user-form h3 {
+  color: var(--ink);
+  font-size: 1.1rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-users-table-wrap {
+  overflow: auto;
+}
+
+.admin-users-table {
+  min-width: 780px;
+}
+
+.admin-users-table td {
+  vertical-align: top;
+}
+
+.admin-users-table td:first-child {
+  display: grid;
+  gap: 6px;
+}
+
+.current-user-badge,
+.admin-role-pill {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.68rem;
+  font-weight: 900;
+  justify-content: center;
+  line-height: 1;
+  padding: 6px 8px;
+  width: fit-content;
+}
+
+.current-user-badge {
+  background: #eef5ff;
+  color: var(--blue);
+}
+
+.admin-role-pill.admin {
+  background: #ecf9f3;
+  color: var(--green-ink);
+}
+
+.admin-role-pill.operator {
+  background: #eef5ff;
+  color: var(--blue);
+}
+
+.admin-role-pill.view {
+  background: #f2f5f9;
+  color: #556987;
+}
+
+.admin-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-table-actions button {
+  background: var(--blue);
+  border: 0;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 800;
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.admin-table-actions .danger-table-button {
+  background: var(--red);
+}
+
+.admin-table-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .admin-log-panel {
@@ -4229,6 +4336,10 @@ td {
   }
 
   .admin-settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-users-layout {
     grid-template-columns: 1fr;
   }
 

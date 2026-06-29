@@ -5,12 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { AppFavicon, AppLogo, ReportLogo } from "../app-settings";
 import type { AuditLogEntry } from "../audit-log";
-import { ROLE_LABELS, type AuthSession } from "../auth-types";
+import { ROLE_LABELS, type AuthSession, type UserRole } from "../auth-types";
 import type { EventoResumo } from "../supabase-data";
 
 type AdminUser = {
   username: string;
-  role: AuthSession["role"];
+  role: UserRole;
+  updated_at?: string | null;
 };
 
 type AdminClientProps = {
@@ -35,9 +36,25 @@ type PasswordForm = {
   confirmPassword: string;
 };
 
+type UserFormMode = "create" | "edit";
+
+type UserForm = {
+  username: string;
+  role: UserRole;
+  password: string;
+  confirmPassword: string;
+};
+
 const emptyPasswordForm: PasswordForm = {
   currentPassword: "",
   newPassword: "",
+  confirmPassword: ""
+};
+
+const emptyUserForm: UserForm = {
+  username: "",
+  role: "operator",
+  password: "",
   confirmPassword: ""
 };
 
@@ -84,6 +101,16 @@ function formatDetails(details: Record<string, unknown>) {
   return "-";
 }
 
+function sortAdminUsers(users: AdminUser[]) {
+  return [...users].sort((left, right) => left.username.localeCompare(right.username, "pt-PT"));
+}
+
+function roleDescription(role: UserRole) {
+  if (role === "admin") return "Acesso total, incluindo apagar registos e painel Admin.";
+  if (role === "operator") return "Pode adicionar e alterar. Alterações exigem justificação.";
+  return "Pode apenas consultar o OverView.";
+}
+
 function auditLogTarget(log: AuditLogEntry) {
   if (!log.resource_id) return null;
   if (log.resource === "eventos") return `/?event=${encodeURIComponent(log.resource_id)}`;
@@ -109,6 +136,10 @@ export function AdminClient({
   const router = useRouter();
   const [passwordForm, setPasswordForm] = useState<PasswordForm>(emptyPasswordForm);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
+  const [usersState, setUsersState] = useState(() => sortAdminUsers(users));
+  const [userFormMode, setUserFormMode] = useState<UserFormMode>("create");
+  const [userForm, setUserForm] = useState<UserForm>(emptyUserForm);
+  const [userMessage, setUserMessage] = useState<string | null>(null);
   const [logoMessage, setLogoMessage] = useState<string | null>(null);
   const [appLogoMessage, setAppLogoMessage] = useState<string | null>(null);
   const [faviconMessage, setFaviconMessage] = useState<string | null>(null);
@@ -131,6 +162,8 @@ export function AdminClient({
   const [closedEventsMessage, setClosedEventsMessage] = useState<string | null>(null);
   const [resetConfirmation, setResetConfirmation] = useState("");
   const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [isSavingUser, setIsSavingUser] = useState(false);
+  const [deletingUsername, setDeletingUsername] = useState<string | null>(null);
   const [isSavingLogo, setIsSavingLogo] = useState(false);
   const [isSavingAppLogo, setIsSavingAppLogo] = useState(false);
   const [isSavingFavicon, setIsSavingFavicon] = useState(false);
@@ -142,6 +175,27 @@ export function AdminClient({
 
   const updatePasswordField = (field: keyof PasswordForm, value: string) => {
     setPasswordForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const updateUserField = (field: keyof UserForm, value: string) => {
+    setUserForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const resetUserForm = () => {
+    setUserFormMode("create");
+    setUserForm(emptyUserForm);
+    setUserMessage(null);
+  };
+
+  const editUser = (user: AdminUser) => {
+    setUserFormMode("edit");
+    setUserForm({
+      username: user.username,
+      role: user.role,
+      password: "",
+      confirmPassword: ""
+    });
+    setUserMessage(null);
   };
 
   const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -163,6 +217,91 @@ export function AdminClient({
       setPasswordMessage(error instanceof Error ? error.message : "Não foi possível alterar a password.");
     } finally {
       setIsSavingPassword(false);
+    }
+  };
+
+  const handleUserSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const username = userForm.username.trim();
+    const password = userForm.password;
+    const isCreate = userFormMode === "create";
+
+    if (!username) {
+      setUserMessage("Indica o nome do utilizador.");
+      return;
+    }
+    if (isCreate && password.length < 6) {
+      setUserMessage("A password deve ter pelo menos 6 caracteres.");
+      return;
+    }
+    if (password && password.length < 6) {
+      setUserMessage("A password deve ter pelo menos 6 caracteres.");
+      return;
+    }
+    if (password !== userForm.confirmPassword) {
+      setUserMessage("A confirmação da password não coincide.");
+      return;
+    }
+
+    setIsSavingUser(true);
+    setUserMessage(null);
+    try {
+      const response = await fetch(isCreate ? "/api/admin/users" : `/api/admin/users/${encodeURIComponent(username)}`, {
+        method: isCreate ? "POST" : "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username,
+          role: userForm.role,
+          password: password || undefined
+        })
+      });
+      const body = (await response.json().catch(() => null)) as { message?: string; user?: AdminUser } | null;
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível guardar o utilizador.");
+
+      const savedUser = body?.user;
+      if (savedUser) {
+        setUsersState((current) =>
+          sortAdminUsers(
+            isCreate
+              ? [...current.filter((user) => user.username !== savedUser.username), savedUser]
+              : current.map((user) => (user.username === savedUser.username ? savedUser : user))
+          )
+        );
+      }
+      setUserMessage(body?.message ?? "Utilizador guardado.");
+      setUserFormMode("create");
+      setUserForm(emptyUserForm);
+      router.refresh();
+    } catch (error) {
+      setUserMessage(error instanceof Error ? error.message : "Não foi possível guardar o utilizador.");
+    } finally {
+      setIsSavingUser(false);
+    }
+  };
+
+  const deleteUser = async (user: AdminUser) => {
+    if (user.username === session.username) {
+      setUserMessage("Não podes apagar o teu próprio utilizador.");
+      return;
+    }
+    if (!window.confirm(`Apagar o utilizador "${user.username}"?`)) return;
+
+    setDeletingUsername(user.username);
+    setUserMessage(null);
+    try {
+      const response = await fetch(`/api/admin/users/${encodeURIComponent(user.username)}`, { method: "DELETE" });
+      const body = (await response.json().catch(() => null)) as { message?: string } | null;
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível apagar o utilizador.");
+      setUsersState((current) => current.filter((item) => item.username !== user.username));
+      if (userForm.username === user.username) setUserForm(emptyUserForm);
+      setUserFormMode("create");
+      setUserMessage(body?.message ?? "Utilizador apagado.");
+      router.refresh();
+    } catch (error) {
+      setUserMessage(error instanceof Error ? error.message : "Não foi possível apagar o utilizador.");
+    } finally {
+      setDeletingUsername(null);
     }
   };
 
@@ -733,20 +872,123 @@ export function AdminClient({
         </div>
       </section>
 
-      <section className="admin-grid" aria-label="Utilizadores">
-        {users.map((user) => (
-          <article className="admin-card" key={user.username}>
-            <span>{ROLE_LABELS[user.role]}</span>
-            <strong>{user.username}</strong>
-            <p>
-              {user.role === "admin"
-                ? "Acesso total, incluindo apagar registos e painel Admin."
-                : user.role === "operator"
-                  ? "Pode adicionar e alterar. Alterações exigem justificação."
-                  : "Pode apenas consultar o OverView."}
-            </p>
-          </article>
-        ))}
+      <section className="admin-users-panel" aria-label="Gestão de utilizadores">
+        <div className="admin-log-header">
+          <div>
+            <p className="eyebrow">Segurança</p>
+            <h2>Utilizadores</h2>
+          </div>
+          <span>Só Admin</span>
+        </div>
+        <div className="admin-users-layout">
+          <form className="admin-settings-card admin-user-form" onSubmit={handleUserSubmit}>
+            <div>
+              <p className="eyebrow">{userFormMode === "create" ? "Novo acesso" : "Editar acesso"}</p>
+              <h3>{userFormMode === "create" ? "Adicionar utilizador" : userForm.username}</h3>
+            </div>
+            <label>
+              Utilizador
+              <input
+                disabled={userFormMode === "edit"}
+                value={userForm.username}
+                onChange={(event) => updateUserField("username", event.target.value)}
+              />
+            </label>
+            <label>
+              Role
+              <select
+                value={userForm.role}
+                onChange={(event) => updateUserField("role", event.target.value as UserRole)}
+              >
+                <option value="admin">Admin</option>
+                <option value="operator">Operator</option>
+                <option value="view">View</option>
+              </select>
+            </label>
+            <label>
+              {userFormMode === "create" ? "Password" : "Nova password"}
+              <input
+                minLength={6}
+                placeholder={userFormMode === "create" ? "" : "Deixa em branco para manter"}
+                type="password"
+                value={userForm.password}
+                onChange={(event) => updateUserField("password", event.target.value)}
+              />
+            </label>
+            <label>
+              Confirmar password
+              <input
+                minLength={6}
+                type="password"
+                value={userForm.confirmPassword}
+                onChange={(event) => updateUserField("confirmPassword", event.target.value)}
+              />
+            </label>
+            {userMessage ? <p className="form-message">{userMessage}</p> : null}
+            <div className="admin-inline-actions">
+              <button disabled={isSavingUser} type="submit">
+                {isSavingUser ? "A guardar..." : userFormMode === "create" ? "Criar utilizador" : "Guardar alterações"}
+              </button>
+              {userFormMode === "edit" ? (
+                <button className="secondary-button" disabled={isSavingUser} type="button" onClick={resetUserForm}>
+                  Cancelar
+                </button>
+              ) : null}
+            </div>
+          </form>
+
+          <div className="admin-users-table-wrap">
+            <table className="admin-users-table">
+              <thead>
+                <tr>
+                  <th>Utilizador</th>
+                  <th>Role</th>
+                  <th>Permissões</th>
+                  <th>Última alteração</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {usersState.length ? (
+                  usersState.map((user) => (
+                    <tr key={user.username}>
+                      <td>
+                        <strong>{user.username}</strong>
+                        {user.username === session.username ? <span className="current-user-badge">Atual</span> : null}
+                      </td>
+                      <td>
+                        <span className={`admin-role-pill ${user.role}`}>{ROLE_LABELS[user.role]}</span>
+                      </td>
+                      <td>{roleDescription(user.role)}</td>
+                      <td>{user.updated_at ? formatLogDate(user.updated_at) : "Base"}</td>
+                      <td>
+                        <div className="admin-table-actions">
+                          <button type="button" onClick={() => editUser(user)}>
+                            Editar
+                          </button>
+                          <button
+                            className="danger-table-button"
+                            disabled={deletingUsername === user.username || user.username === session.username}
+                            type="button"
+                            onClick={() => deleteUser(user)}
+                          >
+                            {deletingUsername === user.username ? "A apagar..." : "Apagar"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="empty-movement-row" colSpan={5}>
+                      Ainda não existem utilizadores configurados.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       <section className="admin-log-panel" aria-label="Log de alterações">

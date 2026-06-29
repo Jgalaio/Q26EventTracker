@@ -15,9 +15,16 @@ type SupabaseLoginRow = {
   has_override: boolean;
 };
 
+type SupabaseUserRow = {
+  username: string | null;
+  role: string | null;
+  updated_at?: string | null;
+};
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ushhacwtmpmwmvpaitdx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 const AUTH_USERS: AuthUser[] = [
   {
@@ -68,8 +75,21 @@ function signPayload(payload: string) {
   return createHmac("sha256", authSecret()).update(payload).digest("base64url");
 }
 
-function isRole(value: unknown): value is UserRole {
+export function isRole(value: unknown): value is UserRole {
   return value === "admin" || value === "operator" || value === "view";
+}
+
+export function supabaseEndpoint(resource: string) {
+  return `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${resource}`;
+}
+
+export function supabaseAdminHeaders() {
+  if (!SUPABASE_SERVICE_ROLE_KEY) return null;
+  return {
+    apikey: SUPABASE_SERVICE_ROLE_KEY,
+    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    "Content-Type": "application/json"
+  };
 }
 
 async function verifyStoredCredentials(username: string, password: string) {
@@ -106,7 +126,28 @@ async function verifyStoredCredentials(username: string, password: string) {
 }
 
 export async function listAuthUsers() {
-  return AUTH_USERS.map(({ username, role }) => ({ username, role }));
+  const adminHeaders = supabaseAdminHeaders();
+  if (adminHeaders) {
+    try {
+      const response = await fetch(supabaseEndpoint("app_users?select=username,role,updated_at&order=username.asc"), {
+        headers: adminHeaders,
+        cache: "no-store"
+      });
+
+      if (response.ok) {
+        const rows = (await response.json()) as SupabaseUserRow[];
+        return rows
+          .filter((row): row is SupabaseUserRow & { username: string; role: UserRole } => {
+            return typeof row.username === "string" && isRole(row.role);
+          })
+          .map((row) => ({ username: row.username, role: row.role, updated_at: row.updated_at ?? null }));
+      }
+    } catch {
+      // Keep the built-in users as a fallback when Supabase admin access is not available.
+    }
+  }
+
+  return AUTH_USERS.map(({ username, role }) => ({ username, role, updated_at: null }));
 }
 
 export async function verifyCredentials(username: string, password: string): Promise<AuthSession | null> {
