@@ -543,6 +543,8 @@ export function Dashboard({
           acc.totalEntradas += amount;
           if (payment === "multibanco") {
             acc.totalEntradasMultibanco += amount;
+          } else if (payment === "transferencia") {
+            acc.totalEntradasTransferencia += amount;
           } else if (payment === "dinheiro" || !payment) {
             acc.totalEntradasDinheiro += amount;
           }
@@ -552,7 +554,15 @@ export function Dashboard({
         }
         return acc;
       },
-      { entradas: 0, saidas: 0, totalEntradas: 0, totalEntradasDinheiro: 0, totalEntradasMultibanco: 0, totalSaidas: 0 }
+      {
+        entradas: 0,
+        saidas: 0,
+        totalEntradas: 0,
+        totalEntradasDinheiro: 0,
+        totalEntradasMultibanco: 0,
+        totalEntradasTransferencia: 0,
+        totalSaidas: 0
+      }
     );
   }, [eventMovimentos]);
 
@@ -1511,6 +1521,10 @@ export function Dashboard({
                       <span>
                         <small>Valor Multibanco</small>
                         <strong>{formatMoney(tabCounts.totalEntradasMultibanco)}</strong>
+                      </span>
+                      <span>
+                        <small>Valor Transferências</small>
+                        <strong>{formatMoney(tabCounts.totalEntradasTransferencia)}</strong>
                       </span>
                     </div>
                   ) : null}
