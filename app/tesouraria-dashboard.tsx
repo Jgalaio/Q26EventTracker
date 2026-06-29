@@ -44,6 +44,7 @@ type MovementForm = {
   item: string;
   descricao: string;
   montante: string;
+  valor_teorico: string;
   data_pagamento: string;
   numero_fatura: string;
   fatura_com_nif: "" | "sim" | "nao";
@@ -111,6 +112,7 @@ const emptyMovementForm: MovementForm = {
   item: "",
   descricao: "",
   montante: "",
+  valor_teorico: "",
   data_pagamento: "",
   numero_fatura: "",
   fatura_com_nif: "",
@@ -258,6 +260,16 @@ function entryKindLabel(kind: EntryKind) {
 
 function isInvoiceIssued(movimento: MovimentoDetalhe) {
   return isRawFlagEnabled(movimento.raw?.fatura_emitida);
+}
+
+function rawNumericAmount(value: unknown) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (typeof value === "string") return numericAmount(value) ?? 0;
+  return 0;
+}
+
+function theoreticalEntryAmount(movimento: MovimentoDetalhe) {
+  return rawNumericAmount(movimento.raw?.valor_teorico);
 }
 
 function yesNo(value: boolean) {
@@ -541,6 +553,7 @@ export function Dashboard({
           const payment = normalizePayment(movimento.tipo_pagamento);
           acc.entradas += 1;
           acc.totalEntradas += amount;
+          acc.totalValorTeorico += theoreticalEntryAmount(movimento);
           if (payment === "multibanco") {
             acc.totalEntradasMultibanco += amount;
           } else if (payment === "transferencia") {
@@ -561,6 +574,7 @@ export function Dashboard({
         totalEntradasDinheiro: 0,
         totalEntradasMultibanco: 0,
         totalEntradasTransferencia: 0,
+        totalValorTeorico: 0,
         totalSaidas: 0
       }
     );
@@ -742,6 +756,7 @@ export function Dashboard({
       item: movimento.item,
       descricao: movimento.descricao ?? "",
       montante: movimento.montante === null ? "" : String(movimento.montante),
+      valor_teorico: movimento.raw?.valor_teorico == null ? "" : formatAmountInput(theoreticalEntryAmount(movimento)),
       data_pagamento: movimento.data_pagamento ?? "",
       numero_fatura: movimento.numero_fatura ?? "",
       fatura_com_nif: booleanToForm(movimento.fatura_com_nif),
@@ -880,8 +895,12 @@ export function Dashboard({
 
     const item = movementForm.item.trim();
     const amount = numericAmount(movementForm.montante);
+    const theoreticalAmount = isEntryMode ? numericAmount(movementForm.valor_teorico) : null;
     if (!item) throw new Error("Indica o item.");
     if (amount === null) throw new Error("Indica um montante válido.");
+    if (isEntryMode && movementForm.valor_teorico.trim() && theoreticalAmount === null) {
+      throw new Error("Indica um valor teórico válido.");
+    }
     if (session.role === "operator" && isEditing && !justification.trim()) {
       throw new Error("Indica a justificação da alteração.");
     }
@@ -922,7 +941,8 @@ export function Dashboard({
               patrocinio: entrySponsorship,
               precisa_fatura: entryKind === "faturacao" ? movementForm.precisa_fatura : false,
               tipo_entrada: entryKindLabel(entryKind),
-              fatura_emitida: entryInvoiceIssued
+              fatura_emitida: entryInvoiceIssued,
+              valor_teorico: theoreticalAmount ?? null
             }
           : { faturar_mais_tarde: movementForm.faturar_mais_tarde })
       }
@@ -954,6 +974,8 @@ export function Dashboard({
 
     const item = quickMovementForm.item.trim();
     const amount = numericAmount(quickMovementForm.montante);
+    const isEntryMode = quickAddTab === "entrada";
+    const theoreticalAmount = isEntryMode ? numericAmount(quickMovementForm.valor_teorico) : null;
     if (!item) {
       setSaveMessage("Indica o item.");
       return;
@@ -962,8 +984,11 @@ export function Dashboard({
       setSaveMessage("Indica um montante válido.");
       return;
     }
+    if (isEntryMode && quickMovementForm.valor_teorico.trim() && theoreticalAmount === null) {
+      setSaveMessage("Indica um valor teórico válido.");
+      return;
+    }
 
-    const isEntryMode = quickAddTab === "entrada";
     const tipo = isEntryMode ? "entrada" : "saida";
     const entryPayment = quickMovementForm.tipo_pagamento.trim() || "Dinheiro";
     const entryKind = isEntryMode ? quickMovementForm.tipo_entrada : "faturacao";
@@ -999,7 +1024,8 @@ export function Dashboard({
               patrocinio: entrySponsorship,
               precisa_fatura: entryKind === "faturacao" ? quickMovementForm.precisa_fatura : false,
               tipo_entrada: entryKindLabel(entryKind),
-              fatura_emitida: entryInvoiceIssued
+              fatura_emitida: entryInvoiceIssued,
+              valor_teorico: theoreticalAmount ?? null
             }
           : { faturar_mais_tarde: quickMovementForm.faturar_mais_tarde })
       }
@@ -1526,6 +1552,10 @@ export function Dashboard({
                         <small>Valor Transferências</small>
                         <strong>{formatMoney(tabCounts.totalEntradasTransferencia)}</strong>
                       </span>
+                      <span>
+                        <small>Valor Fat.Finanças</small>
+                        <strong>{formatMoney(tabCounts.totalValorTeorico)}</strong>
+                      </span>
                     </div>
                   ) : null}
                   <span>
@@ -1555,6 +1585,7 @@ export function Dashboard({
                         <th>Tipo</th>
                         <th>Fatura emitida</th>
                         <th>Montante</th>
+                        <th>Valor teórico</th>
                         <th>Ações</th>
                       </tr>
                     ) : (
@@ -1683,6 +1714,17 @@ export function Dashboard({
                               value={quickMovementForm.montante}
                               onChange={(event) =>
                                 setQuickMovementForm((current) => ({ ...current, montante: event.target.value }))
+                              }
+                              placeholder="0,00"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              aria-label="Valor teórico da entrada"
+                              inputMode="decimal"
+                              value={quickMovementForm.valor_teorico}
+                              onChange={(event) =>
+                                setQuickMovementForm((current) => ({ ...current, valor_teorico: event.target.value }))
                               }
                               placeholder="0,00"
                             />
@@ -1852,6 +1894,7 @@ export function Dashboard({
                           <td>{entryKindLabel(movementEntryKind(movimento))}</td>
                           <td>{needsEntryInvoice(movimento) ? yesNo(isInvoiceIssued(movimento)) : "—"}</td>
                           <td className="money">{formatMoney(movimento.montante)}</td>
+                          <td className="money">{formatMoney(theoreticalEntryAmount(movimento))}</td>
                           <td>{renderMovementActions(movimento)}</td>
                         </tr>
                       ) : (
@@ -2125,6 +2168,17 @@ export function Dashboard({
                     placeholder="0,00"
                   />
                 </label>
+                {modalMode === "add-entry" || modalMode === "edit-entry" ? (
+                  <label>
+                    Valor teórico
+                    <input
+                      inputMode="decimal"
+                      value={movementForm.valor_teorico}
+                      onChange={(event) => setMovementForm((current) => ({ ...current, valor_teorico: event.target.value }))}
+                      placeholder="0,00"
+                    />
+                  </label>
+                ) : null}
                 {(modalMode === "add-entry" || modalMode === "edit-entry") && selectedMovement?.evento_slug !== "contas" ? (
                   <label>
                     Método da entrada
