@@ -99,6 +99,14 @@ export type Nota = {
   id: string;
   titulo: string;
   conteudo: string;
+  tipo_tarefa?: "task" | "lembrete" | "follow_up" | "evento" | "outro" | null;
+  estado?: "todo" | "em_curso" | "concluido" | "cancelado" | null;
+  prioridade?: "baixa" | "normal" | "alta" | "urgente" | null;
+  agendado_para?: string | null;
+  prazo_para?: string | null;
+  responsavel?: string | null;
+  categoria?: string | null;
+  concluido_em?: string | null;
   created_by: string;
   updated_by: string | null;
   created_at: string;

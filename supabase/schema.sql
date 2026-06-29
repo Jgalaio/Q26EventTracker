@@ -106,13 +106,33 @@ create table if not exists public.notas (
   id uuid primary key default gen_random_uuid(),
   titulo text not null,
   conteudo text not null default '',
+  tipo_tarefa text not null default 'task',
+  estado text not null default 'todo',
+  prioridade text not null default 'normal',
+  agendado_para timestamptz,
+  prazo_para timestamptz,
+  responsavel text,
+  categoria text,
+  concluido_em timestamptz,
   created_by text not null,
   updated_by text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
+alter table public.notas
+add column if not exists tipo_tarefa text not null default 'task',
+add column if not exists estado text not null default 'todo',
+add column if not exists prioridade text not null default 'normal',
+add column if not exists agendado_para timestamptz,
+add column if not exists prazo_para timestamptz,
+add column if not exists responsavel text,
+add column if not exists categoria text,
+add column if not exists concluido_em timestamptz;
+
 create index if not exists notas_updated_at_idx on public.notas(updated_at desc);
+create index if not exists notas_estado_idx on public.notas(estado, prioridade);
+create index if not exists notas_agendamento_idx on public.notas(agendado_para asc nulls last, prazo_para asc nulls last);
 
 create table if not exists public.faturas_relatorios (
   id uuid primary key default gen_random_uuid(),

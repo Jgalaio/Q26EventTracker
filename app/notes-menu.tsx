@@ -31,12 +31,34 @@ function shortText(value: string) {
   return value.length > 82 ? `${value.slice(0, 82)}...` : value;
 }
 
-function formatDate(value: string) {
+function taskStatus(note: Nota) {
+  return note.estado ?? "todo";
+}
+
+function taskPriority(note: Nota) {
+  return note.prioridade ?? "normal";
+}
+
+function taskSchedule(note: Nota) {
+  return note.agendado_para ?? note.prazo_para ?? note.updated_at;
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "Sem data";
   return new Intl.DateTimeFormat("pt-PT", {
     day: "2-digit",
     month: "2-digit",
-    year: "2-digit"
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
   }).format(new Date(value));
+}
+
+function statusLabel(value: string) {
+  if (value === "em_curso") return "Em curso";
+  if (value === "concluido") return "Concluído";
+  if (value === "cancelado") return "Cancelado";
+  return "A fazer";
 }
 
 export function NotesMenu({ role }: NotesMenuProps) {
@@ -52,10 +74,20 @@ export function NotesMenu({ role }: NotesMenuProps) {
     setIsLoading(true);
     setMessage(null);
     try {
-      const nextNotes = await requestJson<Nota[]>("/api/notas?limit=5");
-      setNotes(nextNotes);
+      const nextNotes = await requestJson<Nota[]>("/api/notas?limit=200");
+      setNotes(
+        nextNotes
+          .slice()
+          .sort((a, b) => {
+            const aDone = taskStatus(a) === "concluido" || taskStatus(a) === "cancelado";
+            const bDone = taskStatus(b) === "concluido" || taskStatus(b) === "cancelado";
+            if (aDone !== bDone) return aDone ? 1 : -1;
+            return new Date(taskSchedule(a)).getTime() - new Date(taskSchedule(b)).getTime();
+          })
+          .slice(0, 5)
+      );
     } catch (caught) {
-      setMessage(caught instanceof Error ? caught.message : "Não foi possível carregar as notas.");
+      setMessage(caught instanceof Error ? caught.message : "Não foi possível carregar as tarefas.");
     } finally {
       setIsLoading(false);
     }
@@ -68,28 +100,28 @@ export function NotesMenu({ role }: NotesMenuProps) {
   };
 
   const createNote = async () => {
-    const titulo = window.prompt("Título da nota");
+    const titulo = window.prompt("Título da tarefa");
     if (titulo === null) return;
-    const conteudo = window.prompt("Anotação", "");
+    const conteudo = window.prompt("Descrição / lembrete", "");
     if (conteudo === null) return;
 
     setMessage(null);
     try {
       await requestJson<Nota[]>("/api/notas", {
         method: "POST",
-        body: JSON.stringify({ titulo, conteudo })
+        body: JSON.stringify({ titulo, conteudo, tipo_tarefa: "task", estado: "todo", prioridade: "normal" })
       });
       await loadNotes();
       router.refresh();
     } catch (caught) {
-      setMessage(caught instanceof Error ? caught.message : "Não foi possível adicionar a nota.");
+      setMessage(caught instanceof Error ? caught.message : "Não foi possível adicionar a tarefa.");
     }
   };
 
   const editNote = async (note: Nota) => {
-    const titulo = window.prompt("Título da nota", note.titulo);
+    const titulo = window.prompt("Título da tarefa", note.titulo);
     if (titulo === null) return;
-    const conteudo = window.prompt("Anotação", note.conteudo);
+    const conteudo = window.prompt("Descrição / lembrete", note.conteudo);
     if (conteudo === null) return;
     const justification = role === "operator" ? window.prompt("Justificação da alteração") : "";
     if (role === "operator" && !justification?.trim()) {
@@ -101,17 +133,29 @@ export function NotesMenu({ role }: NotesMenuProps) {
     try {
       await requestJson<Nota[]>(`/api/notas/${note.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ titulo, conteudo, justification })
+        body: JSON.stringify({
+          titulo,
+          conteudo,
+          tipo_tarefa: note.tipo_tarefa ?? "task",
+          estado: taskStatus(note),
+          prioridade: taskPriority(note),
+          agendado_para: note.agendado_para ?? null,
+          prazo_para: note.prazo_para ?? null,
+          responsavel: note.responsavel ?? "",
+          categoria: note.categoria ?? "",
+          concluido_em: note.concluido_em ?? null,
+          justification
+        })
       });
       await loadNotes();
       router.refresh();
     } catch (caught) {
-      setMessage(caught instanceof Error ? caught.message : "Não foi possível editar a nota.");
+      setMessage(caught instanceof Error ? caught.message : "Não foi possível editar a tarefa.");
     }
   };
 
   const deleteNote = async (note: Nota) => {
-    if (!window.confirm(`Apagar a nota "${note.titulo}"?`)) return;
+    if (!window.confirm(`Apagar a tarefa "${note.titulo}"?`)) return;
 
     setMessage(null);
     try {
@@ -119,35 +163,35 @@ export function NotesMenu({ role }: NotesMenuProps) {
       await loadNotes();
       router.refresh();
     } catch (caught) {
-      setMessage(caught instanceof Error ? caught.message : "Não foi possível apagar a nota.");
+      setMessage(caught instanceof Error ? caught.message : "Não foi possível apagar a tarefa.");
     }
   };
 
   return (
     <div className="notes-menu">
       <button aria-expanded={isOpen} className="notes-menu-button" onClick={toggleMenu} type="button">
-        Notas
+        TODO
       </button>
       {isOpen ? (
-        <div className="notes-dropdown" role="dialog" aria-label="Notas rápidas">
+        <div className="notes-dropdown" role="dialog" aria-label="TODO rápido">
           <div className="notes-dropdown-header">
-            <strong>Notas</strong>
+            <strong>TODO</strong>
             <div>
               {mayWrite ? (
                 <button onClick={createNote} type="button">
-                  Adicionar
+                  Nova
                 </button>
               ) : null}
               <Link href="/notas" onClick={() => setIsOpen(false)}>
-                Ver todas
+                Abrir
               </Link>
             </div>
           </div>
 
-          {isLoading ? <p className="notes-menu-info">A carregar notas...</p> : null}
+          {isLoading ? <p className="notes-menu-info">A carregar tarefas...</p> : null}
           {message ? <p className="notes-menu-error">{message}</p> : null}
 
-          {!isLoading && notes.length === 0 ? <p className="notes-menu-info">Ainda não existem anotações.</p> : null}
+          {!isLoading && notes.length === 0 ? <p className="notes-menu-info">Ainda não existem tarefas.</p> : null}
 
           <div className="notes-preview-list">
             {notes.map((note) => (
@@ -158,7 +202,10 @@ export function NotesMenu({ role }: NotesMenuProps) {
                 <Link className="notes-preview-link" href={`/notas?nota=${note.id}`} onClick={() => setIsOpen(false)}>
                   <strong>{note.titulo}</strong>
                   <span>{shortText(note.conteudo || "Sem descrição")}</span>
-                  <small>{formatDate(note.updated_at)}</small>
+                  <small>
+                    <i className={`task-dot ${taskPriority(note)}`} />
+                    {statusLabel(taskStatus(note))} · {formatDate(taskSchedule(note))}
+                  </small>
                 </Link>
                 {mayWrite || mayDelete ? (
                   <div className="notes-preview-actions">

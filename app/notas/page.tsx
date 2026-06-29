@@ -27,7 +27,7 @@ export default async function NotesPage({ searchParams }: NotesPageProps) {
   return (
     <main className="shell notes-shell">
       <section className="topbar">
-        <TopbarBrand logo={appLogo} title="Notas" />
+        <TopbarBrand logo={appLogo} title="TODO" />
         <div className="top-actions">
           <NotesMenu role={session.role} />
           {canAccessAdmin(session.role) ? (

@@ -330,9 +330,36 @@ h2 {
 }
 
 .notes-preview-link small {
+  align-items: center;
   color: var(--green-ink);
+  display: flex;
+  gap: 5px;
   font-size: 0.7rem;
   font-weight: 700;
+}
+
+.task-dot {
+  border-radius: 999px;
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 8px;
+  width: 8px;
+}
+
+.task-dot.baixa {
+  background: #147d9f;
+}
+
+.task-dot.normal {
+  background: var(--blue);
+}
+
+.task-dot.alta {
+  background: #b7791f;
+}
+
+.task-dot.urgente {
+  background: var(--red);
 }
 
 .notes-preview-actions {
@@ -369,6 +396,10 @@ h2 {
   display: grid;
   gap: 16px;
   grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+}
+
+.todo-page-layout {
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
 }
 
 .notes-list-panel,
@@ -420,6 +451,72 @@ h2 {
   padding-right: 2px;
 }
 
+.todo-stats-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.todo-stats-grid button {
+  background: #f8fbff;
+  border: 1px solid #d6e4ff;
+  border-radius: 8px;
+  color: var(--ink);
+  cursor: pointer;
+  display: grid;
+  gap: 5px;
+  padding: 11px;
+  text-align: left;
+}
+
+.todo-stats-grid button.danger {
+  background: #fff1f2;
+  border-color: #f0b8c2;
+}
+
+.todo-stats-grid span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.todo-stats-grid strong {
+  color: var(--blue);
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.todo-stats-grid button.danger strong {
+  color: var(--red);
+}
+
+.todo-filters {
+  display: grid;
+  gap: 9px;
+  grid-template-columns: minmax(0, 1fr) minmax(132px, 0.55fr);
+}
+
+.todo-filters label {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 800;
+  gap: 6px;
+}
+
+.todo-filters input,
+.todo-filters select,
+.todo-form select {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  min-height: 42px;
+  min-width: 0;
+  padding: 0 11px;
+}
+
 .note-list-item {
   background: #f8fbff;
   border: 1px solid #d6e4ff;
@@ -435,6 +532,62 @@ h2 {
 .note-list-item.active {
   background: #e8f0ff;
   border-color: var(--blue);
+}
+
+.todo-list-item {
+  position: relative;
+}
+
+.todo-status-chip,
+.todo-priority-chip {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.68rem;
+  font-weight: 900;
+  justify-content: center;
+  justify-self: start;
+  line-height: 1;
+  padding: 6px 8px;
+}
+
+.todo-status-chip.todo {
+  background: #eef5ff;
+  color: var(--blue);
+}
+
+.todo-status-chip.em_curso {
+  background: #fff8e7;
+  color: #9a5b0a;
+}
+
+.todo-status-chip.concluido {
+  background: #ecf9f3;
+  color: #25815c;
+}
+
+.todo-status-chip.cancelado {
+  background: #f2f5f9;
+  color: #556987;
+}
+
+.todo-priority-chip.baixa {
+  background: #eafaff;
+  color: #147d9f;
+}
+
+.todo-priority-chip.normal {
+  background: #eef5ff;
+  color: var(--blue);
+}
+
+.todo-priority-chip.alta {
+  background: #fff8e7;
+  color: #9a5b0a;
+}
+
+.todo-priority-chip.urgente {
+  background: #fff1f2;
+  color: var(--red);
 }
 
 .note-list-item strong,
@@ -456,7 +609,10 @@ h2 {
 }
 
 .note-list-item small {
+  align-items: center;
   color: var(--green-ink);
+  display: flex;
+  gap: 5px;
   font-size: 0.72rem;
   font-weight: 700;
 }
@@ -475,6 +631,28 @@ h2 {
   align-content: start;
   display: grid;
   gap: 18px;
+}
+
+.todo-readable .note-readable p,
+.todo-readable p {
+  min-height: 230px;
+}
+
+.todo-meta-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.todo-meta-bar > span:not(.todo-status-chip):not(.todo-priority-chip) {
+  background: #f8fbff;
+  border: 1px solid #d6e4ff;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: 6px 8px;
 }
 
 .note-readable p {
@@ -523,6 +701,14 @@ h2 {
   gap: 13px;
 }
 
+.todo-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.todo-form .full {
+  grid-column: 1 / -1;
+}
+
 .note-form label {
   color: var(--muted);
   display: grid;
@@ -531,7 +717,8 @@ h2 {
 }
 
 .note-form input,
-.note-form textarea {
+.note-form textarea,
+.note-form select {
   background: #f8fbff;
   border: 1px solid var(--line);
   border-radius: 6px;

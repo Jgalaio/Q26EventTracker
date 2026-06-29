@@ -62,7 +62,23 @@ const MOVEMENT_COLUMNS = [
 
 const SETTINGS_COLUMNS = ["key", "value", "updated_at"];
 
-const NOTES_COLUMNS = ["id", "titulo", "conteudo", "created_by", "updated_by", "created_at", "updated_at"];
+const NOTES_COLUMNS = [
+  "id",
+  "titulo",
+  "conteudo",
+  "tipo_tarefa",
+  "estado",
+  "prioridade",
+  "agendado_para",
+  "prazo_para",
+  "responsavel",
+  "categoria",
+  "concluido_em",
+  "created_by",
+  "updated_by",
+  "created_at",
+  "updated_at"
+];
 
 const INVOICE_REPORT_COLUMNS = [
   "id",
