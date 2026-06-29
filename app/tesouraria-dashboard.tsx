@@ -553,7 +553,6 @@ export function Dashboard({
           const payment = normalizePayment(movimento.tipo_pagamento);
           acc.entradas += 1;
           acc.totalEntradas += amount;
-          acc.totalValorTeorico += theoreticalEntryAmount(movimento);
           if (payment === "multibanco") {
             acc.totalEntradasMultibanco += amount;
           } else if (payment === "transferencia") {
@@ -574,7 +573,6 @@ export function Dashboard({
         totalEntradasDinheiro: 0,
         totalEntradasMultibanco: 0,
         totalEntradasTransferencia: 0,
-        totalValorTeorico: 0,
         totalSaidas: 0
       }
     );
@@ -1551,10 +1549,6 @@ export function Dashboard({
                       <span>
                         <small>Valor Transferências</small>
                         <strong>{formatMoney(tabCounts.totalEntradasTransferencia)}</strong>
-                      </span>
-                      <span>
-                        <small>Valor Fat.Finanças</small>
-                        <strong>{formatMoney(tabCounts.totalValorTeorico)}</strong>
                       </span>
                     </div>
                   ) : null}
