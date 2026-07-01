@@ -7,6 +7,7 @@ import { ROLE_LABELS, canAccessAdmin, canWrite, type AuthSession } from "../auth
 import { NotesMenu } from "../notes-menu";
 import type { MovimentoDetalhe } from "../supabase-data";
 import { TopbarBrand } from "../topbar-brand";
+import { exportOverviewEventToExcel } from "./excel-export";
 
 type Summary = {
   entradas: number;
@@ -235,6 +236,7 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
                 <th>Pag. C.Q26</th>
                 <th>Transferencias</th>
                 <th>Dinheiro</th>
+                <th>Excel</th>
               </tr>
             </thead>
             <tbody>
@@ -272,10 +274,19 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
                       <td className="money">{formatMoney(row.pagoQ26)}</td>
                       <td className="money">{formatMoney(row.transferencias)}</td>
                       <td className="money">{formatMoney(row.dinheiro)}</td>
+                      <td>
+                        <button
+                          className="overview-export-button"
+                          onClick={() => exportOverviewEventToExcel(row)}
+                          type="button"
+                        >
+                          Exportar Excel
+                        </button>
+                      </td>
                     </tr>
                     {isExpanded ? (
                       <tr className="overview-expanded-row">
-                        <td colSpan={10}>
+                        <td colSpan={11}>
                           <div className="overview-movements">
                             <div className="overview-movements-heading">
                               <strong>{row.nome}</strong>
@@ -345,6 +356,7 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
                 <td className="money">{formatMoney(totals.pagoQ26)}</td>
                 <td className="money">{formatMoney(totals.transferencias)}</td>
                 <td className="money">{formatMoney(totals.dinheiro)}</td>
+                <td />
               </tr>
             </tfoot>
           </table>

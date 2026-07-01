@@ -4206,7 +4206,7 @@ td {
 }
 
 .overview-table {
-  min-width: 1320px;
+  min-width: 1450px;
 }
 
 .overview-summary-row.expanded td {
@@ -4253,6 +4253,23 @@ td {
   font-weight: 700;
   height: 25px;
   justify-content: center;
+}
+
+.overview-export-button {
+  background: #eaf2ff;
+  border: 1px solid #9fc1ff;
+  border-radius: 6px;
+  color: #1457c8;
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.overview-export-button:hover {
+  background: #d9e8ff;
+  border-color: #2f75ee;
 }
 
 .overview-expanded-row > td {
