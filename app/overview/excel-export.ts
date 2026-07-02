@@ -442,19 +442,19 @@ function stylesXml() {
 </styleSheet>`;
 }
 
-function workbookXml(sheetName: string) {
+function workbookXml(sheetNames: string[]) {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <bookViews><workbookView xWindow="0" yWindow="0" windowWidth="24000" windowHeight="14000"/></bookViews>
-  <sheets><sheet name="${escapeXml(sheetName)}" sheetId="1" r:id="rId1"/></sheets>
+  <sheets>${sheetNames.map((name, index) => `<sheet name="${escapeXml(name)}" sheetId="${index + 1}" r:id="rId${index + 1}"/>`).join("")}</sheets>
 </workbook>`;
 }
 
-function workbookRelsXml() {
+function workbookRelsXml(sheetCount: number) {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
-  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  ${Array.from({ length: sheetCount }, (_, index) => `<Relationship Id="rId${index + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${index + 1}.xml"/>`).join("")}
+  <Relationship Id="rId${sheetCount + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
 </Relationships>`;
 }
 
@@ -467,13 +467,13 @@ function rootRelsXml() {
 </Relationships>`;
 }
 
-function contentTypesXml() {
+function contentTypesXml(sheetCount: number) {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
-  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  ${Array.from({ length: sheetCount }, (_, index) => `<Override PartName="/xl/worksheets/sheet${index + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}
   <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
   <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
   <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
@@ -491,14 +491,14 @@ function coreXml() {
 </cp:coreProperties>`;
 }
 
-function appXml() {
+function appXml(sheetNames: string[]) {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
   <Application>Tesouraria Q26</Application>
   <DocSecurity>0</DocSecurity>
   <ScaleCrop>false</ScaleCrop>
-  <HeadingPairs><vt:vector size="2" baseType="variant"><vt:variant><vt:lpstr>Worksheets</vt:lpstr></vt:variant><vt:variant><vt:i4>1</vt:i4></vt:variant></vt:vector></HeadingPairs>
-  <TitlesOfParts><vt:vector size="1" baseType="lpstr"><vt:lpstr>Evento</vt:lpstr></vt:vector></TitlesOfParts>
+  <HeadingPairs><vt:vector size="2" baseType="variant"><vt:variant><vt:lpstr>Worksheets</vt:lpstr></vt:variant><vt:variant><vt:i4>${sheetNames.length}</vt:i4></vt:variant></vt:vector></HeadingPairs>
+  <TitlesOfParts><vt:vector size="${sheetNames.length}" baseType="lpstr">${sheetNames.map((name) => `<vt:lpstr>${escapeXml(name)}</vt:lpstr>`).join("")}</vt:vector></TitlesOfParts>
 </Properties>`;
 }
 
@@ -604,6 +604,24 @@ function safeSheetName(value: string) {
   return (cleaned || "Evento").slice(0, 31);
 }
 
+function uniqueSheetNames(rows: OverviewRow[]) {
+  const used = new Set<string>();
+  return rows.map((row, index) => {
+    const base = safeSheetName(row.nome || row.slug || `Evento ${index + 1}`);
+    let candidate = base;
+    let suffix = 2;
+
+    while (used.has(candidate.toLowerCase())) {
+      const ending = ` ${suffix}`;
+      candidate = `${base.slice(0, 31 - ending.length)}${ending}`;
+      suffix += 1;
+    }
+
+    used.add(candidate.toLowerCase());
+    return candidate;
+  });
+}
+
 function safeFileName(value: string) {
   return stripAccents(value)
     .toLowerCase()
@@ -624,18 +642,29 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 export function exportOverviewEventToExcel(row: OverviewRow) {
-  const { rows, merges } = buildRows(row);
-  const sheetName = safeSheetName(row.nome);
+  exportOverviewEventsToExcel([row], `q26-${safeFileName(row.nome || row.slug)}.xlsx`);
+}
+
+export function exportOverviewEventsToExcel(rows: OverviewRow[], filename = "q26-eventos-selecionados.xlsx") {
+  if (!rows.length) return;
+  const sheetNames = uniqueSheetNames(rows);
   const files: ZipFile[] = [
-    { path: "[Content_Types].xml", content: contentTypesXml() },
+    { path: "[Content_Types].xml", content: contentTypesXml(rows.length) },
     { path: "_rels/.rels", content: rootRelsXml() },
     { path: "docProps/core.xml", content: coreXml() },
-    { path: "docProps/app.xml", content: appXml() },
-    { path: "xl/workbook.xml", content: workbookXml(sheetName) },
-    { path: "xl/_rels/workbook.xml.rels", content: workbookRelsXml() },
-    { path: "xl/styles.xml", content: stylesXml() },
-    { path: "xl/worksheets/sheet1.xml", content: worksheetXml(rows, merges) }
+    { path: "docProps/app.xml", content: appXml(sheetNames) },
+    { path: "xl/workbook.xml", content: workbookXml(sheetNames) },
+    { path: "xl/_rels/workbook.xml.rels", content: workbookRelsXml(rows.length) },
+    { path: "xl/styles.xml", content: stylesXml() }
   ];
 
-  downloadBlob(createZip(files), `q26-${safeFileName(row.nome || row.slug)}.xlsx`);
+  rows.forEach((row, index) => {
+    const { rows: sheetRows, merges } = buildRows(row);
+    files.push({
+      path: `xl/worksheets/sheet${index + 1}.xml`,
+      content: worksheetXml(sheetRows, merges)
+    });
+  });
+
+  downloadBlob(createZip(files), filename);
 }

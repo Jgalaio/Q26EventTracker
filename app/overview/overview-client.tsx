@@ -7,7 +7,7 @@ import { ROLE_LABELS, canAccessAdmin, canWrite, type AuthSession } from "../auth
 import { NotesMenu } from "../notes-menu";
 import type { MovimentoDetalhe } from "../supabase-data";
 import { TopbarBrand } from "../topbar-brand";
-import { exportOverviewEventToExcel } from "./excel-export";
+import { exportOverviewEventToExcel, exportOverviewEventsToExcel } from "./excel-export";
 
 type Summary = {
   entradas: number;
@@ -72,7 +72,10 @@ function chartHeight(value: number, maxValue: number) {
 
 export function OverviewClient({ rows, totals, cashValue, physicalCashCount, error, session, appLogo }: OverviewClientProps) {
   const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
+  const [selectedSlugs, setSelectedSlugs] = useState<Set<string>>(() => new Set());
   const countedRows = rows.filter((row) => row.contabilizarTotais).length;
+  const selectedRows = rows.filter((row) => selectedSlugs.has(row.slug));
+  const allRowsSelected = rows.length > 0 && selectedRows.length === rows.length;
   const physicalCashDifference = physicalCashCount === null ? null : physicalCashCount - cashValue;
   const chartItems = [
     { label: "Entradas Totais", value: totals.entradas, className: "bar-blue" },
@@ -80,6 +83,27 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
     { label: "Pagamentos em falta", value: totals.aPagamento, className: "bar-muted" }
   ];
   const chartMax = Math.max(...chartItems.map((item) => item.value), 1);
+
+  const toggleExportSelection = (slug: string) => {
+    setSelectedSlugs((current) => {
+      const next = new Set(current);
+      if (next.has(slug)) {
+        next.delete(slug);
+      } else {
+        next.add(slug);
+      }
+      return next;
+    });
+  };
+
+  const toggleAllExportSelection = () => {
+    setSelectedSlugs((current) => {
+      if (rows.length > 0 && rows.every((row) => current.has(row.slug))) {
+        return new Set();
+      }
+      return new Set(rows.map((row) => row.slug));
+    });
+  };
 
   return (
     <main className="shell overview-shell">
@@ -220,12 +244,30 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
             <p className="eyebrow">Eventos</p>
             <h2>Panorama por evento</h2>
           </div>
-          <span>{countedRows} contabilizados / {rows.length} eventos</span>
+          <div className="table-heading-actions overview-export-actions">
+            <span>{countedRows} contabilizados / {rows.length} eventos</span>
+            <button
+              className="overview-export-selected-button"
+              disabled={!selectedRows.length}
+              onClick={() => exportOverviewEventsToExcel(selectedRows)}
+              type="button"
+            >
+              Exportar selecionados ({selectedRows.length})
+            </button>
+          </div>
         </div>
         <div className="table-wrap overview-table-wrap">
           <table className="overview-table">
             <thead>
               <tr>
+                <th className="overview-select-cell">
+                  <input
+                    aria-label="Selecionar todos os eventos para exportar"
+                    checked={allRowsSelected}
+                    onChange={toggleAllExportSelection}
+                    type="checkbox"
+                  />
+                </th>
                 <th>Evento</th>
                 <th>Entradas</th>
                 <th>Saídas</th>
@@ -242,6 +284,7 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
             <tbody>
               {rows.map((row) => {
                 const isExpanded = expandedSlug === row.slug;
+                const isSelected = selectedSlugs.has(row.slug);
                 return (
                   <Fragment key={row.slug}>
                     <tr
@@ -253,6 +296,14 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
                         .filter(Boolean)
                         .join(" ")}
                     >
+                      <td className="overview-select-cell">
+                        <input
+                          aria-label={`Selecionar ${row.nome} para exportar`}
+                          checked={isSelected}
+                          onChange={() => toggleExportSelection(row.slug)}
+                          type="checkbox"
+                        />
+                      </td>
                       <td className="item-cell">
                         <button
                           aria-expanded={isExpanded}
@@ -286,7 +337,7 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
                     </tr>
                     {isExpanded ? (
                       <tr className="overview-expanded-row">
-                        <td colSpan={11}>
+                        <td colSpan={12}>
                           <div className="overview-movements">
                             <div className="overview-movements-heading">
                               <strong>{row.nome}</strong>
@@ -346,6 +397,7 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
             </tbody>
             <tfoot>
               <tr className="overview-total-row">
+                <th />
                 <th scope="row">Totais</th>
                 <td className="money">{formatMoney(totals.entradas)}</td>
                 <td className="money">{formatMoney(totals.saidas)}</td>

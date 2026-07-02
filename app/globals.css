@@ -4206,7 +4206,19 @@ td {
 }
 
 .overview-table {
-  min-width: 1450px;
+  min-width: 1510px;
+}
+
+.overview-select-cell {
+  text-align: center;
+  width: 52px;
+}
+
+.overview-select-cell input {
+  accent-color: #1f66e5;
+  cursor: pointer;
+  height: 16px;
+  width: 16px;
 }
 
 .overview-summary-row.expanded td {
@@ -4270,6 +4282,23 @@ td {
 .overview-export-button:hover {
   background: #d9e8ff;
   border-color: #2f75ee;
+}
+
+.overview-export-selected-button {
+  background: #1f66e5;
+  border: 1px solid #1f66e5;
+  border-radius: 7px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 900;
+  padding: 9px 13px;
+  white-space: nowrap;
+}
+
+.overview-export-selected-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .overview-expanded-row > td {
