@@ -133,6 +133,22 @@ function movementFormDefaults(tab?: "entrada" | "saida"): MovementForm {
   };
 }
 
+function todayInputDate() {
+  const now = new Date();
+  const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 10);
+}
+
+function accountDepositFormDefaults(): MovementForm {
+  return {
+    ...emptyMovementForm,
+    item: "Depósito",
+    data_pagamento: todayInputDate(),
+    tipo_entrada: "deposito",
+    tipo_pagamento: "Conta Q26"
+  };
+}
+
 function formatMoney(value: number | null | undefined) {
   return moneyFormatter.format(Number(value ?? 0));
 }
@@ -440,6 +456,8 @@ export function Dashboard({
   const [movementForm, setMovementForm] = useState<MovementForm>(emptyMovementForm);
   const [quickAddTab, setQuickAddTab] = useState<"entrada" | "saida" | null>(null);
   const [quickMovementForm, setQuickMovementForm] = useState<MovementForm>(emptyMovementForm);
+  const [accountQuickAddOpen, setAccountQuickAddOpen] = useState(false);
+  const [accountMovementForm, setAccountMovementForm] = useState<MovementForm>(accountDepositFormDefaults);
   const [justification, setJustification] = useState("");
   const [selectedMovement, setSelectedMovement] = useState<MovimentoDetalhe | null>(null);
   const [descriptionPopup, setDescriptionPopup] = useState<DescriptionPopup | null>(null);
@@ -459,6 +477,7 @@ export function Dashboard({
   const accountEvent = useMemo(() => {
     return eventos.find((event) => event.slug === "contas") ?? null;
   }, [eventos]);
+  const accountEventClosed = isEventClosed(accountEvent);
 
   const pendingPayments = useMemo(() => {
     return movimentos.filter(isPendingPayment);
@@ -664,6 +683,8 @@ export function Dashboard({
     setActiveTab("entrada");
     setPago("todos");
     setQuery("");
+    setQuickAddTab(null);
+    setAccountQuickAddOpen(false);
   };
 
   const savePhysicalCashCount = async (event: FormEvent<HTMLFormElement>) => {
@@ -731,15 +752,39 @@ export function Dashboard({
       return;
     }
     setSaveMessage(null);
+    setAccountQuickAddOpen(false);
     setQuickMovementForm(movementFormDefaults(tab));
     setQuickAddTab(tab);
     setActiveTab(tab);
+  };
+
+  const openAccountDepositAdd = () => {
+    if (!mayWrite) return;
+    if (!accountEvent) {
+      setSaveMessage("Não encontrei a categoria Conta Q26 para registar o depósito.");
+      return;
+    }
+    if (accountEventClosed) {
+      setSaveMessage("A Conta Q26 está fechada. Desbloqueia no Admin para adicionar depósitos.");
+      return;
+    }
+    setSaveMessage(null);
+    setQuickAddTab(null);
+    setAccountMovementForm(accountDepositFormDefaults());
+    setAccountQuickAddOpen(true);
+    setActiveTab("entrada");
   };
 
   const closeQuickAdd = () => {
     if (isSaving) return;
     setQuickAddTab(null);
     setQuickMovementForm(emptyMovementForm);
+  };
+
+  const closeAccountQuickAdd = () => {
+    if (isSaving) return;
+    setAccountQuickAddOpen(false);
+    setAccountMovementForm(accountDepositFormDefaults());
   };
 
   const openEditMovement = (movimento: MovimentoDetalhe) => {
@@ -1044,6 +1089,70 @@ export function Dashboard({
       router.refresh();
     } catch (caught) {
       setSaveMessage(caught instanceof Error ? caught.message : "Não foi possível guardar.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const saveAccountDeposit = async () => {
+    if (!mayWrite || !accountEvent) return;
+    if (accountEventClosed) {
+      setSaveMessage("A Conta Q26 está fechada. Desbloqueia no Admin para adicionar depósitos.");
+      return;
+    }
+
+    const item = accountMovementForm.item.trim();
+    const amount = numericAmount(accountMovementForm.montante);
+    const description = accountMovementForm.descricao.trim() || null;
+    if (!item) {
+      setSaveMessage("Indica o item do depósito.");
+      return;
+    }
+    if (amount === null) {
+      setSaveMessage("Indica um montante válido.");
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveMessage(null);
+    try {
+      await appWrite("movimentos", {
+        method: "POST",
+        body: JSON.stringify({
+          evento_id: accountEvent.id,
+          tipo: "entrada",
+          item,
+          descricao: description,
+          data_pagamento: accountMovementForm.data_pagamento || null,
+          montante: amount,
+          numero_fatura: null,
+          fatura_com_nif: null,
+          tipo_pagamento: "Conta Q26",
+          pago: null,
+          contabilizar_totais: true,
+          origem_tabela: manualOrigin("conta_entrada"),
+          origem_linha: 1,
+          raw: {
+            origem: "app",
+            modo: "entrada_manual_conta",
+            evento: accountEvent.nome,
+            item,
+            descricao: description,
+            data_pagamento: accountMovementForm.data_pagamento || null,
+            montante: amount,
+            tipo_pagamento: "Conta Q26",
+            tipo_entrada: "Depósito",
+            fatura_emitida: false,
+            contabilizar_totais: true
+          }
+        })
+      });
+      setAccountQuickAddOpen(false);
+      setAccountMovementForm(accountDepositFormDefaults());
+      setSaveMessage("Depósito registado na Conta Q26.");
+      router.refresh();
+    } catch (caught) {
+      setSaveMessage(caught instanceof Error ? caught.message : "Não foi possível registar o depósito.");
     } finally {
       setIsSaving(false);
     }
@@ -1962,7 +2071,10 @@ export function Dashboard({
             <button
               aria-selected={activeTab === "saida"}
               className={activeTab === "saida" ? "tab active" : "tab"}
-              onClick={() => setActiveTab("saida")}
+              onClick={() => {
+                setActiveTab("saida");
+                setAccountQuickAddOpen(false);
+              }}
               role="tab"
               type="button"
             >
@@ -1976,18 +2088,32 @@ export function Dashboard({
               <p className="eyebrow">{activeTab === "entrada" ? "Entradas na conta" : "Saídas Conta Q26"}</p>
               <h2>{filteredAccountMovimentos.length} registos</h2>
             </div>
-            <span>
-              {formatMoney(activeTab === "entrada" ? accountCounts.totalEntradas : accountCounts.totalSaidas)}
-            </span>
+            <div className="table-heading-actions">
+              <span>
+                {formatMoney(activeTab === "entrada" ? accountCounts.totalEntradas : accountCounts.totalSaidas)}
+              </span>
+              {mayWrite && activeTab === "entrada" ? (
+                <button
+                  className="account-deposit-button"
+                  disabled={!accountEvent || accountEventClosed || isSaving}
+                  onClick={openAccountDepositAdd}
+                  type="button"
+                >
+                  Adicionar depósito
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <div className="table-wrap">
-            <table className={activeTab === "entrada" ? "entries-table" : "outgoing-table"}>
+            <table className={activeTab === "entrada" ? "entries-table account-entries-table" : "outgoing-table"}>
               <thead>
                 {activeTab === "entrada" ? (
                   <tr>
                     <th>Evento</th>
                     <th>Item</th>
+                    <th>Descrição</th>
+                    <th>Data</th>
                     <th>Método</th>
                     <th>Tipo</th>
                     <th>Fatura emitida</th>
@@ -2008,11 +2134,73 @@ export function Dashboard({
                 )}
               </thead>
               <tbody>
+                {mayWrite && activeTab === "entrada" && accountQuickAddOpen ? (
+                  <tr className="inline-add-row account-inline-add-row">
+                    <td>Conta Q26</td>
+                    <td className="item-cell">
+                      <input
+                        aria-label="Item do depósito"
+                        autoFocus
+                        value={accountMovementForm.item}
+                        onChange={(event) =>
+                          setAccountMovementForm((current) => ({ ...current, item: event.target.value }))
+                        }
+                        placeholder="Depósito"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        aria-label="Descrição do depósito"
+                        value={accountMovementForm.descricao}
+                        onChange={(event) =>
+                          setAccountMovementForm((current) => ({ ...current, descricao: event.target.value }))
+                        }
+                        placeholder="Descrição"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        aria-label="Data do depósito"
+                        type="date"
+                        value={accountMovementForm.data_pagamento}
+                        onChange={(event) =>
+                          setAccountMovementForm((current) => ({ ...current, data_pagamento: event.target.value }))
+                        }
+                      />
+                    </td>
+                    <td>Conta Q26</td>
+                    <td>Depósito</td>
+                    <td>—</td>
+                    <td>
+                      <input
+                        aria-label="Montante do depósito"
+                        inputMode="decimal"
+                        value={accountMovementForm.montante}
+                        onChange={(event) =>
+                          setAccountMovementForm((current) => ({ ...current, montante: event.target.value }))
+                        }
+                        placeholder="0,00"
+                      />
+                    </td>
+                    <td>
+                      <div className="row-actions">
+                        <button disabled={isSaving} type="button" onClick={saveAccountDeposit}>
+                          Guardar
+                        </button>
+                        <button disabled={isSaving} type="button" onClick={closeAccountQuickAdd}>
+                          Cancelar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : null}
                 {filteredAccountMovimentos.map((movimento) => (
                   activeTab === "entrada" ? (
                     <tr className={movementRowClass(movimento)} key={movimento.id}>
                       <td>{movimento.evento_nome}</td>
                       <td className="item-cell">{movimento.item}</td>
+                      <td>{renderDescription(movimento)}</td>
+                      <td>{formatDate(movimento.data_pagamento)}</td>
                       <td>{accountEntryLabel(movimento)}</td>
                       <td>{entryKindLabel(movementEntryKind(movimento))}</td>
                       <td>{needsEntryInvoice(movimento) ? yesNo(isInvoiceIssued(movimento)) : "—"}</td>

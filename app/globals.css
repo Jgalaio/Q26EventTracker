@@ -3051,6 +3051,24 @@ h2 {
   width: 36px;
 }
 
+.account-deposit-button {
+  background: var(--blue);
+  border: 1px solid var(--blue);
+  border-radius: 7px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 900;
+  min-height: 36px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.account-deposit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .table-wrap {
   max-height: calc(100vh - 260px);
   overflow: auto;
@@ -3064,6 +3082,10 @@ table {
 
 .entries-table {
   min-width: 1280px;
+}
+
+.account-entries-table {
+  min-width: 1420px;
 }
 
 .outgoing-table {
