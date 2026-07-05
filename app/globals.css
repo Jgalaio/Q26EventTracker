@@ -2042,34 +2042,6 @@ h2 {
   color: #1f66e5;
 }
 
-.report-cover-accounts {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 0 54px;
-}
-
-.report-cover-accounts article {
-  border-bottom: 1px solid #c4d8ff;
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-  padding-bottom: 8px;
-}
-
-.report-cover-accounts span {
-  color: #1f66e5;
-  font-size: 0.76rem;
-  overflow-wrap: anywhere;
-}
-
-.report-cover-accounts strong {
-  color: #315f9d;
-  font-size: 0.95rem;
-  font-weight: 500;
-  overflow-wrap: anywhere;
-}
-
 .report-cover-note {
   align-self: end;
   background: #1f66e5;
@@ -4561,7 +4533,7 @@ td {
   .billing-report-summary,
   .report-summary,
   .report-event-totals,
-  .report-cover-accounts {
+  .report-event-graphics {
     grid-template-columns: 1fr;
   }
 
@@ -4614,8 +4586,7 @@ td {
     font-size: 0.56rem;
   }
 
-  .report-authors,
-  .report-cover-accounts {
+  .report-authors {
     margin: 0;
     padding-left: 0;
   }
@@ -4736,10 +4707,6 @@ td {
 
   .report-cover-summary strong {
     font-size: 1.06rem;
-  }
-
-  .report-cover-accounts {
-    margin: 0;
   }
 
   .report-cover-note {

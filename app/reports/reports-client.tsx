@@ -75,20 +75,6 @@ function normalizePayment(value: string | null | undefined) {
     .trim() ?? "";
 }
 
-function isContaPayment(value: string | null | undefined) {
-  const payment = normalizePayment(value);
-  return payment === "transferencia" || payment === "c q26";
-}
-
-function isBankEntryPayment(value: string | null | undefined) {
-  const payment = normalizePayment(value);
-  return payment === "multibanco" || payment === "transferencia";
-}
-
-function isAccountEntry(movimento: MovimentoDetalhe) {
-  return movimento.tipo === "entrada" && (movimento.evento_slug === "contas" || isBankEntryPayment(movimento.tipo_pagamento));
-}
-
 function isEventCounted(event: EventoResumo) {
   if (typeof event.contabilizar_totais === "boolean") return event.contabilizar_totais;
   return event.slug !== "decoracao";
@@ -230,30 +216,6 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
       }, emptySummary())
     );
   }, [reportScope, visibleEvents]);
-
-  const accountEntries = useMemo(() => {
-    return movimentos.filter(isAccountEntry);
-  }, [movimentos]);
-
-  const accountSaidas = useMemo(() => {
-    return movimentos.filter(
-      (movimento) =>
-        movimento.evento_slug !== "contas" &&
-        movimento.tipo === "saida" &&
-        isMovementCounted(movimento) &&
-        isContaPayment(movimento.tipo_pagamento)
-    );
-  }, [movimentos]);
-
-  const accountTotals = useMemo(() => {
-    const entradas = accountEntries.reduce((sum, movimento) => sum + Number(movimento.montante ?? 0), 0);
-    const saidas = accountSaidas.reduce((sum, movimento) => sum + Number(movimento.montante ?? 0), 0);
-    return { entradas, saidas, saldo: entradas - saidas };
-  }, [accountEntries, accountSaidas]);
-
-  const decorationSummary = useMemo(() => {
-    return reportEvents.find((item) => item.event.slug === "decoracao")?.summary ?? emptySummary();
-  }, [reportEvents]);
 
   const chartItems = [
     { label: "Entradas Totais", value: totals.entradas, className: "cover-bar-blue" },
@@ -420,17 +382,6 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
               </article>
             </section>
           </div>
-
-          <section className="report-cover-accounts" aria-label="Resumo de contas">
-            <article>
-              <span>Contas #1 "Mealheiro Q26"</span>
-              <strong>{formatMoney(decorationSummary.lucro)}</strong>
-            </article>
-            <article>
-              <span>Contas #2 "Associação"</span>
-              <strong>{formatMoney(accountTotals.saldo)}</strong>
-            </article>
-          </section>
 
           <footer className="report-cover-note">
             Eventos marcados como só registo, como Decoração, e Contas não entram nos totais finais.
