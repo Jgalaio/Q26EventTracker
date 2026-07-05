@@ -59,6 +59,12 @@ function formatDate(value: string | null | undefined) {
   return dateFormatter.format(new Date(`${value}T00:00:00`));
 }
 
+function formatEventDate(event: EventoResumo | null | undefined) {
+  if (!event) return "-";
+  if (event.data_inicio) return formatDate(event.data_inicio);
+  return event.data_texto?.trim() || "-";
+}
+
 function movementLabel(tipo: MovimentoDetalhe["tipo"]) {
   if (tipo === "entrada") return "Entrada";
   if (tipo === "saida") return "Saída";
@@ -231,8 +237,10 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
     ]),
     1
   );
-  const printedDate = dateFormatter.format(new Date(generatedAt));
   const reportSubtitle = reportScope === "geral" ? "Relatório geral" : selectedEvent?.event.nome ?? "Evento selecionado";
+  const reportDateLabel = reportScope === "geral" ? "Última Atualização" : "Data do Evento";
+  const reportDate =
+    reportScope === "geral" ? dateFormatter.format(new Date(generatedAt)) : formatEventDate(selectedEvent?.event);
 
   return (
     <main className="shell reports-shell">
@@ -324,8 +332,8 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
             <div className="report-title-block">
               <h2>Relatório de Contas Q26</h2>
               <p>{reportSubtitle}</p>
-              <span>Última Atualização</span>
-              <strong>{printedDate}</strong>
+              <span>{reportDateLabel}</span>
+              <strong>{reportDate}</strong>
             </div>
           </header>
 
