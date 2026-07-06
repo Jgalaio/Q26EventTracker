@@ -44,6 +44,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <Link className="nav-button" href="/">
             Tesouraria
           </Link>
+          <Link className="nav-button secondary-nav-button" href="/pesquisa">
+            Pesquisa
+          </Link>
           <Link className="nav-button secondary-nav-button" href="/reports">
             Relatórios
           </Link>

@@ -437,6 +437,9 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
           <Link className="nav-button secondary-nav-button" href="/">
             Tesouraria
           </Link>
+          <Link className="nav-button secondary-nav-button" href="/pesquisa">
+            Pesquisa
+          </Link>
           <Link className="nav-button secondary-nav-button" href="/facturacao">
             Fat.Finanças
           </Link>

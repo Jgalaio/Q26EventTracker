@@ -256,6 +256,9 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
           <Link className="nav-button secondary-nav-button" href="/">
             Tesouraria
           </Link>
+          <Link className="nav-button secondary-nav-button" href="/pesquisa">
+            Pesquisa
+          </Link>
           <Link className="nav-button secondary-nav-button" href="/facturacao">
             Fat.Finanças
           </Link>

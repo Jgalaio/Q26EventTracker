@@ -41,6 +41,11 @@ export default async function NotesPage({ searchParams }: NotesPageProps) {
             </Link>
           ) : null}
           {canWrite(session.role) ? (
+            <Link className="nav-button secondary-nav-button" href="/pesquisa">
+              Pesquisa
+            </Link>
+          ) : null}
+          {canWrite(session.role) ? (
             <Link className="nav-button secondary-nav-button" href="/reports">
               Relatórios
             </Link>

@@ -1262,6 +1262,9 @@ export function Dashboard({
               Admin
             </Link>
           ) : null}
+          <Link className="nav-button secondary-nav-button" href="/pesquisa">
+            Pesquisa
+          </Link>
           <Link className="nav-button secondary-nav-button" href="/reports">
             Relatórios
           </Link>

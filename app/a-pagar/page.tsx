@@ -36,6 +36,9 @@ export default async function PendingPaymentsPage() {
           <Link className="nav-button" href="/">
             Tesouraria
           </Link>
+          <Link className="nav-button secondary-nav-button" href="/pesquisa">
+            Pesquisa
+          </Link>
           <Link className="nav-button secondary-nav-button" href="/overview">
             OverView
           </Link>

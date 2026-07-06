@@ -122,6 +122,11 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
             </Link>
           ) : null}
           {canWrite(session.role) ? (
+            <Link className="nav-button secondary-nav-button" href="/pesquisa">
+              Pesquisa
+            </Link>
+          ) : null}
+          {canWrite(session.role) ? (
             <Link className="nav-button secondary-nav-button" href="/reports">
               Relatórios
             </Link>

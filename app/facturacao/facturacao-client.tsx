@@ -611,6 +611,9 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
           <Link className="nav-button secondary-nav-button" href="/">
             Tesouraria
           </Link>
+          <Link className="nav-button secondary-nav-button" href="/pesquisa">
+            Pesquisa
+          </Link>
           <Link className="nav-button secondary-nav-button" href="/reports">
             Relatórios
           </Link>
