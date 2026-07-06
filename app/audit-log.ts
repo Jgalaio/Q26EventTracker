@@ -91,3 +91,39 @@ export async function getAuditLogs(page: number, pageSize = 50) {
     };
   }
 }
+
+export async function getMovementAuditLogs(movementId: string, limit = 50) {
+  const safeLimit = Math.max(1, Math.min(100, limit));
+
+  try {
+    const response = await fetch(
+      `${endpoint("app_audit_logs")}?select=*&resource=eq.movimentos&resource_id=eq.${encodeURIComponent(
+        movementId
+      )}&order=created_at.desc&limit=${safeLimit}`,
+      {
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          "Content-Type": "application/json"
+        },
+        cache: "no-store"
+      }
+    );
+
+    if (!response.ok) {
+      return {
+        error: await response.text(),
+        logs: [] as AuditLogEntry[]
+      };
+    }
+
+    return {
+      error: null,
+      logs: (await response.json()) as AuditLogEntry[]
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Não foi possível carregar o histórico.",
+      logs: [] as AuditLogEntry[]
+    };
+  }
+}

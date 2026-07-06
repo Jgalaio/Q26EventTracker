@@ -33,6 +33,8 @@ type AuditContext = {
   justificacao?: string;
 };
 
+type JsonRecord = Record<string, unknown>;
+
 type EventLockState = {
   id: string;
   nome: string;
@@ -213,8 +215,8 @@ function getFilterId(resource: string) {
 }
 
 function firstResponseRow(value: unknown) {
-  if (Array.isArray(value)) return value[0] as Record<string, unknown> | undefined;
-  if (value && typeof value === "object") return value as Record<string, unknown>;
+  if (Array.isArray(value)) return value[0] as JsonRecord | undefined;
+  if (value && typeof value === "object") return value as JsonRecord;
   return undefined;
 }
 
@@ -231,6 +233,19 @@ export async function supabaseWrite(
   session?: AuthSession,
   auditContext?: AuditContext
 ) {
+  const resourceName = baseResource(resource);
+  const filteredResourceId = getFilterId(resource);
+  let beforeSnapshot: JsonRecord | null = null;
+
+  if (resourceName === "movimentos" && filteredResourceId && (method === "PATCH" || method === "DELETE")) {
+    const beforeResult = await supabaseReadRows<JsonRecord>(
+      `movimentos?id=eq.${encodeURIComponent(filteredResourceId)}&select=*&limit=1`
+    );
+    if (!beforeResult.error) {
+      beforeSnapshot = beforeResult.data?.[0] ?? null;
+    }
+  }
+
   const response = await fetch(`${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${resource}`, {
     method,
     headers: {
@@ -250,9 +265,8 @@ export async function supabaseWrite(
   const parsedResponse = responseBody ? JSON.parse(responseBody) : null;
 
   if (session) {
-    const resourceName = baseResource(resource);
     const row = firstResponseRow(parsedResponse);
-    const resourceId = typeof row?.id === "string" ? row.id : getFilterId(resource);
+    const resourceId = typeof row?.id === "string" ? row.id : filteredResourceId;
     const action = actionLabel(method, resourceName);
     await writeAuditLog({
       session,
@@ -264,6 +278,12 @@ export async function supabaseWrite(
         method,
         payload: body ?? null,
         resource,
+        ...(resourceName === "movimentos"
+          ? {
+              before: beforeSnapshot,
+              after: row ?? null
+            }
+          : {}),
         ...auditContext
       }
     });

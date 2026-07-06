@@ -24,7 +24,7 @@ type FaturacaoReportRow = {
   payload: JsonRecord | null;
 };
 
-type AccountMovementRow = {
+type AccountMovementRow = JsonRecord & {
   id: string;
   item: string;
   montante: number | null;
@@ -144,7 +144,7 @@ function accountMovementItem(eventoNome: string) {
 
 async function getAccountMovement(reportId: string) {
   const rows = await supabaseRequest<AccountMovementRow[]>(
-    `movimentos?origem_tabela=eq.${encodeURIComponent(accountMovementOrigin(reportId))}&select=id,item,montante,raw&limit=1`,
+    `movimentos?origem_tabela=eq.${encodeURIComponent(accountMovementOrigin(reportId))}&select=*&limit=1`,
     "GET"
   );
   return rows[0] ?? null;
@@ -219,7 +219,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
 
     const accountMovement = await getAccountMovement(report.id);
     if (accountMovement) {
-      await supabaseRequest<AccountMovementRow[]>(`movimentos?id=eq.${encodeURIComponent(accountMovement.id)}`, "PATCH", {
+      const accountMovementPayload = {
         item: accountMovementItem(report.evento_nome),
         montante: montanteDepositar,
         tipo_pagamento: "Conta Q26",
@@ -240,6 +240,27 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
             role: access.session.role,
             justificacao: justification
           }
+        }
+      };
+      const updatedAccountMovements = await supabaseRequest<AccountMovementRow[]>(
+        `movimentos?id=eq.${encodeURIComponent(accountMovement.id)}`,
+        "PATCH",
+        accountMovementPayload
+      );
+      await writeAuditLog({
+        session: access.session,
+        action: "Alterou movimento",
+        resource: "movimentos",
+        resourceId: accountMovement.id,
+        summary: `Alterou movimento: ${accountMovementItem(report.evento_nome)}`,
+        details: {
+          method: "PATCH",
+          resource: `movimentos?id=eq.${accountMovement.id}`,
+          payload: accountMovementPayload,
+          before: accountMovement,
+          after: updatedAccountMovements[0] ?? null,
+          origem_faturacao: report.id,
+          justificacao: justification
         }
       });
     }
@@ -292,6 +313,22 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
     const accountMovement = await getAccountMovement(report.id);
     if (accountMovement) {
       await supabaseRequest<AccountMovementRow[]>(`movimentos?id=eq.${encodeURIComponent(accountMovement.id)}`, "DELETE");
+      await writeAuditLog({
+        session: access.session,
+        action: "Apagou movimento",
+        resource: "movimentos",
+        resourceId: accountMovement.id,
+        summary: `Apagou movimento: ${accountMovement.item}`,
+        details: {
+          method: "DELETE",
+          resource: `movimentos?id=eq.${accountMovement.id}`,
+          payload: null,
+          before: accountMovement,
+          after: null,
+          origem_faturacao: report.id,
+          justificacao: justification
+        }
+      });
     }
 
     await supabaseRequest<FaturacaoReportRow[]>(`faturas_relatorios?id=eq.${encodeURIComponent(report.id)}`, "DELETE");

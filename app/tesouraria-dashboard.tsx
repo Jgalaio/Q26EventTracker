@@ -28,6 +28,25 @@ type DescriptionPopup = {
   text: string;
 };
 
+type MovementHistoryEntry = {
+  id: string;
+  created_at: string;
+  username: string;
+  role: AuthSession["role"];
+  action: string;
+  resource: string;
+  resource_id: string | null;
+  summary: string | null;
+  details: Record<string, unknown>;
+};
+
+type MovementHistoryState = {
+  movimento: MovimentoDetalhe;
+  logs: MovementHistoryEntry[];
+  isLoading: boolean;
+  error: string | null;
+};
+
 type EventForm = {
   nome: string;
   data_inicio: string;
@@ -78,6 +97,14 @@ const dateFormatter = new Intl.DateTimeFormat("pt-PT", {
   day: "2-digit",
   month: "2-digit",
   year: "numeric"
+});
+
+const dateTimeFormatter = new Intl.DateTimeFormat("pt-PT", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit"
 });
 
 const emptyEventForm: EventForm = {
@@ -165,10 +192,72 @@ function formatDate(value: string | null | undefined) {
   return dateFormatter.format(new Date(`${value}T00:00:00`));
 }
 
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return "-";
+  return dateTimeFormatter.format(new Date(value));
+}
+
 function movementLabel(tipo: MovimentoDetalhe["tipo"]) {
   if (tipo === "entrada") return "Entrada";
   if (tipo === "saida") return "Saída";
   return "A pagamento";
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === "object" && !Array.isArray(value)) return value as Record<string, unknown>;
+  return null;
+}
+
+const MOVEMENT_HISTORY_FIELDS = [
+  ["tipo", "Tipo"],
+  ["item", "Item"],
+  ["descricao", "Descrição"],
+  ["data_pagamento", "Data"],
+  ["montante", "Montante"],
+  ["numero_fatura", "Nº Fatura"],
+  ["fatura_com_nif", "Fatura C/NIF"],
+  ["tipo_pagamento", "Pagamento"],
+  ["pago", "Pago"],
+  ["contabilizar_totais", "Totais gerais"],
+  ["origem_tabela", "Origem"],
+  ["origem_linha", "Linha"]
+] as const;
+
+function movementHistorySnapshot(log: MovementHistoryEntry, key: "before" | "after") {
+  return asRecord(log.details?.[key]);
+}
+
+function movementHistoryFallbackSnapshot(log: MovementHistoryEntry) {
+  return movementHistorySnapshot(log, "after") ?? asRecord(log.details?.payload);
+}
+
+function formatHistoryValue(field: string, value: unknown) {
+  if (value === null || typeof value === "undefined" || value === "") return "-";
+  if (typeof value === "boolean") return value ? "Sim" : "Não";
+  if (field === "montante") return formatMoney(Number(value));
+  if (field === "data_pagamento" && typeof value === "string") return formatDate(value);
+  return String(value);
+}
+
+function historyChangedFields(before: Record<string, unknown> | null, after: Record<string, unknown> | null) {
+  const snapshot = after ?? before;
+  if (!snapshot) return [];
+
+  return MOVEMENT_HISTORY_FIELDS.filter(([field]) => {
+    if (!before || !after) return Object.prototype.hasOwnProperty.call(snapshot, field);
+    return JSON.stringify(before[field] ?? null) !== JSON.stringify(after[field] ?? null);
+  });
+}
+
+function movementHistoryJustification(log: MovementHistoryEntry) {
+  const detailsJustification = log.details?.justificacao;
+  if (typeof detailsJustification === "string" && detailsJustification.trim()) return detailsJustification.trim();
+
+  const payload = asRecord(log.details?.payload);
+  const raw = asRecord(payload?.raw);
+  const lastChange = asRecord(raw?.ultima_alteracao);
+  const rawJustification = lastChange?.justificacao;
+  return typeof rawJustification === "string" && rawJustification.trim() ? rawJustification.trim() : null;
 }
 
 function isEventIsento(event: EventoResumo) {
@@ -461,6 +550,7 @@ export function Dashboard({
   const [justification, setJustification] = useState("");
   const [selectedMovement, setSelectedMovement] = useState<MovimentoDetalhe | null>(null);
   const [descriptionPopup, setDescriptionPopup] = useState<DescriptionPopup | null>(null);
+  const [historyPopup, setHistoryPopup] = useState<MovementHistoryState | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [physicalCashAmount, setPhysicalCashAmount] = useState<number | null>(physicalCashCount);
   const [physicalCashInput, setPhysicalCashInput] = useState(formatAmountInput(physicalCashCount));
@@ -1183,6 +1273,32 @@ export function Dashboard({
     }
   };
 
+  const openMovementHistory = async (movimento: MovimentoDetalhe) => {
+    setHistoryPopup({ movimento, logs: [], isLoading: true, error: null });
+    try {
+      const response = await fetch(`/api/movimentos/${movimento.id}/historico`, {
+        cache: "no-store"
+      });
+      const body = (await response.json().catch(() => null)) as { logs?: MovementHistoryEntry[]; message?: string } | null;
+      if (!response.ok) {
+        throw new Error(body?.message ?? `${response.status} ${response.statusText}`);
+      }
+      setHistoryPopup({
+        movimento,
+        logs: body?.logs ?? [],
+        isLoading: false,
+        error: null
+      });
+    } catch (caught) {
+      setHistoryPopup({
+        movimento,
+        logs: [],
+        isLoading: false,
+        error: caught instanceof Error ? caught.message : "Não foi possível carregar o histórico."
+      });
+    }
+  };
+
   const movementRowClass = (movimento: MovimentoDetalhe) =>
     [
       isPendingPayment(movimento) ? "pending-payment-row" : "",
@@ -1195,11 +1311,21 @@ export function Dashboard({
     const locked = isMovementLocked(movimento);
 
     if (locked) {
-      return <span className="locked-row-note">Fechado</span>;
+      return (
+        <div className="row-actions">
+          <button type="button" onClick={() => openMovementHistory(movimento)}>
+            Histórico
+          </button>
+          <span className="locked-row-note">Fechado</span>
+        </div>
+      );
     }
 
     return (
       <div className="row-actions">
+        <button type="button" onClick={() => openMovementHistory(movimento)}>
+          Histórico
+        </button>
         {mayWrite ? (
           <button type="button" onClick={() => openEditMovement(movimento)}>
             Editar
@@ -2596,6 +2722,100 @@ export function Dashboard({
             <p className="description-full-text">{descriptionPopup.text}</p>
             <div className="modal-actions">
               <button type="button" onClick={() => setDescriptionPopup(null)}>
+                Fechar
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {historyPopup ? (
+        <div className="modal-backdrop" role="presentation">
+          <section aria-modal="true" className="modal movement-history-modal" role="dialog">
+            <div className="modal-heading">
+              <div>
+                <p className="eyebrow">Histórico de versões</p>
+                <h2>{historyPopup.movimento.item}</h2>
+                <span className="history-modal-subtitle">
+                  {historyPopup.movimento.evento_nome} · {movementLabel(historyPopup.movimento.tipo)}
+                </span>
+              </div>
+              <button aria-label="Fechar" className="icon-button" onClick={() => setHistoryPopup(null)} type="button">
+                ×
+              </button>
+            </div>
+
+            {historyPopup.isLoading ? <p className="form-message">A carregar histórico...</p> : null}
+            {historyPopup.error ? <p className="form-message">Não foi possível carregar o histórico. {historyPopup.error}</p> : null}
+
+            {!historyPopup.isLoading && !historyPopup.error && !historyPopup.logs.length ? (
+              <div className="empty-history-state">
+                <strong>Ainda não há versões registadas para este movimento.</strong>
+                <span>As próximas criações, alterações e eliminações ficam registadas automaticamente.</span>
+              </div>
+            ) : null}
+
+            {!historyPopup.isLoading && historyPopup.logs.length ? (
+              <div className="movement-history-list">
+                {historyPopup.logs.map((log) => {
+                  const before = movementHistorySnapshot(log, "before");
+                  const after = movementHistorySnapshot(log, "after");
+                  const fallback = movementHistoryFallbackSnapshot(log);
+                  const fields = historyChangedFields(before, after ?? fallback);
+                  const justificationText = movementHistoryJustification(log);
+
+                  return (
+                    <article className="movement-history-entry" key={log.id}>
+                      <header>
+                        <div>
+                          <strong>{log.action}</strong>
+                          <span>{log.summary ?? "Movimento alterado"}</span>
+                        </div>
+                        <small>
+                          {formatDateTime(log.created_at)} · {log.username} · {ROLE_LABELS[log.role]}
+                        </small>
+                      </header>
+
+                      {justificationText ? (
+                        <p className="history-justification">
+                          <strong>Justificação:</strong> {justificationText}
+                        </p>
+                      ) : null}
+
+                      {fields.length ? (
+                        <dl className="history-field-grid">
+                          {fields.map(([field, label]) => {
+                            const beforeValue = before ? before[field] : null;
+                            const afterSource = after ?? fallback;
+                            const afterValue = afterSource ? afterSource[field] : null;
+
+                            return (
+                              <div key={`${log.id}-${field}`}>
+                                <dt>{label}</dt>
+                                <dd>
+                                  {before ? (
+                                    <>
+                                      <span>{formatHistoryValue(field, beforeValue)}</span>
+                                      <i>→</i>
+                                    </>
+                                  ) : null}
+                                  <strong>{formatHistoryValue(field, afterValue)}</strong>
+                                </dd>
+                              </div>
+                            );
+                          })}
+                        </dl>
+                      ) : (
+                        <p className="history-empty-diff">Registo sem campos detalhados para comparar.</p>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            <div className="modal-actions">
+              <button type="button" onClick={() => setHistoryPopup(null)}>
                 Fechar
               </button>
             </div>

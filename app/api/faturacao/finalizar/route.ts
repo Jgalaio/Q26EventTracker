@@ -215,6 +215,23 @@ export async function POST(request: NextRequest) {
       }
     });
     const accountMovement = accountMovementRows[0];
+    if (accountMovement?.id && typeof accountMovement.id === "string") {
+      await writeAuditLog({
+        session: access.session,
+        action: "Criou movimento",
+        resource: "movimentos",
+        resourceId: accountMovement.id,
+        summary: `Criou movimento: ${accountMovementItem(eventoNome)}`,
+        details: {
+          method: "POST",
+          resource: "movimentos",
+          payload: accountMovement,
+          before: null,
+          after: accountMovement,
+          origem_faturacao: report.id
+        }
+      });
+    }
 
     await Promise.all(
       itensAcrescentados.map((item) =>
