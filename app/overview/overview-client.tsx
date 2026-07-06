@@ -327,11 +327,12 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
                       <td className="money">{formatMoney(row.dinheiro)}</td>
                       <td>
                         <button
+                          aria-label={`Exportar ${row.nome} para Excel`}
                           className="overview-export-button"
                           onClick={() => exportOverviewEventToExcel(row)}
                           type="button"
                         >
-                          Exportar Excel
+                          Excel
                         </button>
                       </td>
                     </tr>

@@ -4196,16 +4196,71 @@ td {
 }
 
 .overview-table-wrap {
+  max-width: 100%;
   max-height: none;
+  overflow-x: auto;
 }
 
 .overview-table {
-  min-width: 1510px;
+  min-width: 1180px;
+  table-layout: fixed;
+}
+
+.overview-table th,
+.overview-table td {
+  font-size: 0.76rem;
+  padding: 7px 8px;
+}
+
+.overview-table th {
+  font-size: 0.62rem;
+  line-height: 1.15;
+}
+
+.overview-table th:nth-child(1),
+.overview-table td:nth-child(1) {
+  width: 38px;
+}
+
+.overview-table th:nth-child(2),
+.overview-table td:nth-child(2) {
+  width: 205px;
+}
+
+.overview-table th:nth-child(3),
+.overview-table td:nth-child(3),
+.overview-table th:nth-child(4),
+.overview-table td:nth-child(4),
+.overview-table th:nth-child(5),
+.overview-table td:nth-child(5),
+.overview-table th:nth-child(6),
+.overview-table td:nth-child(6),
+.overview-table th:nth-child(7),
+.overview-table td:nth-child(7),
+.overview-table th:nth-child(8),
+.overview-table td:nth-child(8),
+.overview-table th:nth-child(9),
+.overview-table td:nth-child(9),
+.overview-table th:nth-child(10),
+.overview-table td:nth-child(10),
+.overview-table th:nth-child(11),
+.overview-table td:nth-child(11) {
+  width: 88px;
+}
+
+.overview-table th:nth-child(12),
+.overview-table td:nth-child(12) {
+  width: 68px;
+}
+
+.overview-table .item-cell {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .overview-select-cell {
   text-align: center;
-  width: 52px;
+  width: 38px;
 }
 
 .overview-select-cell input {
@@ -4243,7 +4298,7 @@ td {
   cursor: pointer;
   display: inline-flex;
   font-weight: 700;
-  gap: 9px;
+  gap: 6px;
   padding: 0;
   text-align: left;
 }
@@ -4255,9 +4310,9 @@ td {
   border-radius: 6px;
   color: var(--green-ink);
   display: inline-flex;
-  flex: 0 0 25px;
+  flex: 0 0 22px;
   font-weight: 700;
-  height: 25px;
+  height: 22px;
   justify-content: center;
 }
 
@@ -4267,9 +4322,9 @@ td {
   border-radius: 6px;
   color: #1457c8;
   cursor: pointer;
-  font-size: 0.76rem;
+  font-size: 0.68rem;
   font-weight: 800;
-  padding: 7px 10px;
+  padding: 6px 8px;
   white-space: nowrap;
 }
 
