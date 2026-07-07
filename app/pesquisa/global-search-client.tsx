@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { AppLogo } from "../app-settings";
-import { ROLE_LABELS, canAccessAdmin, type AuthSession } from "../auth-types";
-import { NotesMenu } from "../notes-menu";
+import type { AuthSession } from "../auth-types";
 import type { EventoResumo, MovimentoDetalhe, Nota } from "../supabase-data";
+import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
 
 type SearchKind = "evento" | "movimento" | "todo";
@@ -248,7 +248,6 @@ export function GlobalSearchClient({
 }: GlobalSearchClientProps) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<SearchFilter>("todos");
-  const mayAccessAdmin = canAccessAdmin(session.role);
   const index = useMemo(
     () => [
       ...eventos.filter((event) => event.slug !== "contas").map(eventSearchResult),
@@ -274,41 +273,7 @@ export function GlobalSearchClient({
     <main className="shell search-shell">
       <section className="topbar">
         <TopbarBrand logo={appLogo} title="Pesquisa" />
-        <div className="top-actions">
-          <NotesMenu role={session.role} />
-          <Link className="nav-button secondary-nav-button" href="/">
-            Início
-          </Link>
-          {mayAccessAdmin ? (
-            <Link className="nav-button secondary-nav-button" href="/admin">
-              Admin
-            </Link>
-          ) : null}
-          <Link className="nav-button secondary-nav-button" href="/tesouraria">
-            Tesouraria
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/reports">
-            Relatórios
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/facturacao">
-            Fat.Finanças
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/fat-patrocinios">
-            Fat. Patrocínios
-          </Link>
-          <Link className="nav-button" href="/overview">
-            OverView
-          </Link>
-          <div className="user-chip">
-            <span>{session.username}</span>
-            <strong>{ROLE_LABELS[session.role]}</strong>
-          </div>
-          <form action="/api/logout" method="post">
-            <button className="logout-button" type="submit">
-              Sair
-            </button>
-          </form>
-        </div>
+        <TopbarActions active="pesquisa" session={session} />
       </section>
 
       {error ? <section className="notice">Não consegui carregar todos os dados. {error}</section> : null}

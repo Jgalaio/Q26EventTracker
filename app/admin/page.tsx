@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAppFavicon, getAppLogo, getQ25Settings, getReportLogo } from "../app-settings";
 import { getAuditLogs } from "../audit-log";
 import { getSession, listAuthUsers } from "../auth";
-import { NotesMenu } from "../notes-menu";
 import { getClosedEvents } from "../supabase-data";
+import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
 import { AdminClient } from "./admin-client";
 
@@ -39,35 +38,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     <main className="shell">
       <section className="topbar">
         <TopbarBrand logo={appLogo} title="Admin" />
-        <div className="top-actions">
-          <NotesMenu role={session.role} />
-          <Link className="nav-button secondary-nav-button" href="/">
-            Início
-          </Link>
-          <Link className="nav-button" href="/tesouraria">
-            Tesouraria
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/pesquisa">
-            Pesquisa
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/reports">
-            Relatórios
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/facturacao">
-            Fat.Finanças
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/fat-patrocinios">
-            Fat. Patrocínios
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/overview">
-            OverView
-          </Link>
-          <form action="/api/logout" method="post">
-            <button className="logout-button" type="submit">
-              Sair
-            </button>
-          </form>
-        </div>
+        <TopbarActions active="admin" session={session} />
       </section>
 
       <AdminClient

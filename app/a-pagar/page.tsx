@@ -1,10 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAppLogo } from "../app-settings";
-import { ROLE_LABELS } from "../auth-types";
 import { getSession } from "../auth";
-import { NotesMenu } from "../notes-menu";
 import { getTesourariaData, type MovimentoDetalhe } from "../supabase-data";
+import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
 import { PendingPaymentsClient } from "./pending-payments-client";
 
@@ -31,36 +29,7 @@ export default async function PendingPaymentsPage() {
     <main className="shell pending-shell">
       <section className="topbar">
         <TopbarBrand logo={appLogo} title="Pagamentos em falta" />
-        <div className="top-actions">
-          <NotesMenu role={session.role} />
-          <Link className="nav-button secondary-nav-button" href="/">
-            Início
-          </Link>
-          <Link className="nav-button" href="/tesouraria">
-            Tesouraria
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/pesquisa">
-            Pesquisa
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/overview">
-            OverView
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/reports">
-            Relatórios
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/fat-patrocinios">
-            Fat. Patrocínios
-          </Link>
-          <div className="user-chip">
-            <span>{session.username}</span>
-            <strong>{ROLE_LABELS[session.role]}</strong>
-          </div>
-          <form action="/api/logout" method="post">
-            <button className="logout-button" type="submit">
-              Sair
-            </button>
-          </form>
-        </div>
+        <TopbarActions active="a-pagar" session={session} />
       </section>
 
       {error ? <section className="notice">Não consegui ligar ao Supabase. {error}</section> : null}

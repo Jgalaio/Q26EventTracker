@@ -3,9 +3,9 @@
 import { Fragment, useState } from "react";
 import Link from "next/link";
 import type { AppLogo } from "../app-settings";
-import { ROLE_LABELS, canAccessAdmin, canWrite, type AuthSession } from "../auth-types";
-import { NotesMenu } from "../notes-menu";
+import type { AuthSession } from "../auth-types";
 import type { MovimentoDetalhe } from "../supabase-data";
+import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
 import { exportOverviewEventToExcel, exportOverviewEventsToExcel } from "./excel-export";
 
@@ -109,51 +109,7 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
     <main className="shell overview-shell">
       <section className="topbar">
         <TopbarBrand logo={appLogo} title="OverView" />
-        <div className="top-actions">
-          <NotesMenu role={session.role} />
-          <Link className="nav-button secondary-nav-button" href="/">
-            Início
-          </Link>
-          {canAccessAdmin(session.role) ? (
-            <Link className="nav-button secondary-nav-button" href="/admin">
-              Admin
-            </Link>
-          ) : null}
-          {canWrite(session.role) ? (
-            <Link className="nav-button" href="/tesouraria">
-              Tesouraria
-            </Link>
-          ) : null}
-          {canWrite(session.role) ? (
-            <Link className="nav-button secondary-nav-button" href="/pesquisa">
-              Pesquisa
-            </Link>
-          ) : null}
-          {canWrite(session.role) ? (
-            <Link className="nav-button secondary-nav-button" href="/reports">
-              Relatórios
-            </Link>
-          ) : null}
-          {canWrite(session.role) ? (
-            <Link className="nav-button secondary-nav-button" href="/facturacao">
-              Fat.Finanças
-            </Link>
-          ) : null}
-          {canWrite(session.role) ? (
-            <Link className="nav-button secondary-nav-button" href="/fat-patrocinios">
-              Fat. Patrocínios
-            </Link>
-          ) : null}
-          <div className="user-chip">
-            <span>{session.username}</span>
-            <strong>{ROLE_LABELS[session.role]}</strong>
-          </div>
-          <form action="/api/logout" method="post">
-            <button className="logout-button" type="submit">
-              Sair
-            </button>
-          </form>
-        </div>
+        <TopbarActions active="overview" session={session} />
       </section>
 
       {error ? <section className="notice">Não consegui ligar ao Supabase. {error}</section> : null}

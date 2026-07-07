@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import Link from "next/link";
 import type { AppLogo } from "../app-settings";
-import { ROLE_LABELS, canAccessAdmin, type AuthSession } from "../auth-types";
-import { NotesMenu } from "../notes-menu";
+import { canAccessAdmin, type AuthSession } from "../auth-types";
 import type { EventoResumo, FaturacaoReport, FaturacaoReportItem, MovimentoDetalhe } from "../supabase-data";
+import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
 
 type FacturacaoClientProps = {
@@ -601,41 +600,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
     <main className="shell billing-shell">
       <section className="topbar">
         <TopbarBrand logo={appLogo} title="Fat.Finanças" />
-        <div className="top-actions">
-          <NotesMenu role={session.role} />
-          <Link className="nav-button secondary-nav-button" href="/">
-            Início
-          </Link>
-          {canAccessAdmin(session.role) ? (
-            <Link className="nav-button secondary-nav-button" href="/admin">
-              Admin
-            </Link>
-          ) : null}
-          <Link className="nav-button secondary-nav-button" href="/tesouraria">
-            Tesouraria
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/pesquisa">
-            Pesquisa
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/reports">
-            Relatórios
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/fat-patrocinios">
-            Fat. Patrocínios
-          </Link>
-          <Link className="nav-button" href="/overview">
-            OverView
-          </Link>
-          <div className="user-chip">
-            <span>{session.username}</span>
-            <strong>{ROLE_LABELS[session.role]}</strong>
-          </div>
-          <form action="/api/logout" method="post">
-            <button className="logout-button" type="submit">
-              Sair
-            </button>
-          </form>
-        </div>
+        <TopbarActions active="facturacao" session={session} />
       </section>
 
       {error ? <section className="notice">Não consegui ligar ao Supabase. {error}</section> : null}

@@ -7,6 +7,7 @@ import { canDelete, canWrite, type AuthSession } from "./auth-types";
 import type { Nota } from "./supabase-data";
 
 type NotesMenuProps = {
+  active?: boolean;
   role: AuthSession["role"];
 };
 
@@ -61,7 +62,7 @@ function statusLabel(value: string) {
   return "A fazer";
 }
 
-export function NotesMenu({ role }: NotesMenuProps) {
+export function NotesMenu({ active = false, role }: NotesMenuProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [notes, setNotes] = useState<Nota[]>([]);
@@ -169,7 +170,12 @@ export function NotesMenu({ role }: NotesMenuProps) {
 
   return (
     <div className="notes-menu">
-      <button aria-expanded={isOpen} className="notes-menu-button" onClick={toggleMenu} type="button">
+      <button
+        aria-expanded={isOpen}
+        className={active ? "notes-menu-button active" : "notes-menu-button"}
+        onClick={toggleMenu}
+        type="button"
+      >
         TODO
       </button>
       {isOpen ? (

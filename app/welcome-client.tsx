@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { AppLogo } from "./app-settings";
-import { ROLE_LABELS, canAccessAdmin, canWrite, type AuthSession } from "./auth-types";
-import { NotesMenu } from "./notes-menu";
+import { canWrite, type AuthSession } from "./auth-types";
 import type { Nota } from "./supabase-data";
+import { TopbarActions } from "./topbar-actions";
 import { TopbarBrand } from "./topbar-brand";
 
 type WelcomeCard = {
@@ -100,51 +100,7 @@ export function WelcomeClient({ appLogo, cards, dataError, quickNotes, session, 
     <main className="shell welcome-shell">
       <section className="topbar">
         <TopbarBrand logo={appLogo} title="Início" />
-        <div className="top-actions">
-          <NotesMenu role={session.role} />
-          {canAccessAdmin(session.role) ? (
-            <Link className="nav-button secondary-nav-button" href="/admin">
-              Admin
-            </Link>
-          ) : null}
-          {mayWrite ? (
-            <Link className="nav-button" href="/tesouraria">
-              Tesouraria
-            </Link>
-          ) : null}
-          {mayWrite ? (
-            <Link className="nav-button secondary-nav-button" href="/pesquisa">
-              Pesquisa
-            </Link>
-          ) : null}
-          {mayWrite ? (
-            <Link className="nav-button secondary-nav-button" href="/reports">
-              Relatórios
-            </Link>
-          ) : null}
-          {mayWrite ? (
-            <Link className="nav-button secondary-nav-button" href="/facturacao">
-              Fat.Finanças
-            </Link>
-          ) : null}
-          {mayWrite ? (
-            <Link className="nav-button secondary-nav-button" href="/fat-patrocinios">
-              Fat. Patrocínios
-            </Link>
-          ) : null}
-          <Link className="nav-button secondary-nav-button" href="/overview">
-            OverView
-          </Link>
-          <div className="user-chip">
-            <span>{session.username}</span>
-            <strong>{ROLE_LABELS[session.role]}</strong>
-          </div>
-          <form action="/api/logout" method="post">
-            <button className="logout-button" type="submit">
-              Sair
-            </button>
-          </form>
-        </div>
+        <TopbarActions active="inicio" session={session} />
       </section>
 
       {dataError ? <section className="notice">Não consegui carregar todos os dados. {dataError}</section> : null}

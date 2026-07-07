@@ -1,11 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import type { AppLogo } from "../app-settings";
-import { ROLE_LABELS, canAccessAdmin, type AuthSession } from "../auth-types";
-import { NotesMenu } from "../notes-menu";
+import type { AuthSession } from "../auth-types";
 import type { MovimentoDetalhe } from "../supabase-data";
+import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
 
 type FatPatrociniosClientProps = {
@@ -427,41 +426,7 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
     <main className="shell sponsor-invoices-shell">
       <section className="topbar">
         <TopbarBrand logo={appLogo} title="Fat. Patrocínios" />
-        <div className="top-actions">
-          <NotesMenu role={session.role} />
-          <Link className="nav-button secondary-nav-button" href="/">
-            Início
-          </Link>
-          {canAccessAdmin(session.role) ? (
-            <Link className="nav-button secondary-nav-button" href="/admin">
-              Admin
-            </Link>
-          ) : null}
-          <Link className="nav-button secondary-nav-button" href="/tesouraria">
-            Tesouraria
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/pesquisa">
-            Pesquisa
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/facturacao">
-            Fat.Finanças
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/reports">
-            Relatórios
-          </Link>
-          <Link className="nav-button" href="/overview">
-            OverView
-          </Link>
-          <div className="user-chip">
-            <span>{session.username}</span>
-            <strong>{ROLE_LABELS[session.role]}</strong>
-          </div>
-          <form action="/api/logout" method="post">
-            <button className="logout-button" type="submit">
-              Sair
-            </button>
-          </form>
-        </div>
+        <TopbarActions active="fat-patrocinios" session={session} />
       </section>
 
       {error ? <section className="notice">Não consegui ligar ao Supabase. {error}</section> : null}

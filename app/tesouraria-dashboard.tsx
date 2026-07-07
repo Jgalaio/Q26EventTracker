@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { AppLogo } from "./app-settings";
 import { ROLE_LABELS, canAccessAdmin, canDelete, canWrite, type AuthSession } from "./auth-types";
-import { NotesMenu } from "./notes-menu";
 import type { EventoResumo, MovimentoDetalhe } from "./supabase-data";
+import { TopbarActions } from "./topbar-actions";
 import { TopbarBrand } from "./topbar-brand";
 
 type DashboardProps = {
@@ -1381,46 +1381,7 @@ export function Dashboard({
     <main className="shell">
       <section className="topbar">
         <TopbarBrand logo={appLogo} title="Tesouraria" />
-        <div className="top-actions">
-          <NotesMenu role={session.role} />
-          <Link className="nav-button secondary-nav-button" href="/">
-            Início
-          </Link>
-          {mayAccessAdmin ? (
-            <Link className="nav-button secondary-nav-button" href="/admin">
-              Admin
-            </Link>
-          ) : null}
-          <Link className="nav-button secondary-nav-button" href="/pesquisa">
-            Pesquisa
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/reports">
-            Relatórios
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/facturacao">
-            Fat.Finanças
-          </Link>
-          <Link className="nav-button secondary-nav-button" href="/fat-patrocinios">
-            Fat. Patrocínios
-          </Link>
-          <Link className="nav-button" href="/overview">
-            OverView
-          </Link>
-          {pendingPayments.length ? (
-            <Link className="warning-nav-button" href="/a-pagar">
-              Pagamentos em falta: {pendingPayments.length}
-            </Link>
-          ) : null}
-          <div className="user-chip">
-            <span>{session.username}</span>
-            <strong>{ROLE_LABELS[session.role]}</strong>
-          </div>
-          <form action="/api/logout" method="post">
-            <button className="logout-button" type="submit">
-              Sair
-            </button>
-          </form>
-        </div>
+        <TopbarActions active="tesouraria" pendingPaymentsCount={pendingPayments.length} session={session} />
       </section>
 
       <section className="management-menu" aria-label="Gestão e filtros">
