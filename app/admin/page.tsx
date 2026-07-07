@@ -41,7 +41,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         <TopbarBrand logo={appLogo} title="Admin" />
         <div className="top-actions">
           <NotesMenu role={session.role} />
-          <Link className="nav-button" href="/">
+          <Link className="nav-button secondary-nav-button" href="/">
+            Início
+          </Link>
+          <Link className="nav-button" href="/tesouraria">
             Tesouraria
           </Link>
           <Link className="nav-button secondary-nav-button" href="/pesquisa">

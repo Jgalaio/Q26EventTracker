@@ -603,12 +603,15 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
         <TopbarBrand logo={appLogo} title="Fat.Finanças" />
         <div className="top-actions">
           <NotesMenu role={session.role} />
+          <Link className="nav-button secondary-nav-button" href="/">
+            Início
+          </Link>
           {canAccessAdmin(session.role) ? (
             <Link className="nav-button secondary-nav-button" href="/admin">
               Admin
             </Link>
           ) : null}
-          <Link className="nav-button secondary-nav-button" href="/">
+          <Link className="nav-button secondary-nav-button" href="/tesouraria">
             Tesouraria
           </Link>
           <Link className="nav-button secondary-nav-button" href="/pesquisa">

@@ -111,13 +111,16 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
         <TopbarBrand logo={appLogo} title="OverView" />
         <div className="top-actions">
           <NotesMenu role={session.role} />
+          <Link className="nav-button secondary-nav-button" href="/">
+            Início
+          </Link>
           {canAccessAdmin(session.role) ? (
             <Link className="nav-button secondary-nav-button" href="/admin">
               Admin
             </Link>
           ) : null}
           {canWrite(session.role) ? (
-            <Link className="nav-button" href="/">
+            <Link className="nav-button" href="/tesouraria">
               Tesouraria
             </Link>
           ) : null}

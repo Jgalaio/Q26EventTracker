@@ -139,7 +139,7 @@ function eventSearchResult(event: EventoResumo): SearchResult {
     detail,
     date: event.data_inicio ? formatDate(event.data_inicio) : event.data_texto ?? "-",
     amount: event.saldo,
-    href: `/?event=${encodeURIComponent(event.slug)}`,
+    href: `/tesouraria?event=${encodeURIComponent(event.slug)}`,
     haystack: normalizeText(searchable)
   };
 }
@@ -183,7 +183,7 @@ function movementSearchResult(movimento: MovimentoDetalhe): SearchResult {
     detail,
     date: formatDate(movimento.data_pagamento),
     amount,
-    href: `/?movement=${encodeURIComponent(movimento.id)}`,
+    href: `/tesouraria?movement=${encodeURIComponent(movimento.id)}`,
     haystack: normalizeText(searchable)
   };
 }
@@ -276,12 +276,15 @@ export function GlobalSearchClient({
         <TopbarBrand logo={appLogo} title="Pesquisa" />
         <div className="top-actions">
           <NotesMenu role={session.role} />
+          <Link className="nav-button secondary-nav-button" href="/">
+            Início
+          </Link>
           {mayAccessAdmin ? (
             <Link className="nav-button secondary-nav-button" href="/admin">
               Admin
             </Link>
           ) : null}
-          <Link className="nav-button secondary-nav-button" href="/">
+          <Link className="nav-button secondary-nav-button" href="/tesouraria">
             Tesouraria
           </Link>
           <Link className="nav-button secondary-nav-button" href="/reports">

@@ -33,7 +33,10 @@ export default async function PendingPaymentsPage() {
         <TopbarBrand logo={appLogo} title="Pagamentos em falta" />
         <div className="top-actions">
           <NotesMenu role={session.role} />
-          <Link className="nav-button" href="/">
+          <Link className="nav-button secondary-nav-button" href="/">
+            Início
+          </Link>
+          <Link className="nav-button" href="/tesouraria">
             Tesouraria
           </Link>
           <Link className="nav-button secondary-nav-button" href="/pesquisa">

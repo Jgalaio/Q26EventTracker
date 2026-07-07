@@ -21,8 +21,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(url, 303);
   }
 
-  const target = session.role === "view" ? "/overview" : nextPath;
-  const response = NextResponse.redirect(new URL(target, request.url), 303);
+  const response = NextResponse.redirect(new URL(nextPath, request.url), 303);
   response.cookies.set(AUTH_COOKIE_NAME, createSessionToken(session), {
     httpOnly: true,
     maxAge: 60 * 60 * 10,

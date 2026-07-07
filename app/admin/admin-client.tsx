@@ -113,8 +113,8 @@ function roleDescription(role: UserRole) {
 
 function auditLogTarget(log: AuditLogEntry) {
   if (!log.resource_id) return null;
-  if (log.resource === "eventos") return `/?event=${encodeURIComponent(log.resource_id)}`;
-  if (log.resource === "movimentos") return `/?movement=${encodeURIComponent(log.resource_id)}`;
+  if (log.resource === "eventos") return `/tesouraria?event=${encodeURIComponent(log.resource_id)}`;
+  if (log.resource === "movimentos") return `/tesouraria?movement=${encodeURIComponent(log.resource_id)}`;
   return null;
 }
 

@@ -1383,6 +1383,9 @@ export function Dashboard({
         <TopbarBrand logo={appLogo} title="Tesouraria" />
         <div className="top-actions">
           <NotesMenu role={session.role} />
+          <Link className="nav-button secondary-nav-button" href="/">
+            Início
+          </Link>
           {mayAccessAdmin ? (
             <Link className="nav-button secondary-nav-button" href="/admin">
               Admin

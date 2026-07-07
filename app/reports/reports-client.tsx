@@ -248,12 +248,15 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
         <TopbarBrand logo={appLogo} title="Relatórios" />
         <div className="top-actions">
           <NotesMenu role={session.role} />
+          <Link className="nav-button secondary-nav-button" href="/">
+            Início
+          </Link>
           {canAccessAdmin(session.role) ? (
             <Link className="nav-button secondary-nav-button" href="/admin">
               Admin
             </Link>
           ) : null}
-          <Link className="nav-button secondary-nav-button" href="/">
+          <Link className="nav-button secondary-nav-button" href="/tesouraria">
             Tesouraria
           </Link>
           <Link className="nav-button secondary-nav-button" href="/pesquisa">

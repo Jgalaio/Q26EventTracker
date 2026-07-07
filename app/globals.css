@@ -4420,6 +4420,202 @@ td {
   font-size: 0.9rem;
 }
 
+.welcome-shell {
+  max-width: 1560px;
+}
+
+.welcome-summary-panel,
+.welcome-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  min-width: 0;
+}
+
+.welcome-summary-panel {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 18px;
+}
+
+.welcome-panel-heading {
+  align-items: flex-end;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.welcome-card-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.welcome-card {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(244, 249, 255, 0.94));
+  border: 1px solid #c7dcff;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(31, 102, 229, 0.08);
+  display: grid;
+  min-height: 122px;
+  overflow: hidden;
+  padding: 16px;
+  position: relative;
+  text-decoration: none;
+}
+
+.welcome-card::before {
+  background: var(--blue);
+  content: "";
+  height: 3px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.welcome-card span,
+.welcome-card small {
+  color: var(--muted);
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.welcome-card small {
+  align-self: end;
+}
+
+.welcome-card-value {
+  color: var(--green-ink);
+  display: block;
+  font-size: clamp(1.35rem, 1.8vw, 1.86rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.12;
+  margin: 12px 0 9px;
+  overflow-wrap: anywhere;
+}
+
+.welcome-card-value.blue {
+  color: var(--blue);
+}
+
+.welcome-card-value.green {
+  color: #25815c;
+}
+
+.welcome-card-value.red {
+  color: var(--red);
+}
+
+.welcome-card-value.purple {
+  color: #7552c7;
+}
+
+.welcome-card-link:hover {
+  border-color: var(--blue);
+  transform: translateY(-1px);
+}
+
+.welcome-main-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.8fr);
+}
+
+.welcome-panel {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.welcome-task-list {
+  display: grid;
+  gap: 10px;
+}
+
+.welcome-task-row {
+  background: #f8fbff;
+  border: 1px solid #d7e5ff;
+  border-radius: 8px;
+  color: var(--ink);
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  text-decoration: none;
+}
+
+.welcome-task-row:hover {
+  border-color: var(--blue);
+}
+
+.welcome-task-row div {
+  display: grid;
+  gap: 4px;
+}
+
+.welcome-task-row strong {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.welcome-task-row span,
+.welcome-task-row small,
+.quick-notes-meta,
+.quick-notes-actions span,
+.welcome-empty-state {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.quick-notes-panel textarea {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  min-height: 248px;
+  outline: none;
+  padding: 13px;
+  resize: vertical;
+  width: 100%;
+}
+
+.quick-notes-panel textarea:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(31, 102, 229, 0.14);
+}
+
+.quick-notes-panel textarea:disabled {
+  color: var(--muted);
+}
+
+.quick-notes-actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.quick-notes-actions button {
+  background: var(--blue);
+  border: 0;
+  border-radius: 7px;
+  color: white;
+  cursor: pointer;
+  font-weight: 900;
+  min-height: 38px;
+  padding: 0 16px;
+}
+
+.quick-notes-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .overview-shell {
   max-width: 1600px;
 }
@@ -4801,7 +4997,8 @@ td {
   .metrics,
   .management-menu,
   .workspace,
-  .overview-layout {
+  .overview-layout,
+  .welcome-main-grid {
     grid-template-columns: 1fr;
   }
 
@@ -4839,6 +5036,10 @@ td {
   }
 
   .search-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .welcome-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -4891,6 +5092,7 @@ td {
   .event-detail,
   .search-heading,
   .search-results-heading,
+  .welcome-panel-heading,
   .table-heading {
     align-items: flex-start;
     flex-direction: column;
@@ -4936,6 +5138,7 @@ td {
   .overview-card-grid,
   .search-filter-tabs,
   .search-summary-grid,
+  .welcome-card-grid,
   .history-field-grid,
   .bar-chart {
     grid-template-columns: 1fr;

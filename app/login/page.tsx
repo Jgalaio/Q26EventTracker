@@ -18,7 +18,7 @@ function safeNextPath(value: string | undefined) {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const session = await getSession();
-  if (session) redirect(session.role === "view" ? "/overview" : "/");
+  if (session) redirect("/");
 
   const params: Record<string, string | string[] | undefined> = searchParams ? await searchParams : {};
   const [appLogo, reportLogo] = await Promise.all([getAppLogo(), getReportLogo()]);
