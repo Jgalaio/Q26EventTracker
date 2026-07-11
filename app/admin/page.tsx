@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getAppFavicon, getAppLogo, getQ25Settings, getReportLogo } from "../app-settings";
+import { getAppFavicon, getAppLogo, getReportLogo } from "../app-settings";
 import { getAuditLogs } from "../audit-log";
 import { getSession, listAuthUsers } from "../auth";
 import { getClosedEvents } from "../supabase-data";
@@ -24,12 +24,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const params = searchParams ? await searchParams : {};
   const auditPage = parseLogPage(params.logPage);
-  const [users, reportLogo, appFavicon, appLogo, q25Settings, audit, closedEvents] = await Promise.all([
+  const [users, reportLogo, appFavicon, appLogo, audit, closedEvents] = await Promise.all([
     listAuthUsers(),
     getReportLogo(),
     getAppFavicon(),
     getAppLogo(),
-    getQ25Settings(),
     getAuditLogs(auditPage, 50),
     getClosedEvents()
   ]);
@@ -50,8 +49,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         appLogo={appLogo}
         closedEvents={closedEvents.data}
         closedEventsError={closedEvents.error}
-        q25Balance={q25Settings.amount}
-        q25ProfitCardEnabled={q25Settings.showProfitCard}
         reportLogo={reportLogo}
         session={session}
         users={users}

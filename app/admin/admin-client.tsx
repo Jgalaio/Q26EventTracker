@@ -20,8 +20,6 @@ type AdminClientProps = {
   reportLogo: ReportLogo | null;
   appLogo: AppLogo | null;
   appFavicon: AppFavicon | null;
-  q25Balance: number;
-  q25ProfitCardEnabled: boolean;
   auditLogs: AuditLogEntry[];
   auditLogError: string | null;
   auditPage: number;
@@ -124,8 +122,6 @@ export function AdminClient({
   reportLogo,
   appLogo,
   appFavicon,
-  q25Balance,
-  q25ProfitCardEnabled,
   auditLogs,
   auditLogError,
   auditPage,
@@ -143,7 +139,6 @@ export function AdminClient({
   const [logoMessage, setLogoMessage] = useState<string | null>(null);
   const [appLogoMessage, setAppLogoMessage] = useState<string | null>(null);
   const [faviconMessage, setFaviconMessage] = useState<string | null>(null);
-  const [q25Message, setQ25Message] = useState<string | null>(null);
   const [logoPreview, setLogoPreview] = useState(reportLogo?.dataUrl ?? "");
   const [logoFileName, setLogoFileName] = useState(reportLogo?.fileName ?? "");
   const [logoDataUrl, setLogoDataUrl] = useState("");
@@ -153,8 +148,6 @@ export function AdminClient({
   const [faviconPreview, setFaviconPreview] = useState(appFavicon?.dataUrl ?? "");
   const [faviconFileName, setFaviconFileName] = useState(appFavicon?.fileName ?? "");
   const [faviconDataUrl, setFaviconDataUrl] = useState("");
-  const [q25Amount, setQ25Amount] = useState(String(q25Balance).replace(".", ","));
-  const [showQ25ProfitCard, setShowQ25ProfitCard] = useState(q25ProfitCardEnabled);
   const [databaseImportText, setDatabaseImportText] = useState("");
   const [databaseImportName, setDatabaseImportName] = useState("");
   const [databaseMessage, setDatabaseMessage] = useState<string | null>(null);
@@ -167,7 +160,6 @@ export function AdminClient({
   const [isSavingLogo, setIsSavingLogo] = useState(false);
   const [isSavingAppLogo, setIsSavingAppLogo] = useState(false);
   const [isSavingFavicon, setIsSavingFavicon] = useState(false);
-  const [isSavingQ25, setIsSavingQ25] = useState(false);
   const [isExportingDatabase, setIsExportingDatabase] = useState(false);
   const [isImportingDatabase, setIsImportingDatabase] = useState(false);
   const [isResettingDatabase, setIsResettingDatabase] = useState(false);
@@ -497,27 +489,6 @@ export function AdminClient({
     }
   };
 
-  const handleQ25Submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsSavingQ25(true);
-    setQ25Message(null);
-
-    try {
-      const response = await fetch("/api/admin/q25-balance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: q25Amount, showProfitCard: showQ25ProfitCard })
-      });
-      const body = (await response.json().catch(() => null)) as { message?: string } | null;
-      if (!response.ok) throw new Error(body?.message ?? "Não foi possível guardar o montante.");
-      setQ25Message(body?.message ?? "Montante Q25 atualizado.");
-    } catch (error) {
-      setQ25Message(error instanceof Error ? error.message : "Não foi possível guardar o montante.");
-    } finally {
-      setIsSavingQ25(false);
-    }
-  };
-
   const handleDatabaseImportChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -760,34 +731,6 @@ export function AdminClient({
               Remover
             </button>
           </div>
-        </form>
-
-        <form className="admin-settings-card" onSubmit={handleQ25Submit}>
-          <div>
-            <p className="eyebrow">Totais</p>
-            <h2>Montante deixado pelos Q25</h2>
-          </div>
-          <label>
-            Montante
-            <input
-              inputMode="decimal"
-              placeholder="0,00"
-              value={q25Amount}
-              onChange={(event) => setQ25Amount(event.target.value)}
-            />
-          </label>
-          <label className="admin-toggle-row">
-            <input
-              checked={showQ25ProfitCard}
-              type="checkbox"
-              onChange={(event) => setShowQ25ProfitCard(event.target.checked)}
-            />
-            <span>Mostrar cartão Lucro + Montante Q25</span>
-          </label>
-          {q25Message ? <p className="form-message">{q25Message}</p> : null}
-          <button disabled={isSavingQ25} type="submit">
-            {isSavingQ25 ? "A guardar..." : "Guardar montante"}
-          </button>
         </form>
 
         <section className="admin-settings-card database-maintenance-card">
