@@ -33,6 +33,7 @@ type ReportsClientProps = {
   error: string | null;
   session: AuthSession;
   generatedAt: string;
+  q25Balance: number;
   reportLogo: ReportLogo | null;
   appLogo: AppLogo | null;
 };
@@ -80,6 +81,16 @@ function normalizePayment(value: string | null | undefined) {
     .trim() ?? "";
 }
 
+function isContaPayment(value: string | null | undefined) {
+  const payment = normalizePayment(value);
+  return payment === "transferencia" || payment === "c q26";
+}
+
+function isBankEntryPayment(value: string | null | undefined) {
+  const payment = normalizePayment(value);
+  return payment === "multibanco" || payment === "transferencia";
+}
+
 function isEventCounted(event: EventoResumo) {
   if (typeof event.contabilizar_totais === "boolean") return event.contabilizar_totais;
   return event.slug !== "decoracao";
@@ -87,6 +98,10 @@ function isEventCounted(event: EventoResumo) {
 
 function isMovementCounted(movimento: MovimentoDetalhe) {
   return movimento.contabilizar_totais !== false;
+}
+
+function isAccountEntry(movimento: MovimentoDetalhe) {
+  return movimento.tipo === "entrada" && (movimento.evento_slug === "contas" || isBankEntryPayment(movimento.tipo_pagamento));
 }
 
 function isPendingPayment(movimento: MovimentoDetalhe) {
@@ -173,7 +188,16 @@ function eventPie(summary: Summary) {
   };
 }
 
-export function ReportsClient({ eventos, movimentos, error, session, generatedAt, reportLogo, appLogo }: ReportsClientProps) {
+export function ReportsClient({
+  eventos,
+  movimentos,
+  error,
+  session,
+  generatedAt,
+  q25Balance,
+  reportLogo,
+  appLogo
+}: ReportsClientProps) {
   const eventList = useMemo(() => {
     return eventos
       .filter((event) => event.slug !== "contas")
@@ -221,6 +245,21 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
       }, emptySummary())
     );
   }, [reportScope, visibleEvents]);
+  const accountBalance = useMemo(() => {
+    const entradas = movimentos.filter(isAccountEntry).reduce((sum, movimento) => sum + Number(movimento.montante ?? 0), 0);
+    const saidas = movimentos
+      .filter(
+        (movimento) =>
+          movimento.evento_slug !== "contas" &&
+          movimento.tipo === "saida" &&
+          isMovementCounted(movimento) &&
+          isContaPayment(movimento.tipo_pagamento)
+      )
+      .reduce((sum, movimento) => sum + Number(movimento.montante ?? 0), 0);
+
+    return entradas - saidas;
+  }, [movimentos]);
+  const cashValue = totals.lucro + q25Balance - accountBalance;
 
   const chartItems = [
     { label: "Entradas Totais", value: totals.entradas, className: "cover-bar-blue" },
@@ -359,6 +398,13 @@ export function ReportsClient({ eventos, movimentos, error, session, generatedAt
                 <small>Lucro final</small>
                 <strong className={totals.lucro >= 0 ? "positive" : "negative"}>{formatMoney(totals.lucro)}</strong>
               </article>
+              {reportScope === "geral" ? (
+                <article>
+                  <span>Valor Dinheiro</span>
+                  <small>Lucro + Q25 - Saldo Conta</small>
+                  <strong className={cashValue >= 0 ? "positive" : "negative"}>{formatMoney(cashValue)}</strong>
+                </article>
+              ) : null}
             </section>
           </div>
 
