@@ -400,8 +400,7 @@ export function ReportsClient({
               </article>
               {reportScope === "geral" ? (
                 <article>
-                  <span>Valor Dinheiro</span>
-                  <small>Lucro + Q25 - Saldo Conta</small>
+                  <span>Dinheiro Físico</span>
                   <strong className={cashValue >= 0 ? "positive" : "negative"}>{formatMoney(cashValue)}</strong>
                 </article>
               ) : null}
