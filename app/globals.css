@@ -830,7 +830,7 @@ h2 {
   align-items: center;
   align-content: center;
   display: grid;
-  gap: 16px;
+  gap: 12px;
   justify-items: center;
   min-height: 100vh;
   padding: 22px;
@@ -944,9 +944,9 @@ h2 {
 
 .login-creator-panel {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   justify-items: center;
-  width: min(440px, 100%);
+  width: min(320px, 100%);
 }
 
 .login-creator-panel p {
@@ -954,10 +954,10 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--ink);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 800;
   margin: 0;
-  padding: 9px 16px;
+  padding: 7px 14px;
   text-align: center;
 }
 
@@ -967,9 +967,9 @@ h2 {
   box-shadow: var(--shadow);
   display: block;
   height: auto;
-  max-height: min(42vh, 360px);
+  max-height: min(28vh, 230px);
   object-fit: contain;
-  width: min(360px, 100%);
+  width: min(260px, 100%);
 }
 
 .management-menu {
