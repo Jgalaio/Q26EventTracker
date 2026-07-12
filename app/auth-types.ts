@@ -8,6 +8,62 @@ export type RolePermissions = {
   viewClosedEvents: boolean;
   unlockClosedEvents: boolean;
   requiresJustification: boolean;
+  createEvents: boolean;
+  editEvents: boolean;
+  deleteEvents: boolean;
+  closeEvents: boolean;
+  addEntries: boolean;
+  editEntries: boolean;
+  deleteEntries: boolean;
+  addExpenses: boolean;
+  editExpenses: boolean;
+  deleteExpenses: boolean;
+  updatePaidStatus: boolean;
+  viewMovementHistory: boolean;
+  viewAccountQ26: boolean;
+  addManualAccountEntries: boolean;
+  editAccountEntries: boolean;
+  deleteAccountEntries: boolean;
+  viewAccountBalance: boolean;
+  viewFinanceBilling: boolean;
+  finalizePrintInvoices: boolean;
+  editFinalizedInvoices: boolean;
+  deleteFinalizedInvoices: boolean;
+  viewSponsorBilling: boolean;
+  changeInvoiceIssuedStatus: boolean;
+  uploadViewInvoiceFiles: boolean;
+  viewReports: boolean;
+  generateGeneralReport: boolean;
+  generateEventReport: boolean;
+  printReports: boolean;
+  changeReportLogo: boolean;
+  viewOverview: boolean;
+  expandOverviewEvents: boolean;
+  exportOverviewExcelIndividual: boolean;
+  exportOverviewExcelMultiple: boolean;
+  viewAdminPanel: boolean;
+  manageUsers: boolean;
+  manageRoles: boolean;
+  changeUserPasswords: boolean;
+  importDatabase: boolean;
+  exportDatabase: boolean;
+  resetDatabase: boolean;
+  viewAuditLog: boolean;
+  openAuditLogItem: boolean;
+  editQ25Balance: boolean;
+  toggleGlobalCards: boolean;
+  viewTodo: boolean;
+  createTasks: boolean;
+  editOwnTasks: boolean;
+  editAllTasks: boolean;
+  deleteTasks: boolean;
+  completeTasks: boolean;
+  viewPersonalNotes: boolean;
+  editPersonalNotes: boolean;
+  requireDeleteJustification: boolean;
+  requireUnlockJustification: boolean;
+  viewOnly: boolean;
+  onlyOpenEventsActions: boolean;
 };
 
 export type RoleDefinition = {
@@ -32,8 +88,66 @@ export const EMPTY_ROLE_PERMISSIONS: RolePermissions = {
   exportOverviewExcel: false,
   viewClosedEvents: false,
   unlockClosedEvents: false,
-  requiresJustification: false
+  requiresJustification: false,
+  createEvents: false,
+  editEvents: false,
+  deleteEvents: false,
+  closeEvents: false,
+  addEntries: false,
+  editEntries: false,
+  deleteEntries: false,
+  addExpenses: false,
+  editExpenses: false,
+  deleteExpenses: false,
+  updatePaidStatus: false,
+  viewMovementHistory: false,
+  viewAccountQ26: false,
+  addManualAccountEntries: false,
+  editAccountEntries: false,
+  deleteAccountEntries: false,
+  viewAccountBalance: false,
+  viewFinanceBilling: false,
+  finalizePrintInvoices: false,
+  editFinalizedInvoices: false,
+  deleteFinalizedInvoices: false,
+  viewSponsorBilling: false,
+  changeInvoiceIssuedStatus: false,
+  uploadViewInvoiceFiles: false,
+  viewReports: false,
+  generateGeneralReport: false,
+  generateEventReport: false,
+  printReports: false,
+  changeReportLogo: false,
+  viewOverview: false,
+  expandOverviewEvents: false,
+  exportOverviewExcelIndividual: false,
+  exportOverviewExcelMultiple: false,
+  viewAdminPanel: false,
+  manageUsers: false,
+  manageRoles: false,
+  changeUserPasswords: false,
+  importDatabase: false,
+  exportDatabase: false,
+  resetDatabase: false,
+  viewAuditLog: false,
+  openAuditLogItem: false,
+  editQ25Balance: false,
+  toggleGlobalCards: false,
+  viewTodo: false,
+  createTasks: false,
+  editOwnTasks: false,
+  editAllTasks: false,
+  deleteTasks: false,
+  completeTasks: false,
+  viewPersonalNotes: false,
+  editPersonalNotes: false,
+  requireDeleteJustification: false,
+  requireUnlockJustification: false,
+  viewOnly: false,
+  onlyOpenEventsActions: false
 };
+
+const ROLE_PERMISSION_KEYS = Object.keys(EMPTY_ROLE_PERMISSIONS) as Array<keyof RolePermissions>;
 
 export const BUILTIN_ROLE_DEFINITIONS: RoleDefinition[] = [
   {
@@ -41,13 +155,65 @@ export const BUILTIN_ROLE_DEFINITIONS: RoleDefinition[] = [
     label: "Admin",
     description: "Acesso total, incluindo apagar registos e painel Admin.",
     permissions: {
+      ...EMPTY_ROLE_PERMISSIONS,
       viewTreasury: true,
       manageRecords: true,
       deleteRecords: true,
       exportOverviewExcel: true,
       viewClosedEvents: true,
       unlockClosedEvents: true,
-      requiresJustification: false
+      createEvents: true,
+      editEvents: true,
+      deleteEvents: true,
+      closeEvents: true,
+      addEntries: true,
+      editEntries: true,
+      deleteEntries: true,
+      addExpenses: true,
+      editExpenses: true,
+      deleteExpenses: true,
+      updatePaidStatus: true,
+      viewMovementHistory: true,
+      viewAccountQ26: true,
+      addManualAccountEntries: true,
+      editAccountEntries: true,
+      deleteAccountEntries: true,
+      viewAccountBalance: true,
+      viewFinanceBilling: true,
+      finalizePrintInvoices: true,
+      editFinalizedInvoices: true,
+      deleteFinalizedInvoices: true,
+      viewSponsorBilling: true,
+      changeInvoiceIssuedStatus: true,
+      uploadViewInvoiceFiles: true,
+      viewReports: true,
+      generateGeneralReport: true,
+      generateEventReport: true,
+      printReports: true,
+      changeReportLogo: true,
+      viewOverview: true,
+      expandOverviewEvents: true,
+      exportOverviewExcelIndividual: true,
+      exportOverviewExcelMultiple: true,
+      viewAdminPanel: true,
+      manageUsers: true,
+      manageRoles: true,
+      changeUserPasswords: true,
+      importDatabase: true,
+      exportDatabase: true,
+      resetDatabase: true,
+      viewAuditLog: true,
+      openAuditLogItem: true,
+      editQ25Balance: true,
+      toggleGlobalCards: true,
+      viewTodo: true,
+      createTasks: true,
+      editOwnTasks: true,
+      editAllTasks: true,
+      deleteTasks: true,
+      completeTasks: true,
+      viewPersonalNotes: true,
+      editPersonalNotes: true
     },
     builtIn: true
   },
@@ -56,13 +222,43 @@ export const BUILTIN_ROLE_DEFINITIONS: RoleDefinition[] = [
     label: "Operator",
     description: "Pode consultar, adicionar e alterar. Alterações exigem justificação.",
     permissions: {
+      ...EMPTY_ROLE_PERMISSIONS,
       viewTreasury: true,
       manageRecords: true,
-      deleteRecords: false,
-      exportOverviewExcel: false,
-      viewClosedEvents: false,
-      unlockClosedEvents: false,
-      requiresJustification: true
+      requiresJustification: true,
+      createEvents: true,
+      editEvents: true,
+      closeEvents: true,
+      addEntries: true,
+      editEntries: true,
+      addExpenses: true,
+      editExpenses: true,
+      updatePaidStatus: true,
+      viewMovementHistory: true,
+      viewAccountQ26: true,
+      addManualAccountEntries: true,
+      editAccountEntries: true,
+      viewAccountBalance: true,
+      viewFinanceBilling: true,
+      finalizePrintInvoices: true,
+      viewSponsorBilling: true,
+      changeInvoiceIssuedStatus: true,
+      uploadViewInvoiceFiles: true,
+      viewReports: true,
+      generateGeneralReport: true,
+      generateEventReport: true,
+      printReports: true,
+      viewOverview: true,
+      expandOverviewEvents: true,
+      viewTodo: true,
+      createTasks: true,
+      editOwnTasks: true,
+      editAllTasks: true,
+      completeTasks: true,
+      viewPersonalNotes: true,
+      editPersonalNotes: true,
+      requireUnlockJustification: true,
+      onlyOpenEventsActions: true
     },
     builtIn: true
   },
@@ -71,13 +267,11 @@ export const BUILTIN_ROLE_DEFINITIONS: RoleDefinition[] = [
     label: "View",
     description: "Pode apenas consultar o OverView.",
     permissions: {
-      viewTreasury: false,
-      manageRecords: false,
-      deleteRecords: false,
-      exportOverviewExcel: false,
-      viewClosedEvents: false,
-      unlockClosedEvents: false,
-      requiresJustification: false
+      ...EMPTY_ROLE_PERMISSIONS,
+      viewOverview: true,
+      expandOverviewEvents: true,
+      viewOnly: true,
+      onlyOpenEventsActions: true
     },
     builtIn: true
   }
@@ -113,18 +307,11 @@ export function isBuiltInRole(role: UserRole) {
 
 export function normalizePermissions(value: unknown, fallback: RolePermissions = EMPTY_ROLE_PERMISSIONS): RolePermissions {
   const source = value && typeof value === "object" ? (value as Partial<RolePermissions>) : {};
-  return {
-    viewTreasury: typeof source.viewTreasury === "boolean" ? source.viewTreasury : fallback.viewTreasury,
-    manageRecords: typeof source.manageRecords === "boolean" ? source.manageRecords : fallback.manageRecords,
-    deleteRecords: typeof source.deleteRecords === "boolean" ? source.deleteRecords : fallback.deleteRecords,
-    exportOverviewExcel:
-      typeof source.exportOverviewExcel === "boolean" ? source.exportOverviewExcel : fallback.exportOverviewExcel,
-    viewClosedEvents: typeof source.viewClosedEvents === "boolean" ? source.viewClosedEvents : fallback.viewClosedEvents,
-    unlockClosedEvents:
-      typeof source.unlockClosedEvents === "boolean" ? source.unlockClosedEvents : fallback.unlockClosedEvents,
-    requiresJustification:
-      typeof source.requiresJustification === "boolean" ? source.requiresJustification : fallback.requiresJustification
-  };
+  const normalized = { ...fallback };
+  ROLE_PERMISSION_KEYS.forEach((key) => {
+    if (typeof source[key] === "boolean") normalized[key] = source[key];
+  });
+  return normalized;
 }
 
 export function normalizeRoleDefinition(value: unknown): RoleDefinition | null {

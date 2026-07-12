@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { AppFavicon, AppLogo, ReportLogo } from "../app-settings";
 import type { AuditLogEntry } from "../audit-log";
 import {
+  EMPTY_ROLE_PERMISSIONS,
   getRoleLabel,
   roleIdIsSafe,
   roleSlugFromLabel,
@@ -85,13 +86,9 @@ const emptyRoleForm: RoleForm = {
   label: "",
   description: "",
   permissions: {
+    ...EMPTY_ROLE_PERMISSIONS,
     viewTreasury: true,
-    manageRecords: false,
-    deleteRecords: false,
-    exportOverviewExcel: false,
-    viewClosedEvents: false,
-    unlockClosedEvents: false,
-    requiresJustification: false
+    viewOverview: true
   }
 };
 
@@ -108,26 +105,29 @@ const rolePermissionModules: Array<{
     permissions: [
       {
         key: "viewTreasury",
-        label: "Consultar Tesouraria",
-        hint: "Acesso às páginas de consulta, pesquisa e pagamentos."
+        label: "Ver Tesouraria",
+        hint: "Permite abrir a página Tesouraria."
       },
       {
-        key: "manageRecords",
-        label: "Adicionar e alterar",
-        hint: "Pode criar e editar movimentos, eventos, relatórios e faturas."
+        key: "createEvents",
+        label: "Criar eventos",
+        hint: "Permite criar novos eventos."
       },
       {
-        key: "deleteRecords",
-        label: "Apagar registos",
-        hint: "Permite apagar movimentos e eventos."
-      }
-    ]
-  },
-  {
-    id: "eventos-fechados",
-    title: "Eventos Fechados",
-    description: "Consulta e abertura de eventos bloqueados.",
-    permissions: [
+        key: "editEvents",
+        label: "Editar eventos",
+        hint: "Permite alterar dados do evento selecionado."
+      },
+      {
+        key: "deleteEvents",
+        label: "Apagar eventos",
+        hint: "Permite apagar eventos."
+      },
+      {
+        key: "closeEvents",
+        label: "Fechar eventos",
+        hint: "Permite bloquear eventos concluídos."
+      },
       {
         key: "viewClosedEvents",
         label: "Ver eventos fechados",
@@ -137,18 +137,288 @@ const rolePermissionModules: Array<{
         key: "unlockClosedEvents",
         label: "Abrir eventos fechados",
         hint: "Permite desbloquear eventos fechados a partir do perfil."
+      },
+      {
+        key: "addEntries",
+        label: "Adicionar entradas",
+        hint: "Permite inserir novas entradas nos eventos."
+      },
+      {
+        key: "editEntries",
+        label: "Editar entradas",
+        hint: "Permite alterar entradas existentes."
+      },
+      {
+        key: "deleteEntries",
+        label: "Apagar entradas",
+        hint: "Permite apagar entradas."
+      },
+      {
+        key: "addExpenses",
+        label: "Adicionar saídas",
+        hint: "Permite inserir novas despesas nos eventos."
+      },
+      {
+        key: "editExpenses",
+        label: "Editar saídas",
+        hint: "Permite alterar despesas existentes."
+      },
+      {
+        key: "deleteExpenses",
+        label: "Apagar saídas",
+        hint: "Permite apagar despesas."
+      },
+      {
+        key: "updatePaidStatus",
+        label: "Alterar estado Pago",
+        hint: "Permite marcar despesas como pagas ou em falta."
+      },
+      {
+        key: "viewMovementHistory",
+        label: "Ver histórico de versões dos movimentos",
+        hint: "Permite consultar alterações anteriores dos movimentos."
+      }
+    ]
+  },
+  {
+    id: "conta-q26",
+    title: "Conta Q26",
+    description: "Consulta e gestão dos movimentos da conta.",
+    permissions: [
+      {
+        key: "viewAccountQ26",
+        label: "Ver Conta Q26",
+        hint: "Permite abrir a aba da Conta Q26."
+      },
+      {
+        key: "addManualAccountEntries",
+        label: "Adicionar entradas manuais na conta",
+        hint: "Permite registar depósitos manuais."
+      },
+      {
+        key: "editAccountEntries",
+        label: "Editar entradas da conta",
+        hint: "Permite alterar entradas registadas na Conta Q26."
+      },
+      {
+        key: "deleteAccountEntries",
+        label: "Apagar entradas da conta",
+        hint: "Permite apagar entradas da Conta Q26."
+      },
+      {
+        key: "viewAccountBalance",
+        label: "Ver saldo em conta",
+        hint: "Permite consultar o saldo da Conta Q26."
+      }
+    ]
+  },
+  {
+    id: "faturacao",
+    title: "Faturação",
+    description: "Fat.Finanças, Fat. Patrocínios e ficheiros associados.",
+    permissions: [
+      {
+        key: "viewFinanceBilling",
+        label: "Ver Fat.Finanças",
+        hint: "Permite abrir a página Fat.Finanças."
+      },
+      {
+        key: "finalizePrintInvoices",
+        label: "Finalizar/Imprimir faturas",
+        hint: "Permite finalizar e imprimir faturas."
+      },
+      {
+        key: "editFinalizedInvoices",
+        label: "Editar faturas finalizadas",
+        hint: "Permite alterar faturas já finalizadas."
+      },
+      {
+        key: "deleteFinalizedInvoices",
+        label: "Apagar faturas finalizadas",
+        hint: "Permite apagar faturas finalizadas."
+      },
+      {
+        key: "viewSponsorBilling",
+        label: "Ver Fat. Patrocínios",
+        hint: "Permite abrir a página Fat. Patrocínios."
+      },
+      {
+        key: "changeInvoiceIssuedStatus",
+        label: "Alterar estado de fatura emitida",
+        hint: "Permite mudar o estado de emissão de faturas."
+      },
+      {
+        key: "uploadViewInvoiceFiles",
+        label: "Fazer upload/consultar ficheiros de faturas",
+        hint: "Permite carregar e consultar ficheiros anexos às faturas."
+      }
+    ]
+  },
+  {
+    id: "relatorios",
+    title: "Relatórios",
+    description: "Criação, impressão e configuração dos relatórios.",
+    permissions: [
+      {
+        key: "viewReports",
+        label: "Ver relatórios",
+        hint: "Permite abrir a página Relatórios."
+      },
+      {
+        key: "generateGeneralReport",
+        label: "Gerar relatório geral",
+        hint: "Permite gerar o relatório geral."
+      },
+      {
+        key: "generateEventReport",
+        label: "Gerar relatório por evento",
+        hint: "Permite gerar relatórios de eventos selecionados."
+      },
+      {
+        key: "printReports",
+        label: "Imprimir relatórios",
+        hint: "Permite imprimir relatórios."
+      },
+      {
+        key: "changeReportLogo",
+        label: "Alterar logo do relatório",
+        hint: "Permite alterar a imagem usada nos relatórios."
       }
     ]
   },
   {
     id: "overview-exportacoes",
     title: "OverView e Exportações",
-    description: "Acesso a exportações e consulta avançada.",
+    description: "Consulta geral e exportação para Excel.",
     permissions: [
       {
-        key: "exportOverviewExcel",
-        label: "Exportar Excel",
-        hint: "Permite exportar eventos no OverView."
+        key: "viewOverview",
+        label: "Ver OverView",
+        hint: "Permite abrir a página OverView."
+      },
+      {
+        key: "expandOverviewEvents",
+        label: "Expandir detalhes dos eventos",
+        hint: "Permite abrir os detalhes em cascata no OverView."
+      },
+      {
+        key: "exportOverviewExcelIndividual",
+        label: "Exportar Excel individual",
+        hint: "Permite exportar um evento individual para Excel."
+      },
+      {
+        key: "exportOverviewExcelMultiple",
+        label: "Exportar Excel múltiplos eventos",
+        hint: "Permite exportar vários eventos para um Excel com várias abas."
+      }
+    ]
+  },
+  {
+    id: "administracao",
+    title: "Administração",
+    description: "Admin, utilizadores, base de dados e definições globais.",
+    permissions: [
+      {
+        key: "viewAdminPanel",
+        label: "Ver painel Admin",
+        hint: "Permite abrir o painel de administração."
+      },
+      {
+        key: "manageUsers",
+        label: "Gerir utilizadores",
+        hint: "Permite criar, editar e apagar utilizadores."
+      },
+      {
+        key: "manageRoles",
+        label: "Gerir roles/permissões",
+        hint: "Permite criar, editar e apagar roles."
+      },
+      {
+        key: "changeUserPasswords",
+        label: "Alterar passwords de utilizadores",
+        hint: "Permite alterar passwords de outros utilizadores."
+      },
+      {
+        key: "importDatabase",
+        label: "Importar base de dados",
+        hint: "Permite importar dados para a base de dados."
+      },
+      {
+        key: "exportDatabase",
+        label: "Exportar base de dados",
+        hint: "Permite exportar uma cópia da base de dados."
+      },
+      {
+        key: "resetDatabase",
+        label: "Recomeçar base de dados",
+        hint: "Permite limpar dados operacionais da base de dados."
+      },
+      {
+        key: "viewAuditLog",
+        label: "Ver log de alterações",
+        hint: "Permite consultar o registo de alterações."
+      },
+      {
+        key: "openAuditLogItem",
+        label: "Abrir item a partir do log",
+        hint: "Permite navegar do log para o item alterado."
+      },
+      {
+        key: "editQ25Balance",
+        label: "Alterar Montante Q25",
+        hint: "Permite alterar o montante deixado pelos Q25."
+      },
+      {
+        key: "toggleGlobalCards",
+        label: "Ligar/desligar cartões globais",
+        hint: "Permite controlar cartões globais do sistema."
+      }
+    ]
+  },
+  {
+    id: "todo-apontamentos",
+    title: "TODO / Apontamentos",
+    description: "Tarefas, agendamentos e apontamentos pessoais.",
+    permissions: [
+      {
+        key: "viewTodo",
+        label: "Ver TODO",
+        hint: "Permite abrir a página TODO."
+      },
+      {
+        key: "createTasks",
+        label: "Criar tarefas",
+        hint: "Permite criar novas tarefas."
+      },
+      {
+        key: "editOwnTasks",
+        label: "Editar tarefas próprias",
+        hint: "Permite alterar tarefas criadas pelo próprio utilizador."
+      },
+      {
+        key: "editAllTasks",
+        label: "Editar tarefas de todos",
+        hint: "Permite alterar tarefas de qualquer utilizador."
+      },
+      {
+        key: "deleteTasks",
+        label: "Apagar tarefas",
+        hint: "Permite apagar tarefas."
+      },
+      {
+        key: "completeTasks",
+        label: "Marcar tarefas como concluídas",
+        hint: "Permite concluir tarefas."
+      },
+      {
+        key: "viewPersonalNotes",
+        label: "Ver apontamentos pessoais",
+        hint: "Permite consultar o bloco pessoal de apontamentos."
+      },
+      {
+        key: "editPersonalNotes",
+        label: "Editar apontamentos pessoais",
+        hint: "Permite alterar o bloco pessoal de apontamentos."
       }
     ]
   },
@@ -159,8 +429,28 @@ const rolePermissionModules: Array<{
     permissions: [
       {
         key: "requiresJustification",
-        label: "Pedir justificação",
+        label: "Exigir justificação ao alterar",
         hint: "Ao editar, obriga a preencher a justificação."
+      },
+      {
+        key: "requireDeleteJustification",
+        label: "Exigir justificação ao apagar",
+        hint: "Ao apagar, obriga a preencher a justificação."
+      },
+      {
+        key: "requireUnlockJustification",
+        label: "Exigir justificação ao abrir evento fechado",
+        hint: "Ao abrir um evento fechado, obriga a preencher a justificação."
+      },
+      {
+        key: "viewOnly",
+        label: "Permitir só consulta",
+        hint: "Marca o role como consulta apenas."
+      },
+      {
+        key: "onlyOpenEventsActions",
+        label: "Permitir ações apenas em eventos abertos",
+        hint: "Restringe ações operacionais a eventos não fechados."
       }
     ]
   }
