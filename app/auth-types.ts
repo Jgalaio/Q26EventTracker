@@ -117,19 +117,23 @@ export function normalizePermissions(value: unknown, fallback: RolePermissions =
 export function normalizeRoleDefinition(value: unknown): RoleDefinition | null {
   if (!value || typeof value !== "object") return null;
   const source = value as Partial<RoleDefinition>;
-  if (!roleIdIsSafe(source.id) || isBuiltInRole(source.id)) return null;
-  const label = typeof source.label === "string" && source.label.trim() ? source.label.trim().slice(0, 48) : source.id;
+  if (!roleIdIsSafe(source.id) || source.id === "admin") return null;
+  const baseRole = builtInRole(source.id);
+  const label =
+    typeof source.label === "string" && source.label.trim()
+      ? source.label.trim().slice(0, 48)
+      : baseRole?.label ?? source.id;
   const description =
     typeof source.description === "string" && source.description.trim()
       ? source.description.trim().slice(0, 160)
-      : "Role personalizado.";
+      : baseRole?.description ?? "Role personalizado.";
 
   return {
     id: source.id,
     label,
     description,
-    permissions: normalizePermissions(source.permissions),
-    builtIn: false
+    permissions: normalizePermissions(source.permissions, baseRole?.permissions ?? EMPTY_ROLE_PERMISSIONS),
+    builtIn: Boolean(baseRole)
   };
 }
 

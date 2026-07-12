@@ -15,6 +15,9 @@ function normalizeRequestRoles(value: unknown) {
   const seen = new Set<string>();
   const roles: RoleDefinition[] = [];
   for (const item of value) {
+    if (item && typeof item === "object" && (item as { id?: unknown }).id === "admin") {
+      return null;
+    }
     const role = normalizeRoleDefinition(item);
     if (!role || seen.has(role.id)) continue;
     seen.add(role.id);
@@ -36,18 +39,17 @@ export async function PUT(request: NextRequest) {
   if (access.error) return access.error;
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-  const nextCustomRoles = normalizeRequestRoles(body.roles);
-  if (!nextCustomRoles) {
+  const nextRoles = normalizeRequestRoles(body.roles);
+  if (!nextRoles) {
     return NextResponse.json({ message: "Lista de roles inválida." }, { status: 400 });
   }
 
-  if (nextCustomRoles.some((role) => isBuiltInRole(role.id))) {
-    return NextResponse.json({ message: "Os roles base não podem ser alterados." }, { status: 400 });
-  }
-
   const currentCustomRoles = await getCustomRoleDefinitions();
-  const nextRoleIds = new Set(nextCustomRoles.map((role) => role.id));
-  const removedRoleIds = currentCustomRoles.map((role) => role.id).filter((roleId) => !nextRoleIds.has(roleId));
+  const nextRoleIds = new Set(nextRoles.map((role) => role.id));
+  const removedRoleIds = currentCustomRoles
+    .filter((role) => !isBuiltInRole(role.id))
+    .map((role) => role.id)
+    .filter((roleId) => !nextRoleIds.has(roleId));
 
   if (removedRoleIds.length) {
     const users = await listAuthUsers();
@@ -61,13 +63,13 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    const savedRoles = await saveCustomRoleDefinitions(nextCustomRoles);
+    const savedRoles = await saveCustomRoleDefinitions(nextRoles);
     await writeAuditLog({
       session: access.session,
       action: "Alterou roles",
       resource: "app_settings",
       resourceId: "app_roles",
-      summary: `Atualizou roles personalizados (${savedRoles.length})`,
+      summary: `Atualizou roles e permissões (${savedRoles.length})`,
       details: { roles: savedRoles.map((role) => role.id) }
     });
 

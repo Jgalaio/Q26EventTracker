@@ -276,7 +276,7 @@ export function AdminClient({
   };
 
   const editRole = (role: RoleDefinition) => {
-    if (role.builtIn) return;
+    if (role.id === "admin") return;
     setRoleFormMode("edit");
     setRoleForm({
       id: role.id,
@@ -294,7 +294,7 @@ export function AdminClient({
       const response = await fetch("/api/admin/roles", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roles: nextRoles.filter((role) => !role.builtIn) })
+        body: JSON.stringify({ roles: nextRoles.filter((role) => role.id !== "admin") })
       });
       const body = (await response.json().catch(() => null)) as { message?: string; roles?: RoleDefinition[] } | null;
       if (!response.ok) throw new Error(body?.message ?? "Não foi possível guardar os roles.");
@@ -329,12 +329,18 @@ export function AdminClient({
       return;
     }
 
+    const existingRole = rolesState.find((role) => role.id === id);
+    if (existingRole?.id === "admin") {
+      setRoleMessage("O role Admin não pode ser alterado.");
+      return;
+    }
+
     const nextRole: RoleDefinition = {
       id,
       label,
       description,
       permissions: roleForm.permissions,
-      builtIn: false
+      builtIn: existingRole?.builtIn ?? false
     };
     const nextRoles =
       roleFormMode === "edit"
@@ -1101,7 +1107,7 @@ export function AdminClient({
                     <td>{role.builtIn ? "Base" : "Personalizado"}</td>
                     <td>
                       <div className="admin-table-actions">
-                        <button disabled={role.builtIn || isSavingRoles} type="button" onClick={() => editRole(role)}>
+                        <button disabled={role.id === "admin" || isSavingRoles} type="button" onClick={() => editRole(role)}>
                           Editar
                         </button>
                         <button

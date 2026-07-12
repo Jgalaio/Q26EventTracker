@@ -2,7 +2,9 @@ import { readAppSetting, writeAppSetting } from "./app-settings";
 import {
   BUILTIN_ROLE_DEFINITIONS,
   getRoleLabel,
+  isBuiltInRole,
   normalizeRoleDefinition,
+  normalizePermissions,
   sessionFromRole,
   type AuthSession,
   type RoleDefinition,
@@ -27,8 +29,21 @@ export async function getCustomRoleDefinitions() {
 }
 
 export async function getRoleDefinitions() {
-  const customRoles = await getCustomRoleDefinitions();
-  return [...BUILTIN_ROLE_DEFINITIONS, ...customRoles];
+  const storedRoles = await getCustomRoleDefinitions();
+  const storedById = new Map(storedRoles.map((role) => [role.id, role]));
+  const baseRoles = BUILTIN_ROLE_DEFINITIONS.map((baseRole) => {
+    const override = storedById.get(baseRole.id);
+    if (!override) return baseRole;
+    return {
+      ...baseRole,
+      label: override.label,
+      description: override.description,
+      permissions: normalizePermissions(override.permissions, baseRole.permissions),
+      builtIn: true
+    };
+  });
+  const customRoles = storedRoles.filter((role) => !isBuiltInRole(role.id));
+  return [...baseRoles, ...customRoles];
 }
 
 export async function saveCustomRoleDefinitions(roles: RoleDefinition[]) {
