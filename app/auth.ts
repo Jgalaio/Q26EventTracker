@@ -25,6 +25,10 @@ type SupabaseUserRow = {
   updated_at?: string | null;
 };
 
+type SupabaseCredentialRow = SupabaseUserRow & {
+  password_hash: string | null;
+};
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ushhacwtmpmwmvpaitdx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB";
@@ -62,6 +66,7 @@ export function hashCredential(username: string, password: string) {
 }
 
 function safeCompare(a: string, b: string) {
+  if (!/^[0-9a-f]{64}$/i.test(a) || !/^[0-9a-f]{64}$/i.test(b)) return false;
   const left = Buffer.from(a, "hex");
   const right = Buffer.from(b, "hex");
   return left.length === right.length && timingSafeEqual(left, right);
@@ -103,19 +108,56 @@ async function verifyStoredCredentials(username: string, password: string) {
       method: "POST",
       headers: {
         apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({ p_username: username, p_password: password }),
       cache: "no-store"
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) return verifyStoredCredentialsWithAdmin(username, password);
     const rows = (await response.json()) as SupabaseLoginRow[];
     const row = rows[0];
     if (!row?.has_override) return { hasOverride: false, session: null };
     if (!row.password_valid || typeof row.username !== "string" || !isRole(row.role)) {
+      return (await verifyStoredCredentialsWithAdmin(username, password)) ?? { hasOverride: true, session: null };
+    }
+
+    return {
+      hasOverride: true,
+      session: await enrichSession({
+        username: row.username,
+        role: row.role
+      })
+    };
+  } catch {
+    return verifyStoredCredentialsWithAdmin(username, password);
+  }
+}
+
+async function verifyStoredCredentialsWithAdmin(username: string, password: string) {
+  const adminHeaders = supabaseAdminHeaders();
+  if (!adminHeaders) return null;
+
+  try {
+    const response = await fetch(
+      supabaseEndpoint(`app_users?username=eq.${encodeURIComponent(username)}&select=username,role,password_hash&limit=1`),
+      {
+        headers: adminHeaders,
+        cache: "no-store"
+      }
+    );
+
+    if (!response.ok) return null;
+    const rows = (await response.json()) as SupabaseCredentialRow[];
+    const row = rows[0];
+    if (!row?.username) return { hasOverride: false, session: null };
+    if (typeof row.role !== "string" || !isRole(row.role) || typeof row.password_hash !== "string") {
       return { hasOverride: true, session: null };
     }
+
+    const passwordHash = hashCredential(row.username, password);
+    if (!safeCompare(passwordHash, row.password_hash)) return { hasOverride: true, session: null };
 
     return {
       hasOverride: true,
