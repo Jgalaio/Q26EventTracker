@@ -3970,6 +3970,132 @@ td {
   gap: 10px;
 }
 
+.backup-automation-box {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.backup-automation-header,
+.stored-backups-heading,
+.stored-backup-row {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.backup-automation-header > div,
+.stored-backup-row > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.backup-automation-header strong,
+.stored-backups-heading strong,
+.stored-backup-row strong {
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+
+.backup-automation-header span,
+.stored-backups-heading span,
+.stored-backup-row span,
+.stored-backup-row small,
+.backup-last-status span,
+.backup-last-status small {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.backup-status-pill {
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 5px 9px;
+  white-space: nowrap;
+}
+
+.backup-status-pill.active {
+  background: #e8f8ee;
+  border-color: #a4d9b6;
+  color: #1f7a45;
+}
+
+.backup-status-pill.paused {
+  background: #fff8e7;
+  border-color: #efd089;
+  color: #94620b;
+}
+
+.backup-settings-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+}
+
+.backup-toggle {
+  align-self: end;
+  margin-bottom: 8px;
+}
+
+.backup-last-status {
+  background: white;
+  border: 1px solid #d9e8ff;
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+}
+
+.backup-last-status strong {
+  color: var(--blue);
+  font-size: 0.95rem;
+}
+
+.stored-backups-list {
+  display: grid;
+  gap: 8px;
+}
+
+.stored-backups-heading {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.stored-backup-row {
+  background: white;
+  border: 1px solid #d9e8ff;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.stored-backup-row.error {
+  background: #fff1f2;
+  border-color: #f0b8c2;
+}
+
+.stored-backup-row button {
+  flex: 0 0 auto;
+}
+
+.backup-empty-state {
+  background: white;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+  margin: 0;
+  padding: 12px;
+}
+
 .database-reset-box {
   background: #fff1f2;
   border: 1px solid #f0b8c2;
@@ -5698,6 +5824,7 @@ td {
   }
 
   .overview-card-grid,
+  .backup-settings-grid,
   .search-filter-tabs,
   .search-summary-grid,
   .welcome-card-grid,

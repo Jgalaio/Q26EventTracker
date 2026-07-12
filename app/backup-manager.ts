@@ -1,0 +1,387 @@
+import { randomUUID } from "crypto";
+import type { AuthSession } from "./auth-types";
+import { deleteAppSetting, readAppSetting, writeAppSetting } from "./app-settings";
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ushhacwtmpmwmvpaitdx.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB";
+
+const PAGE_SIZE = 1000;
+const MAX_BACKUPS = 20;
+const BACKUP_SETTINGS_KEY = "database_backup_settings";
+const BACKUP_RUNS_KEY = "database_backup_runs";
+const BACKUP_SNAPSHOT_KEY_PREFIX = "database_backup_snapshot_";
+const BACKUP_FREQUENCY_MS: Record<BackupFrequency, number> = {
+  daily: 24 * 60 * 60 * 1000,
+  weekly: 7 * 24 * 60 * 60 * 1000
+};
+
+const EVENT_COLUMNS = [
+  "id",
+  "slug",
+  "nome",
+  "folha_excel",
+  "ordem_folha",
+  "data_texto",
+  "data_inicio",
+  "data_fim",
+  "isento",
+  "isento_texto",
+  "contabilizar_totais",
+  "cor",
+  "fechado",
+  "tipo",
+  "created_at"
+];
+
+const MOVEMENT_COLUMNS = [
+  "id",
+  "evento_id",
+  "tipo",
+  "item",
+  "descricao",
+  "data_pagamento",
+  "montante",
+  "numero_fatura",
+  "fatura_com_nif",
+  "tipo_pagamento",
+  "pago",
+  "contabilizar_totais",
+  "origem_tabela",
+  "origem_linha",
+  "formula_montante",
+  "raw",
+  "created_at"
+];
+
+const SETTINGS_COLUMNS = ["key", "value", "updated_at"];
+
+const NOTES_COLUMNS = [
+  "id",
+  "titulo",
+  "conteudo",
+  "tipo_tarefa",
+  "estado",
+  "prioridade",
+  "agendado_para",
+  "prazo_para",
+  "responsavel",
+  "categoria",
+  "concluido_em",
+  "created_by",
+  "updated_by",
+  "created_at",
+  "updated_at"
+];
+
+const INVOICE_REPORT_COLUMNS = [
+  "id",
+  "created_at",
+  "created_by",
+  "evento_id",
+  "evento_slug",
+  "evento_nome",
+  "valor_fatura",
+  "total_despesas",
+  "total_itens_acrescentados",
+  "total_faturado",
+  "diferenca",
+  "movimentos_ids",
+  "payload"
+];
+
+type JsonRecord = Record<string, unknown>;
+
+export type BackupFrequency = "daily" | "weekly";
+export type BackupRunStatus = "success" | "error";
+export type BackupRunTrigger = "manual" | "automatic";
+
+export type DatabaseBackupSnapshot = {
+  exported_at: string;
+  version: 1;
+  tables: {
+    eventos: JsonRecord[];
+    movimentos: JsonRecord[];
+    app_settings: JsonRecord[];
+    notas: JsonRecord[];
+    faturas_relatorios: JsonRecord[];
+  };
+};
+
+export type BackupSettings = {
+  enabled: boolean;
+  frequency: BackupFrequency;
+  updatedAt: string | null;
+  updatedBy: string | null;
+  lastRunAt: string | null;
+  lastStatus: BackupRunStatus | null;
+  lastMessage: string | null;
+};
+
+export type BackupRun = {
+  id: string;
+  createdAt: string;
+  createdBy: string;
+  trigger: BackupRunTrigger;
+  status: BackupRunStatus;
+  message: string;
+  sizeBytes: number;
+  counts: Record<string, number>;
+  hasSnapshot?: boolean;
+  snapshot?: DatabaseBackupSnapshot;
+};
+
+export type BackupRunSummary = Omit<BackupRun, "snapshot"> & {
+  hasSnapshot: boolean;
+};
+
+export const defaultBackupSettings: BackupSettings = {
+  enabled: false,
+  frequency: "daily",
+  updatedAt: null,
+  updatedBy: null,
+  lastRunAt: null,
+  lastStatus: null,
+  lastMessage: null
+};
+
+export function getNextBackupAt(settings: BackupSettings) {
+  const anchor = settings.lastRunAt ?? settings.updatedAt;
+  if (!anchor) return null;
+  const anchorTime = new Date(anchor).getTime();
+  if (!Number.isFinite(anchorTime)) return null;
+  return new Date(anchorTime + BACKUP_FREQUENCY_MS[settings.frequency]).toISOString();
+}
+
+export function shouldRunAutomaticBackup(settings: BackupSettings, now = new Date()) {
+  if (!settings.enabled) return false;
+  const nextBackupAt = getNextBackupAt(settings);
+  if (!nextBackupAt) return true;
+  return new Date(nextBackupAt).getTime() <= now.getTime();
+}
+
+function endpoint(resource: string) {
+  return `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${resource}`;
+}
+
+function backupSnapshotKey(id: string) {
+  return `${BACKUP_SNAPSHOT_KEY_PREFIX}${id}`;
+}
+
+function isBackupStorageSettingKey(value: unknown) {
+  return typeof value === "string" && (value === BACKUP_RUNS_KEY || value.startsWith(BACKUP_SNAPSHOT_KEY_PREFIX));
+}
+
+function isRecord(value: unknown): value is JsonRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizeFrequency(value: unknown): BackupFrequency {
+  return value === "weekly" || value === "daily" ? value : "daily";
+}
+
+function normalizeSettings(value: unknown): BackupSettings {
+  if (!isRecord(value)) return defaultBackupSettings;
+  return {
+    enabled: typeof value.enabled === "boolean" ? value.enabled : defaultBackupSettings.enabled,
+    frequency: normalizeFrequency(value.frequency),
+    updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : null,
+    updatedBy: typeof value.updatedBy === "string" ? value.updatedBy : null,
+    lastRunAt: typeof value.lastRunAt === "string" ? value.lastRunAt : null,
+    lastStatus: value.lastStatus === "success" || value.lastStatus === "error" ? value.lastStatus : null,
+    lastMessage: typeof value.lastMessage === "string" ? value.lastMessage : null
+  };
+}
+
+function normalizeRun(value: unknown): BackupRun | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.id !== "string" || typeof value.createdAt !== "string") return null;
+  return {
+    id: value.id,
+    createdAt: value.createdAt,
+    createdBy: typeof value.createdBy === "string" ? value.createdBy : "Sistema",
+    trigger: value.trigger === "automatic" ? "automatic" : "manual",
+    status: value.status === "error" ? "error" : "success",
+    message: typeof value.message === "string" ? value.message : "",
+    sizeBytes: typeof value.sizeBytes === "number" && Number.isFinite(value.sizeBytes) ? value.sizeBytes : 0,
+    counts: isRecord(value.counts)
+      ? Object.fromEntries(Object.entries(value.counts).map(([key, count]) => [key, Number(count) || 0]))
+      : {},
+    hasSnapshot: typeof value.hasSnapshot === "boolean" ? value.hasSnapshot : isRecord(value.snapshot),
+    snapshot: isRecord(value.snapshot) ? (value.snapshot as DatabaseBackupSnapshot) : undefined
+  };
+}
+
+async function supabaseRequest<T>(resource: string, method: string) {
+  const response = await fetch(endpoint(resource), {
+    method,
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      "Content-Type": "application/json"
+    },
+    cache: "no-store"
+  });
+
+  const responseText = await response.text();
+  if (!response.ok) {
+    throw new Error(`${response.status} ${response.statusText}: ${responseText}`);
+  }
+
+  return (responseText ? JSON.parse(responseText) : null) as T;
+}
+
+async function fetchAllRows(table: string, order: string) {
+  const rows: JsonRecord[] = [];
+  let offset = 0;
+
+  while (true) {
+    const page = await supabaseRequest<JsonRecord[]>(
+      `${table}?select=*&order=${order}&limit=${PAGE_SIZE}&offset=${offset}`,
+      "GET"
+    );
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+
+  return rows;
+}
+
+function pickColumns(rows: JsonRecord[], columns: string[]) {
+  return rows.map((row) =>
+    columns.reduce<JsonRecord>((cleanRow, column) => {
+      if (column in row) cleanRow[column] = row[column];
+      return cleanRow;
+    }, {})
+  );
+}
+
+function backupCounts(snapshot: DatabaseBackupSnapshot) {
+  return Object.fromEntries(Object.entries(snapshot.tables).map(([table, rows]) => [table, rows.length]));
+}
+
+export function backupRunSummary(run: BackupRun): BackupRunSummary {
+  const { snapshot: _snapshot, ...summary } = run;
+  return { ...summary, hasSnapshot: Boolean(run.hasSnapshot || run.snapshot) };
+}
+
+function backupRunMetadata(run: BackupRun): BackupRun {
+  const { snapshot: _snapshot, ...metadata } = run;
+  return metadata;
+}
+
+export async function getBackupSettings() {
+  return normalizeSettings(await readAppSetting<unknown>(BACKUP_SETTINGS_KEY));
+}
+
+export async function saveBackupSettings(input: Partial<BackupSettings>, session: AuthSession) {
+  const current = await getBackupSettings();
+  const next: BackupSettings = {
+    ...current,
+    enabled: typeof input.enabled === "boolean" ? input.enabled : current.enabled,
+    frequency: normalizeFrequency(input.frequency ?? current.frequency),
+    updatedAt: new Date().toISOString(),
+    updatedBy: session.username
+  };
+  await writeAppSetting(BACKUP_SETTINGS_KEY, next);
+  return next;
+}
+
+export async function getBackupRuns() {
+  const value = await readAppSetting<unknown>(BACKUP_RUNS_KEY);
+  if (!Array.isArray(value)) return [];
+  return value.map(normalizeRun).filter((run): run is BackupRun => Boolean(run)).slice(0, MAX_BACKUPS);
+}
+
+export async function getBackupRunSummaries() {
+  return (await getBackupRuns()).map(backupRunSummary);
+}
+
+export async function getBackupRun(id: string) {
+  const run = (await getBackupRuns()).find((item) => item.id === id) ?? null;
+  if (!run) return null;
+  const snapshot =
+    run.snapshot ?? (run.hasSnapshot ? await readAppSetting<DatabaseBackupSnapshot>(backupSnapshotKey(id)) : null);
+  return snapshot ? { ...run, snapshot } : run;
+}
+
+export async function createDatabaseBackupSnapshot(): Promise<DatabaseBackupSnapshot> {
+  const [eventos, movimentos, appSettings, notas, faturasRelatorios] = await Promise.all([
+    fetchAllRows("eventos", "ordem_folha.asc"),
+    fetchAllRows("movimentos", "created_at.asc"),
+    fetchAllRows("app_settings", "key.asc"),
+    fetchAllRows("notas", "updated_at.asc"),
+    fetchAllRows("faturas_relatorios", "created_at.asc")
+  ]);
+
+  return {
+    exported_at: new Date().toISOString(),
+    version: 1,
+    tables: {
+      eventos: pickColumns(eventos, EVENT_COLUMNS),
+      movimentos: pickColumns(movimentos, MOVEMENT_COLUMNS),
+      app_settings: pickColumns(
+        appSettings.filter((row) => !isBackupStorageSettingKey(row.key)),
+        SETTINGS_COLUMNS
+      ),
+      notas: pickColumns(notas, NOTES_COLUMNS),
+      faturas_relatorios: pickColumns(faturasRelatorios, INVOICE_REPORT_COLUMNS)
+    }
+  };
+}
+
+export async function createStoredBackup(session: AuthSession, trigger: BackupRunTrigger) {
+  const now = new Date().toISOString();
+  const runs = await getBackupRuns();
+  let run: BackupRun;
+
+  try {
+    const snapshot = await createDatabaseBackupSnapshot();
+    const serialized = JSON.stringify(snapshot);
+    run = {
+      id: randomUUID(),
+      createdAt: now,
+      createdBy: trigger === "automatic" ? "Sistema" : session.username,
+      trigger,
+      status: "success",
+      message: "Backup criado com sucesso.",
+      sizeBytes: Buffer.byteLength(serialized, "utf8"),
+      counts: backupCounts(snapshot),
+      hasSnapshot: true,
+      snapshot
+    };
+  } catch (error) {
+    run = {
+      id: randomUUID(),
+      createdAt: now,
+      createdBy: trigger === "automatic" ? "Sistema" : session.username,
+      trigger,
+      status: "error",
+      message: error instanceof Error ? error.message : "Não foi possível criar o backup.",
+      sizeBytes: 0,
+      counts: {},
+      hasSnapshot: false
+    };
+  }
+
+  if (run.snapshot) await writeAppSetting(backupSnapshotKey(run.id), run.snapshot);
+
+  const runMetadata = backupRunMetadata(run);
+  const candidateRuns = [runMetadata, ...runs.map(backupRunMetadata)];
+  const nextRuns = candidateRuns.slice(0, MAX_BACKUPS);
+  const expiredRuns = candidateRuns.slice(MAX_BACKUPS);
+  const currentSettings = await getBackupSettings();
+  const nextSettings: BackupSettings = {
+    ...currentSettings,
+    lastRunAt: run.createdAt,
+    lastStatus: run.status,
+    lastMessage: run.message
+  };
+
+  await writeAppSetting(BACKUP_RUNS_KEY, nextRuns);
+  await writeAppSetting(BACKUP_SETTINGS_KEY, nextSettings);
+  await Promise.all(expiredRuns.map((expiredRun) => deleteAppSetting(backupSnapshotKey(expiredRun.id)).catch(() => undefined)));
+
+  if (run.status === "error") throw new Error(run.message);
+  return { run, settings: nextSettings, runs: nextRuns };
+}

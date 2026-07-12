@@ -21,6 +21,8 @@ type AdminAccess =
 
 const PAGE_SIZE = 1000;
 const IMPORT_CHUNK_SIZE = 250;
+const BACKUP_RUNS_SETTING_KEY = "database_backup_runs";
+const BACKUP_SNAPSHOT_SETTING_PREFIX = "database_backup_snapshot_";
 
 const EVENT_COLUMNS = [
   "id",
@@ -102,6 +104,13 @@ function endpoint(resource: string) {
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isBackupStorageSettingKey(value: unknown) {
+  return (
+    typeof value === "string" &&
+    (value === BACKUP_RUNS_SETTING_KEY || value.startsWith(BACKUP_SNAPSHOT_SETTING_PREFIX))
+  );
 }
 
 async function requireAdmin(): Promise<AdminAccess> {
@@ -198,13 +207,14 @@ export async function GET() {
   if (access.error) return access.error;
 
   try {
-    const [eventos, movimentos, appSettings, notas, faturasRelatorios] = await Promise.all([
+    const [eventos, movimentos, appSettingsRows, notas, faturasRelatorios] = await Promise.all([
       fetchAllRows("eventos", "ordem_folha.asc"),
       fetchAllRows("movimentos", "created_at.asc"),
       fetchAllRows("app_settings", "key.asc"),
       fetchAllRows("notas", "updated_at.asc"),
       fetchAllRows("faturas_relatorios", "created_at.asc")
     ]);
+    const appSettings = appSettingsRows.filter((row) => !isBackupStorageSettingKey(row.key));
 
     await writeAuditLog({
       session: access.session,

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAppFavicon, getAppLogo, getReportLogo } from "../app-settings";
 import { getAuditLogs } from "../audit-log";
+import { getBackupRunSummaries, getBackupSettings } from "../backup-manager";
 import { getSession, listAuthUsers } from "../auth";
 import { getRoleDefinitions } from "../role-settings";
 import { getClosedEvents } from "../supabase-data";
@@ -25,14 +26,16 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const params = searchParams ? await searchParams : {};
   const auditPage = parseLogPage(params.logPage);
-  const [users, roles, reportLogo, appFavicon, appLogo, audit, closedEvents] = await Promise.all([
+  const [users, roles, reportLogo, appFavicon, appLogo, audit, closedEvents, backupSettings, backupRuns] = await Promise.all([
     listAuthUsers(),
     getRoleDefinitions(),
     getReportLogo(),
     getAppFavicon(),
     getAppLogo(),
     getAuditLogs(auditPage, 50),
-    getClosedEvents()
+    getClosedEvents(),
+    getBackupSettings(),
+    getBackupRunSummaries()
   ]);
 
   return (
@@ -47,6 +50,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         auditLogError={audit.error}
         auditLogs={audit.logs}
         auditPage={auditPage}
+        backupRuns={backupRuns}
+        backupSettings={backupSettings}
         appFavicon={appFavicon}
         appLogo={appLogo}
         closedEvents={closedEvents.data}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { AppFavicon, AppLogo, ReportLogo } from "../app-settings";
 import type { AuditLogEntry } from "../audit-log";
+import type { BackupFrequency, BackupRunSummary, BackupSettings } from "../backup-manager";
 import {
   EMPTY_ROLE_PERMISSIONS,
   getRoleLabel,
@@ -34,6 +35,8 @@ type AdminClientProps = {
   auditLogError: string | null;
   auditPage: number;
   auditHasNext: boolean;
+  backupSettings: BackupSettings;
+  backupRuns: BackupRunSummary[];
   closedEvents: EventoResumo[];
   closedEventsError: string | null;
 };
@@ -478,6 +481,16 @@ const adminMoneyFormatter = new Intl.NumberFormat("pt-PT", {
   style: "currency"
 });
 
+const byteFormatter = new Intl.NumberFormat("pt-PT", {
+  maximumFractionDigits: 1,
+  minimumFractionDigits: 0
+});
+
+const backupFrequencyLabels: Record<BackupFrequency, string> = {
+  daily: "Diário",
+  weekly: "Semanal"
+};
+
 function formatLogDate(value: string) {
   return logDateFormatter.format(new Date(value));
 }
@@ -489,6 +502,12 @@ function formatEventDate(value: string | null | undefined) {
 
 function formatMoney(value: number | null | undefined) {
   return adminMoneyFormatter.format(Number(value ?? 0));
+}
+
+function formatFileSize(value: number) {
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${byteFormatter.format(value / 1024)} KB`;
+  return `${byteFormatter.format(value / (1024 * 1024))} MB`;
 }
 
 function formatDetails(details: Record<string, unknown>) {
@@ -535,6 +554,8 @@ export function AdminClient({
   auditLogError,
   auditPage,
   auditHasNext,
+  backupSettings,
+  backupRuns,
   closedEvents,
   closedEventsError
 }: AdminClientProps) {
@@ -564,6 +585,9 @@ export function AdminClient({
   const [databaseImportText, setDatabaseImportText] = useState("");
   const [databaseImportName, setDatabaseImportName] = useState("");
   const [databaseMessage, setDatabaseMessage] = useState<string | null>(null);
+  const [backupSettingsState, setBackupSettingsState] = useState(backupSettings);
+  const [backupRunsState, setBackupRunsState] = useState(backupRuns);
+  const [backupMessage, setBackupMessage] = useState<string | null>(null);
   const [closedEventsState, setClosedEventsState] = useState(closedEvents);
   const [closedEventsMessage, setClosedEventsMessage] = useState<string | null>(null);
   const [resetConfirmation, setResetConfirmation] = useState("");
@@ -577,6 +601,9 @@ export function AdminClient({
   const [isExportingDatabase, setIsExportingDatabase] = useState(false);
   const [isImportingDatabase, setIsImportingDatabase] = useState(false);
   const [isResettingDatabase, setIsResettingDatabase] = useState(false);
+  const [isSavingBackupSettings, setIsSavingBackupSettings] = useState(false);
+  const [isCreatingStoredBackup, setIsCreatingStoredBackup] = useState(false);
+  const [downloadingBackupId, setDownloadingBackupId] = useState<string | null>(null);
   const [unlockingEventId, setUnlockingEventId] = useState<string | null>(null);
 
   const updatePasswordField = (field: keyof PasswordForm, value: string) => {
@@ -1121,6 +1148,90 @@ export function AdminClient({
     }
   };
 
+  const saveBackupSettings = async () => {
+    setIsSavingBackupSettings(true);
+    setBackupMessage(null);
+    try {
+      const response = await fetch("/api/admin/backups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "settings",
+          enabled: backupSettingsState.enabled,
+          frequency: backupSettingsState.frequency
+        })
+      });
+      const body = (await response.json().catch(() => null)) as {
+        message?: string;
+        settings?: BackupSettings;
+        runs?: BackupRunSummary[];
+      } | null;
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível guardar as definições de backup.");
+      if (body?.settings) setBackupSettingsState(body.settings);
+      if (body?.runs) setBackupRunsState(body.runs);
+      setBackupMessage(body?.message ?? "Definições de backup guardadas.");
+      router.refresh();
+    } catch (error) {
+      setBackupMessage(error instanceof Error ? error.message : "Não foi possível guardar as definições de backup.");
+    } finally {
+      setIsSavingBackupSettings(false);
+    }
+  };
+
+  const createStoredBackup = async () => {
+    setIsCreatingStoredBackup(true);
+    setBackupMessage(null);
+    try {
+      const response = await fetch("/api/admin/backups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "create" })
+      });
+      const body = (await response.json().catch(() => null)) as {
+        message?: string;
+        settings?: BackupSettings;
+        runs?: BackupRunSummary[];
+      } | null;
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível criar o backup.");
+      if (body?.settings) setBackupSettingsState(body.settings);
+      if (body?.runs) setBackupRunsState(body.runs);
+      setBackupMessage(body?.message ?? "Backup guardado.");
+      router.refresh();
+    } catch (error) {
+      setBackupMessage(error instanceof Error ? error.message : "Não foi possível criar o backup.");
+    } finally {
+      setIsCreatingStoredBackup(false);
+    }
+  };
+
+  const downloadStoredBackup = async (run: BackupRunSummary) => {
+    setDownloadingBackupId(run.id);
+    setBackupMessage(null);
+    try {
+      const response = await fetch(`/api/admin/backups/${encodeURIComponent(run.id)}`);
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(body?.message ?? "Não foi possível descarregar o backup.");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      const stamp = run.createdAt.slice(0, 19).replace(/[:T]/g, "-");
+      anchor.href = url;
+      anchor.download = `q26-backup-guardado-${stamp}.json`;
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setBackupMessage("Backup descarregado.");
+    } catch (error) {
+      setBackupMessage(error instanceof Error ? error.message : "Não foi possível descarregar o backup.");
+    } finally {
+      setDownloadingBackupId(null);
+    }
+  };
+
   const unlockEvent = async (event: EventoResumo) => {
     const confirmed = window.confirm(`Desbloquear o evento "${event.nome}" para voltar a permitir alterações?`);
     if (!confirmed) return;
@@ -1281,6 +1392,98 @@ export function AdminClient({
           <button disabled={isImportingDatabase || !databaseImportText} type="button" onClick={importDatabase}>
             {isImportingDatabase ? "A importar..." : "Importar e substituir"}
           </button>
+          <div className="backup-automation-box">
+            <div className="backup-automation-header">
+              <div>
+                <strong>Backups automáticos</strong>
+                <span>
+                  {backupSettingsState.enabled
+                    ? `Ativo · ${backupFrequencyLabels[backupSettingsState.frequency]}`
+                    : "Pausado"}
+                </span>
+              </div>
+              <span className={backupSettingsState.enabled ? "backup-status-pill active" : "backup-status-pill paused"}>
+                {backupSettingsState.enabled ? "Ativo" : "Pausado"}
+              </span>
+            </div>
+            <div className="backup-settings-grid">
+              <label className="table-checkbox backup-toggle">
+                <input
+                  checked={backupSettingsState.enabled}
+                  type="checkbox"
+                  onChange={(event) =>
+                    setBackupSettingsState((current) => ({ ...current, enabled: event.target.checked }))
+                  }
+                />
+                <span>Backup automático ativo</span>
+              </label>
+              <label>
+                Periodicidade
+                <select
+                  value={backupSettingsState.frequency}
+                  onChange={(event) =>
+                    setBackupSettingsState((current) => ({
+                      ...current,
+                      frequency: event.target.value as BackupFrequency
+                    }))
+                  }
+                >
+                  {Object.entries(backupFrequencyLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="admin-inline-actions">
+              <button disabled={isSavingBackupSettings} type="button" onClick={saveBackupSettings}>
+                {isSavingBackupSettings ? "A guardar..." : "Guardar definições"}
+              </button>
+              <button className="secondary-button" disabled={isCreatingStoredBackup} type="button" onClick={createStoredBackup}>
+                {isCreatingStoredBackup ? "A criar..." : "Criar backup agora"}
+              </button>
+            </div>
+            <div className="backup-last-status">
+              <span>Último backup</span>
+              <strong>
+                {backupSettingsState.lastRunAt ? formatLogDate(backupSettingsState.lastRunAt) : "Ainda sem backups"}
+              </strong>
+              {backupSettingsState.lastMessage ? <small>{backupSettingsState.lastMessage}</small> : null}
+            </div>
+            {backupMessage ? <p className="form-message">{backupMessage}</p> : null}
+            <div className="stored-backups-list" aria-label="Últimos backups guardados">
+              <div className="stored-backups-heading">
+                <strong>Últimos backups</strong>
+                <span>{backupRunsState.length}/20 guardados</span>
+              </div>
+              {backupRunsState.length ? (
+                backupRunsState.map((run) => (
+                  <article className={run.status === "success" ? "stored-backup-row" : "stored-backup-row error"} key={run.id}>
+                    <div>
+                      <strong>{formatLogDate(run.createdAt)}</strong>
+                      <span>
+                        {run.trigger === "automatic" ? "Automático" : "Manual"} · {run.createdBy} · {formatFileSize(run.sizeBytes)}
+                      </span>
+                      <small>
+                        Eventos {run.counts.eventos ?? 0} · Movimentos {run.counts.movimentos ?? 0} · Notas {run.counts.notas ?? 0}
+                      </small>
+                    </div>
+                    <button
+                      className="secondary-button"
+                      disabled={!run.hasSnapshot || downloadingBackupId === run.id}
+                      type="button"
+                      onClick={() => downloadStoredBackup(run)}
+                    >
+                      {downloadingBackupId === run.id ? "A descarregar..." : "Download"}
+                    </button>
+                  </article>
+                ))
+              ) : (
+                <p className="backup-empty-state">Ainda não existem backups guardados.</p>
+              )}
+            </div>
+          </div>
           <div className="database-reset-box">
             <strong>Recomeçar de novo</strong>
             <span>Limpa eventos, movimentos, relatórios e definições. Mantém utilizadores e log.</span>
