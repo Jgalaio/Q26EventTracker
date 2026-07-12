@@ -5,6 +5,7 @@ export type RolePermissions = {
   manageRecords: boolean;
   deleteRecords: boolean;
   exportOverviewExcel: boolean;
+  viewClosedEvents: boolean;
   requiresJustification: boolean;
 };
 
@@ -28,6 +29,7 @@ export const EMPTY_ROLE_PERMISSIONS: RolePermissions = {
   manageRecords: false,
   deleteRecords: false,
   exportOverviewExcel: false,
+  viewClosedEvents: false,
   requiresJustification: false
 };
 
@@ -41,6 +43,7 @@ export const BUILTIN_ROLE_DEFINITIONS: RoleDefinition[] = [
       manageRecords: true,
       deleteRecords: true,
       exportOverviewExcel: true,
+      viewClosedEvents: true,
       requiresJustification: false
     },
     builtIn: true
@@ -54,6 +57,7 @@ export const BUILTIN_ROLE_DEFINITIONS: RoleDefinition[] = [
       manageRecords: true,
       deleteRecords: false,
       exportOverviewExcel: false,
+      viewClosedEvents: false,
       requiresJustification: true
     },
     builtIn: true
@@ -67,6 +71,7 @@ export const BUILTIN_ROLE_DEFINITIONS: RoleDefinition[] = [
       manageRecords: false,
       deleteRecords: false,
       exportOverviewExcel: false,
+      viewClosedEvents: false,
       requiresJustification: false
     },
     builtIn: true
@@ -109,6 +114,7 @@ export function normalizePermissions(value: unknown, fallback: RolePermissions =
     deleteRecords: typeof source.deleteRecords === "boolean" ? source.deleteRecords : fallback.deleteRecords,
     exportOverviewExcel:
       typeof source.exportOverviewExcel === "boolean" ? source.exportOverviewExcel : fallback.exportOverviewExcel,
+    viewClosedEvents: typeof source.viewClosedEvents === "boolean" ? source.viewClosedEvents : fallback.viewClosedEvents,
     requiresJustification:
       typeof source.requiresJustification === "boolean" ? source.requiresJustification : fallback.requiresJustification
   };
@@ -178,6 +184,10 @@ export function canAccessAdmin(input: UserRole | AuthSession) {
 
 export function canExportOverviewExcel(input: UserRole | AuthSession) {
   return roleFor(input) === "admin" || permissionsFor(input).exportOverviewExcel;
+}
+
+export function canViewClosedEvents(input: UserRole | AuthSession) {
+  return roleFor(input) === "admin" || permissionsFor(input).viewClosedEvents;
 }
 
 export function requiresJustification(input: UserRole | AuthSession) {

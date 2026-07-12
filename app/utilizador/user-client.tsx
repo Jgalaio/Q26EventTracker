@@ -4,11 +4,14 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import type { AuditLogEntry } from "../audit-log";
 import type { AuthSession, RolePermissions } from "../auth-types";
+import type { EventoResumo } from "../supabase-data";
 import type { UserQuickNotes } from "../user-quick-notes";
 
 type UserClientProps = {
   auditError: string | null;
   auditLogs: AuditLogEntry[];
+  closedEvents: EventoResumo[] | null;
+  closedEventsError: string | null;
   quickNotes: UserQuickNotes;
   session: AuthSession;
 };
@@ -30,6 +33,7 @@ const permissionLabels: Array<{ key: keyof RolePermissions; label: string }> = [
   { key: "manageRecords", label: "Adicionar e alterar" },
   { key: "deleteRecords", label: "Apagar registos" },
   { key: "exportOverviewExcel", label: "Exportar Excel no OverView" },
+  { key: "viewClosedEvents", label: "Ver eventos fechados" },
   { key: "requiresJustification", label: "Pedir justificação ao alterar" }
 ];
 
@@ -41,8 +45,29 @@ const dateFormatter = new Intl.DateTimeFormat("pt-PT", {
   year: "numeric"
 });
 
+const eventDateFormatter = new Intl.DateTimeFormat("pt-PT", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric"
+});
+
+const moneyFormatter = new Intl.NumberFormat("pt-PT", {
+  currency: "EUR",
+  maximumFractionDigits: 2,
+  style: "currency"
+});
+
 function formatLogDate(value: string) {
   return dateFormatter.format(new Date(value));
+}
+
+function formatEventDate(value: string | null | undefined) {
+  if (!value) return "Sem data";
+  return eventDateFormatter.format(new Date(`${value}T00:00:00`));
+}
+
+function formatMoney(value: number | null | undefined) {
+  return moneyFormatter.format(Number(value ?? 0));
 }
 
 function formatDetails(details: Record<string, unknown>) {
@@ -62,7 +87,7 @@ function auditLogTarget(log: AuditLogEntry) {
   return null;
 }
 
-export function UserClient({ auditError, auditLogs, quickNotes, session }: UserClientProps) {
+export function UserClient({ auditError, auditLogs, closedEvents, closedEventsError, quickNotes, session }: UserClientProps) {
   const [passwordForm, setPasswordForm] = useState<PasswordForm>(emptyPasswordForm);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
@@ -213,6 +238,44 @@ export function UserClient({ auditError, auditLogs, quickNotes, session }: UserC
           </div>
         </article>
       </section>
+
+      {closedEvents ? (
+        <section className="admin-closed-events-panel user-closed-events-panel" aria-label="Eventos fechados">
+          <div className="admin-log-header">
+            <div>
+              <p className="eyebrow">Eventos</p>
+              <h2>Eventos fechados</h2>
+            </div>
+            <span>{closedEvents.length} fechados</span>
+          </div>
+          {closedEventsError ? (
+            <p className="form-message">Não foi possível carregar os eventos fechados. {closedEventsError}</p>
+          ) : null}
+          <div className="closed-events-list">
+            {closedEvents.length ? (
+              closedEvents.map((event) => (
+                <article className="closed-event-card user-closed-event-card" key={event.id}>
+                  <div>
+                    <span className="event-lock-badge">
+                      <span className="event-lock-glyph" aria-hidden="true" />
+                      Fechado
+                    </span>
+                    <strong>{event.nome}</strong>
+                    <small>
+                      {formatEventDate(event.data_inicio)} · {formatMoney(event.saldo)}
+                    </small>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="empty-closed-events">
+                <strong>Sem eventos fechados</strong>
+                <span>Quando existirem eventos fechados, aparecem aqui para consulta.</span>
+              </div>
+            )}
+          </div>
+        </section>
+      ) : null}
 
       <section className="admin-log-panel user-log-panel" aria-label="Últimas alterações do utilizador">
         <div className="admin-log-header">

@@ -83,6 +83,7 @@ const emptyRoleForm: RoleForm = {
     manageRecords: false,
     deleteRecords: false,
     exportOverviewExcel: false,
+    viewClosedEvents: false,
     requiresJustification: false
   }
 };
@@ -107,6 +108,11 @@ const rolePermissionLabels: Array<{ key: keyof RolePermissions; label: string; h
     key: "exportOverviewExcel",
     label: "Exportar Excel",
     hint: "Permite exportar eventos no OverView."
+  },
+  {
+    key: "viewClosedEvents",
+    label: "Ver eventos fechados",
+    hint: "Mostra a lista de eventos fechados no perfil do utilizador."
   },
   {
     key: "requiresJustification",

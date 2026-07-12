@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { getAppLogo } from "../app-settings";
 import { getUserAuditLogs } from "../audit-log";
 import { getSession } from "../auth";
+import { canViewClosedEvents } from "../auth-types";
+import { getClosedEvents } from "../supabase-data";
 import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
 import { getUserQuickNotes } from "../user-quick-notes";
@@ -11,10 +13,12 @@ export default async function UserPage() {
   const session = await getSession();
   if (!session) redirect("/login?next=/utilizador");
 
-  const [appLogo, audit, quickNotes] = await Promise.all([
+  const mayViewClosedEvents = canViewClosedEvents(session);
+  const [appLogo, audit, quickNotes, closedEvents] = await Promise.all([
     getAppLogo(),
     getUserAuditLogs(session.username, 40),
-    getUserQuickNotes(session.username)
+    getUserQuickNotes(session.username),
+    mayViewClosedEvents ? getClosedEvents() : Promise.resolve({ data: [], error: null })
   ]);
 
   return (
@@ -24,7 +28,14 @@ export default async function UserPage() {
         <TopbarActions active="utilizador" session={session} />
       </section>
 
-      <UserClient auditError={audit.error} auditLogs={audit.logs} quickNotes={quickNotes} session={session} />
+      <UserClient
+        auditError={audit.error}
+        auditLogs={audit.logs}
+        closedEvents={mayViewClosedEvents ? closedEvents.data : null}
+        closedEventsError={mayViewClosedEvents ? closedEvents.error : null}
+        quickNotes={quickNotes}
+        session={session}
+      />
     </main>
   );
 }
