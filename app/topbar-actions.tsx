@@ -13,6 +13,7 @@ export type TopbarActive =
   | "fat-patrocinios"
   | "overview"
   | "admin"
+  | "utilizador"
   | "notas"
   | "a-pagar";
 
@@ -96,10 +97,14 @@ export function TopbarActions({ active, pendingPaymentsCount = 0, session }: Top
         </Link>
       ) : null}
       <div className="top-session">
-        <div className="user-chip">
+        <Link
+          aria-current={active === "utilizador" ? "page" : undefined}
+          className={active === "utilizador" ? "user-chip active" : "user-chip"}
+          href="/utilizador"
+        >
           <span>{session.username}</span>
           <strong>{session.roleLabel}</strong>
-        </div>
+        </Link>
         <form action="/api/logout" method="post">
           <button className="logout-button" type="submit">
             Sair

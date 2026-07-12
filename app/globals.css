@@ -219,6 +219,7 @@ h2 {
   gap: 8px;
   min-height: 39px;
   padding: 0 13px;
+  text-decoration: none;
 }
 
 .user-chip span {
@@ -229,6 +230,14 @@ h2 {
 .user-chip strong {
   color: var(--green-ink);
   font-size: 0.82rem;
+}
+
+.user-chip:hover,
+.user-chip.active,
+.user-chip:focus-visible {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(31, 102, 229, 0.12);
+  outline: none;
 }
 
 .top-actions form {
@@ -4294,6 +4303,80 @@ td {
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
+}
+
+.user-shell {
+  max-width: 1320px;
+}
+
+.user-profile-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
+}
+
+.user-profile-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.user-profile-card h2 {
+  color: var(--ink);
+  font-size: clamp(2rem, 5vw, 4.2rem);
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.user-profile-meta {
+  align-items: center;
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  padding: 14px;
+}
+
+.user-profile-meta span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.user-profile-meta strong {
+  color: var(--green-ink);
+  font-size: 1rem;
+}
+
+.user-permission-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.user-password-card {
+  align-self: start;
+}
+
+.user-log-panel {
+  margin-top: 18px;
+}
+
+.user-log-table {
+  min-width: 760px;
+}
+
+.user-log-link {
+  color: var(--blue);
+  font-weight: 900;
 }
 
 .nav-button.disabled {

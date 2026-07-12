@@ -92,6 +92,42 @@ export async function getAuditLogs(page: number, pageSize = 50) {
   }
 }
 
+export async function getUserAuditLogs(username: string, limit = 30) {
+  const safeLimit = Math.max(1, Math.min(100, limit));
+
+  try {
+    const response = await fetch(
+      `${endpoint("app_audit_logs")}?select=*&username=eq.${encodeURIComponent(
+        username
+      )}&order=created_at.desc&limit=${safeLimit}`,
+      {
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          "Content-Type": "application/json"
+        },
+        cache: "no-store"
+      }
+    );
+
+    if (!response.ok) {
+      return {
+        error: await response.text(),
+        logs: [] as AuditLogEntry[]
+      };
+    }
+
+    return {
+      error: null,
+      logs: (await response.json()) as AuditLogEntry[]
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Não foi possível carregar as alterações do utilizador.",
+      logs: [] as AuditLogEntry[]
+    };
+  }
+}
+
 export async function getMovementAuditLogs(movementId: string, limit = 50) {
   const safeLimit = Math.max(1, Math.min(100, limit));
 
