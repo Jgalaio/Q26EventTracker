@@ -58,6 +58,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <button type="submit">Entrar</button>
         </form>
       </section>
+
+      <section className="login-creator-panel" aria-label="Criadores">
+        <p>Criado por J.Galaio e A.Lopes.</p>
+        <img alt="Criado por J.Galaio e A.Lopes" src="/login-creators.png" />
+      </section>
     </main>
   );
 }

@@ -828,7 +828,10 @@ h2 {
 
 .login-shell {
   align-items: center;
+  align-content: center;
   display: grid;
+  gap: 16px;
+  justify-items: center;
   min-height: 100vh;
   padding: 22px;
 }
@@ -937,6 +940,36 @@ h2 {
   color: var(--red);
   margin: 0;
   padding: 12px;
+}
+
+.login-creator-panel {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  width: min(440px, 100%);
+}
+
+.login-creator-panel p {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 800;
+  margin: 0;
+  padding: 9px 16px;
+  text-align: center;
+}
+
+.login-creator-panel img {
+  border: 1px solid #c4d8ff;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: block;
+  height: auto;
+  max-height: min(42vh, 360px);
+  object-fit: contain;
+  width: min(360px, 100%);
 }
 
 .management-menu {
