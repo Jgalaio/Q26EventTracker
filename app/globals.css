@@ -4184,14 +4184,75 @@ td {
   align-self: stretch;
 }
 
+.admin-permission-modules {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-permission-module {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.admin-permission-module[open] {
+  border-color: #bcd4ff;
+}
+
+.admin-permission-module summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  list-style: none;
+  padding: 12px;
+}
+
+.admin-permission-module summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-permission-module summary > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-permission-module summary strong {
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+
+.admin-permission-module summary small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.admin-permission-module summary em {
+  background: #eef5ff;
+  border: 1px solid #c9dcff;
+  border-radius: 999px;
+  color: var(--blue);
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 900;
+  padding: 5px 8px;
+}
+
 .admin-permission-list {
   display: grid;
   gap: 8px;
+  padding: 0 12px 12px;
 }
 
 .admin-permission-option {
   align-items: flex-start;
-  background: #f8fbff;
+  background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--line);
   border-radius: 8px;
   cursor: pointer;

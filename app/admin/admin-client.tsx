@@ -61,6 +61,12 @@ type RoleForm = {
   permissions: RolePermissions;
 };
 
+type RolePermissionOption = {
+  key: keyof RolePermissions;
+  label: string;
+  hint: string;
+};
+
 const emptyPasswordForm: PasswordForm = {
   currentPassword: "",
   newPassword: "",
@@ -89,43 +95,78 @@ const emptyRoleForm: RoleForm = {
   }
 };
 
-const rolePermissionLabels: Array<{ key: keyof RolePermissions; label: string; hint: string }> = [
+const rolePermissionModules: Array<{
+  id: string;
+  title: string;
+  description: string;
+  permissions: RolePermissionOption[];
+}> = [
   {
-    key: "viewTreasury",
-    label: "Consultar Tesouraria",
-    hint: "Acesso às páginas de consulta, pesquisa e pagamentos."
+    id: "tesouraria",
+    title: "Tesouraria",
+    description: "Consulta e gestão dos eventos, entradas e saídas.",
+    permissions: [
+      {
+        key: "viewTreasury",
+        label: "Consultar Tesouraria",
+        hint: "Acesso às páginas de consulta, pesquisa e pagamentos."
+      },
+      {
+        key: "manageRecords",
+        label: "Adicionar e alterar",
+        hint: "Pode criar e editar movimentos, eventos, relatórios e faturas."
+      },
+      {
+        key: "deleteRecords",
+        label: "Apagar registos",
+        hint: "Permite apagar movimentos e eventos."
+      }
+    ]
   },
   {
-    key: "manageRecords",
-    label: "Adicionar e alterar",
-    hint: "Pode criar e editar movimentos, eventos, relatórios e faturas."
+    id: "eventos-fechados",
+    title: "Eventos Fechados",
+    description: "Consulta e abertura de eventos bloqueados.",
+    permissions: [
+      {
+        key: "viewClosedEvents",
+        label: "Ver eventos fechados",
+        hint: "Mostra a lista de eventos fechados no perfil do utilizador."
+      },
+      {
+        key: "unlockClosedEvents",
+        label: "Abrir eventos fechados",
+        hint: "Permite desbloquear eventos fechados a partir do perfil."
+      }
+    ]
   },
   {
-    key: "deleteRecords",
-    label: "Apagar registos",
-    hint: "Permite apagar movimentos e eventos."
+    id: "overview-exportacoes",
+    title: "OverView e Exportações",
+    description: "Acesso a exportações e consulta avançada.",
+    permissions: [
+      {
+        key: "exportOverviewExcel",
+        label: "Exportar Excel",
+        hint: "Permite exportar eventos no OverView."
+      }
+    ]
   },
   {
-    key: "exportOverviewExcel",
-    label: "Exportar Excel",
-    hint: "Permite exportar eventos no OverView."
-  },
-  {
-    key: "viewClosedEvents",
-    label: "Ver eventos fechados",
-    hint: "Mostra a lista de eventos fechados no perfil do utilizador."
-  },
-  {
-    key: "unlockClosedEvents",
-    label: "Abrir eventos fechados",
-    hint: "Permite desbloquear eventos fechados a partir do perfil."
-  },
-  {
-    key: "requiresJustification",
-    label: "Pedir justificação",
-    hint: "Ao editar, obriga a preencher a justificação."
+    id: "seguranca",
+    title: "Segurança",
+    description: "Regras de controlo e rastreabilidade das alterações.",
+    permissions: [
+      {
+        key: "requiresJustification",
+        label: "Pedir justificação",
+        hint: "Ao editar, obriga a preencher a justificação."
+      }
+    ]
   }
 ];
+
+const rolePermissionLabels = rolePermissionModules.flatMap((module) => module.permissions);
 
 const logDateFormatter = new Intl.DateTimeFormat("pt-PT", {
   day: "2-digit",
@@ -1055,20 +1096,38 @@ export function AdminClient({
                 onChange={(event) => updateRoleField("description", event.target.value)}
               />
             </label>
-            <div className="admin-permission-list" aria-label="Permissões do role">
-              {rolePermissionLabels.map((permission) => (
-                <label className="admin-permission-option" key={permission.key}>
-                  <input
-                    checked={roleForm.permissions[permission.key]}
-                    type="checkbox"
-                    onChange={(event) => updateRolePermission(permission.key, event.target.checked)}
-                  />
-                  <span>
-                    <strong>{permission.label}</strong>
-                    <small>{permission.hint}</small>
-                  </span>
-                </label>
-              ))}
+            <div className="admin-permission-modules" aria-label="Permissões do role por módulo">
+              {rolePermissionModules.map((module, moduleIndex) => {
+                const enabledCount = module.permissions.filter((permission) => roleForm.permissions[permission.key]).length;
+                return (
+                  <details className="admin-permission-module" key={module.id} open={moduleIndex === 0}>
+                    <summary>
+                      <span>
+                        <strong>{module.title}</strong>
+                        <small>{module.description}</small>
+                      </span>
+                      <em>
+                        {enabledCount}/{module.permissions.length}
+                      </em>
+                    </summary>
+                    <div className="admin-permission-list">
+                      {module.permissions.map((permission) => (
+                        <label className="admin-permission-option" key={permission.key}>
+                          <input
+                            checked={roleForm.permissions[permission.key]}
+                            type="checkbox"
+                            onChange={(event) => updateRolePermission(permission.key, event.target.checked)}
+                          />
+                          <span>
+                            <strong>{permission.label}</strong>
+                            <small>{permission.hint}</small>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </details>
+                );
+              })}
             </div>
             {roleMessage ? <p className="form-message">{roleMessage}</p> : null}
             <div className="admin-inline-actions">
