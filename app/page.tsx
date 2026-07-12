@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
-import { getAppLogo, getPhysicalCashSettings, getQ25Balance, readAppSetting } from "./app-settings";
+import { getAppLogo, getPhysicalCashSettings, getQ25Balance } from "./app-settings";
 import { getSession } from "./auth";
 import { canViewTreasury } from "./auth-types";
 import { getNotas, getTesourariaData, type EventoResumo, type MovimentoDetalhe, type Nota } from "./supabase-data";
+import { getUserQuickNotes } from "./user-quick-notes";
 import { WelcomeClient } from "./welcome-client";
 
 type Summary = {
@@ -15,12 +16,6 @@ type Summary = {
   pagoQ26: number;
   transferencias: number;
   dinheiro: number;
-};
-
-type WelcomeQuickNotes = {
-  content: string;
-  updatedAt: string | null;
-  updatedBy: string | null;
 };
 
 type WelcomePageProps = {
@@ -165,7 +160,7 @@ export default async function WelcomePage({ searchParams }: WelcomePageProps) {
     getPhysicalCashSettings(),
     getAppLogo(),
     getNotas(200),
-    readAppSetting<WelcomeQuickNotes>("welcome_quick_notes")
+    getUserQuickNotes(session.username)
   ]);
 
   const eventStatus = new Map(
@@ -227,7 +222,7 @@ export default async function WelcomePage({ searchParams }: WelcomePageProps) {
       appLogo={appLogo}
       cards={cards}
       dataError={error ?? notes.error}
-      quickNotes={quickNotes ?? { content: "", updatedAt: null, updatedBy: null }}
+      quickNotes={quickNotes}
       session={session}
       urgentNotes={urgentNotes(notes.data)}
     />

@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { AppLogo } from "./app-settings";
-import { canWrite, type AuthSession } from "./auth-types";
 import type { Nota } from "./supabase-data";
 import { TopbarActions } from "./topbar-actions";
 import { TopbarBrand } from "./topbar-brand";
+import type { AuthSession } from "./auth-types";
+import type { UserQuickNotes } from "./user-quick-notes";
 
 type WelcomeCard = {
   label: string;
@@ -16,17 +17,11 @@ type WelcomeCard = {
   href?: string;
 };
 
-type WelcomeQuickNotes = {
-  content: string;
-  updatedAt: string | null;
-  updatedBy: string | null;
-};
-
 type WelcomeClientProps = {
   appLogo: AppLogo | null;
   cards: WelcomeCard[];
   dataError: string | null;
-  quickNotes: WelcomeQuickNotes;
+  quickNotes: UserQuickNotes;
   session: AuthSession;
   urgentNotes: Nota[];
 };
@@ -67,14 +62,12 @@ function shortText(value: string) {
 }
 
 export function WelcomeClient({ appLogo, cards, dataError, quickNotes, session, urgentNotes }: WelcomeClientProps) {
-  const mayWrite = canWrite(session);
   const [notesContent, setNotesContent] = useState(quickNotes.content);
   const [notesMeta, setNotesMeta] = useState({ updatedAt: quickNotes.updatedAt, updatedBy: quickNotes.updatedBy });
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [notesMessage, setNotesMessage] = useState<string | null>(null);
 
   const saveQuickNotes = async () => {
-    if (!mayWrite) return;
     setIsSavingNotes(true);
     setNotesMessage(null);
     try {
@@ -106,6 +99,16 @@ export function WelcomeClient({ appLogo, cards, dataError, quickNotes, session, 
       {dataError ? <section className="notice">Não consegui carregar todos os dados. {dataError}</section> : null}
 
       <section className="welcome-summary-panel" aria-label="Resumo financeiro">
+        <div className="welcome-greeting">
+          <div>
+            <p className="eyebrow">Bem-vindo</p>
+            <h2>{session.username}</h2>
+            <span>{session.roleLabel}</span>
+          </div>
+          <Link className="search-open-link" href="/utilizador">
+            Abrir perfil
+          </Link>
+        </div>
         <div className="welcome-panel-heading">
           <div>
             <p className="eyebrow">Resumo financeiro</p>
@@ -184,7 +187,6 @@ export function WelcomeClient({ appLogo, cards, dataError, quickNotes, session, 
           </div>
 
           <textarea
-            disabled={!mayWrite}
             maxLength={6000}
             onChange={(event) => setNotesContent(event.target.value)}
             placeholder="Apontamentos rápidos..."
@@ -193,11 +195,9 @@ export function WelcomeClient({ appLogo, cards, dataError, quickNotes, session, 
           {notesMessage ? <p className="form-message">{notesMessage}</p> : null}
           <div className="quick-notes-actions">
             <span>{notesContent.length}/6000</span>
-            {mayWrite ? (
-              <button disabled={isSavingNotes} onClick={saveQuickNotes} type="button">
-                {isSavingNotes ? "A guardar..." : "Guardar"}
-              </button>
-            ) : null}
+            <button disabled={isSavingNotes} onClick={saveQuickNotes} type="button">
+              {isSavingNotes ? "A guardar..." : "Guardar"}
+            </button>
           </div>
         </article>
       </section>

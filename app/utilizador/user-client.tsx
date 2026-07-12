@@ -4,10 +4,12 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import type { AuditLogEntry } from "../audit-log";
 import type { AuthSession, RolePermissions } from "../auth-types";
+import type { UserQuickNotes } from "../user-quick-notes";
 
 type UserClientProps = {
   auditError: string | null;
   auditLogs: AuditLogEntry[];
+  quickNotes: UserQuickNotes;
   session: AuthSession;
 };
 
@@ -60,10 +62,14 @@ function auditLogTarget(log: AuditLogEntry) {
   return null;
 }
 
-export function UserClient({ auditError, auditLogs, session }: UserClientProps) {
+export function UserClient({ auditError, auditLogs, quickNotes, session }: UserClientProps) {
   const [passwordForm, setPasswordForm] = useState<PasswordForm>(emptyPasswordForm);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [notesContent, setNotesContent] = useState(quickNotes.content);
+  const [notesMeta, setNotesMeta] = useState({ updatedAt: quickNotes.updatedAt, updatedBy: quickNotes.updatedBy });
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [notesMessage, setNotesMessage] = useState<string | null>(null);
 
   const updatePasswordField = (field: keyof PasswordForm, value: string) => {
     setPasswordForm((current) => ({ ...current, [field]: value }));
@@ -88,6 +94,28 @@ export function UserClient({ auditError, auditLogs, session }: UserClientProps) 
       setPasswordMessage(error instanceof Error ? error.message : "Não foi possível alterar a password.");
     } finally {
       setIsSavingPassword(false);
+    }
+  };
+
+  const saveQuickNotes = async () => {
+    setIsSavingNotes(true);
+    setNotesMessage(null);
+    try {
+      const response = await fetch("/api/welcome-notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: notesContent })
+      });
+      const body = (await response.json().catch(() => null)) as
+        | { content?: string; updatedAt?: string | null; updatedBy?: string | null; message?: string }
+        | null;
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível guardar os apontamentos.");
+      setNotesMeta({ updatedAt: body?.updatedAt ?? null, updatedBy: body?.updatedBy ?? null });
+      setNotesMessage("Apontamentos guardados.");
+    } catch (error) {
+      setNotesMessage(error instanceof Error ? error.message : "Não foi possível guardar os apontamentos.");
+    } finally {
+      setIsSavingNotes(false);
     }
   };
 
@@ -157,6 +185,33 @@ export function UserClient({ auditError, auditLogs, session }: UserClientProps) 
             {isSavingPassword ? "A guardar..." : "Guardar password"}
           </button>
         </form>
+
+        <article className="welcome-panel quick-notes-panel user-quick-notes-card">
+          <div className="welcome-panel-heading">
+            <div>
+              <p className="eyebrow">Apontamentos</p>
+              <h2>Bloco pessoal</h2>
+            </div>
+            {notesMeta.updatedAt ? (
+              <span className="quick-notes-meta">
+                {notesMeta.updatedBy ?? session.username} · {formatLogDate(notesMeta.updatedAt)}
+              </span>
+            ) : null}
+          </div>
+          <textarea
+            maxLength={6000}
+            onChange={(event) => setNotesContent(event.target.value)}
+            placeholder="Apontamentos pessoais..."
+            value={notesContent}
+          />
+          {notesMessage ? <p className="form-message">{notesMessage}</p> : null}
+          <div className="quick-notes-actions">
+            <span>{notesContent.length}/6000</span>
+            <button disabled={isSavingNotes} onClick={saveQuickNotes} type="button">
+              {isSavingNotes ? "A guardar..." : "Guardar"}
+            </button>
+          </div>
+        </article>
       </section>
 
       <section className="admin-log-panel user-log-panel" aria-label="Últimas alterações do utilizador">

@@ -4312,7 +4312,7 @@ td {
 .user-profile-grid {
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
+  grid-template-columns: minmax(260px, 0.9fr) minmax(300px, 380px) minmax(340px, 0.9fr);
 }
 
 .user-profile-card {
@@ -4364,6 +4364,14 @@ td {
 
 .user-password-card {
   align-self: start;
+}
+
+.user-quick-notes-card {
+  align-self: stretch;
+}
+
+.user-quick-notes-card textarea {
+  min-height: 232px;
 }
 
 .user-log-panel {
@@ -4681,9 +4689,36 @@ td {
 
 .welcome-summary-panel {
   display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 14px;
+}
+
+.welcome-greeting {
+  align-items: center;
+  background: #f8fbff;
+  border: 1px solid #d7e5ff;
+  border-radius: 8px;
+  display: flex;
   gap: 16px;
-  margin-bottom: 16px;
-  padding: 18px;
+  justify-content: space-between;
+  padding: 12px 14px;
+}
+
+.welcome-greeting h2 {
+  color: var(--ink);
+  font-size: clamp(1.55rem, 3vw, 2.4rem);
+  line-height: 1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.welcome-greeting span {
+  color: var(--muted);
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 900;
+  margin-top: 5px;
 }
 
 .welcome-panel-heading {
@@ -4695,8 +4730,8 @@ td {
 
 .welcome-card-grid {
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(172px, 1fr));
 }
 
 .welcome-card {
@@ -4704,11 +4739,11 @@ td {
     linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(244, 249, 255, 0.94));
   border: 1px solid #c7dcff;
   border-radius: 8px;
-  box-shadow: 0 10px 24px rgba(31, 102, 229, 0.08);
+  box-shadow: 0 6px 18px rgba(31, 102, 229, 0.07);
   display: grid;
-  min-height: 122px;
+  min-height: 86px;
   overflow: hidden;
-  padding: 16px;
+  padding: 12px;
   position: relative;
   text-decoration: none;
 }
@@ -4727,7 +4762,7 @@ td {
 .welcome-card small {
   color: var(--muted);
   display: block;
-  font-size: 0.76rem;
+  font-size: 0.68rem;
   font-weight: 800;
 }
 
@@ -4738,10 +4773,10 @@ td {
 .welcome-card-value {
   color: var(--green-ink);
   display: block;
-  font-size: clamp(1.35rem, 1.8vw, 1.86rem);
+  font-size: clamp(1.04rem, 1.35vw, 1.32rem);
   font-variant-numeric: tabular-nums;
   line-height: 1.12;
-  margin: 12px 0 9px;
+  margin: 8px 0 6px;
   overflow-wrap: anywhere;
 }
 
@@ -5255,7 +5290,8 @@ td {
   .management-menu,
   .workspace,
   .overview-layout,
-  .welcome-main-grid {
+  .welcome-main-grid,
+  .user-profile-grid {
     grid-template-columns: 1fr;
   }
 
