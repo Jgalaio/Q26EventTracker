@@ -2,7 +2,6 @@
   "name": "q26-event-tracker",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "pnpm@11.7.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
