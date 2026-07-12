@@ -3,7 +3,7 @@
 import { Fragment, useState } from "react";
 import Link from "next/link";
 import type { AppLogo } from "../app-settings";
-import type { AuthSession } from "../auth-types";
+import { canAccessAdmin, type AuthSession } from "../auth-types";
 import type { MovimentoDetalhe } from "../supabase-data";
 import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
@@ -73,8 +73,9 @@ function chartHeight(value: number, maxValue: number) {
 export function OverviewClient({ rows, totals, cashValue, physicalCashCount, error, session, appLogo }: OverviewClientProps) {
   const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
   const [selectedSlugs, setSelectedSlugs] = useState<Set<string>>(() => new Set());
+  const canExportExcel = canAccessAdmin(session.role);
   const countedRows = rows.filter((row) => row.contabilizarTotais).length;
-  const selectedRows = rows.filter((row) => selectedSlugs.has(row.slug));
+  const selectedRows = canExportExcel ? rows.filter((row) => selectedSlugs.has(row.slug)) : [];
   const allRowsSelected = rows.length > 0 && selectedRows.length === rows.length;
   const physicalCashDifference = physicalCashCount === null ? null : physicalCashCount - cashValue;
   const chartItems = [
@@ -85,6 +86,7 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
   const chartMax = Math.max(...chartItems.map((item) => item.value), 1);
 
   const toggleExportSelection = (slug: string) => {
+    if (!canExportExcel) return;
     setSelectedSlugs((current) => {
       const next = new Set(current);
       if (next.has(slug)) {
@@ -97,6 +99,7 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
   };
 
   const toggleAllExportSelection = () => {
+    if (!canExportExcel) return;
     setSelectedSlugs((current) => {
       if (rows.length > 0 && rows.every((row) => current.has(row.slug))) {
         return new Set();
@@ -210,28 +213,32 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
           </div>
           <div className="table-heading-actions overview-export-actions">
             <span>{countedRows} contabilizados / {rows.length} eventos</span>
-            <button
-              className="overview-export-selected-button"
-              disabled={!selectedRows.length}
-              onClick={() => exportOverviewEventsToExcel(selectedRows)}
-              type="button"
-            >
-              Exportar selecionados ({selectedRows.length})
-            </button>
+            {canExportExcel ? (
+              <button
+                className="overview-export-selected-button"
+                disabled={!selectedRows.length}
+                onClick={() => exportOverviewEventsToExcel(selectedRows)}
+                type="button"
+              >
+                Exportar selecionados ({selectedRows.length})
+              </button>
+            ) : null}
           </div>
         </div>
         <div className="table-wrap overview-table-wrap">
           <table className="overview-table">
             <thead>
               <tr>
-                <th className="overview-select-cell">
-                  <input
-                    aria-label="Selecionar todos os eventos para exportar"
-                    checked={allRowsSelected}
-                    onChange={toggleAllExportSelection}
-                    type="checkbox"
-                  />
-                </th>
+                {canExportExcel ? (
+                  <th className="overview-select-cell">
+                    <input
+                      aria-label="Selecionar todos os eventos para exportar"
+                      checked={allRowsSelected}
+                      onChange={toggleAllExportSelection}
+                      type="checkbox"
+                    />
+                  </th>
+                ) : null}
                 <th>Evento</th>
                 <th>Entradas</th>
                 <th>Saídas</th>
@@ -242,7 +249,7 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
                 <th>Pag. C.Q26</th>
                 <th>Transferencias</th>
                 <th>Dinheiro</th>
-                <th>Excel</th>
+                {canExportExcel ? <th>Excel</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -260,14 +267,16 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
                         .filter(Boolean)
                         .join(" ")}
                     >
-                      <td className="overview-select-cell">
-                        <input
-                          aria-label={`Selecionar ${row.nome} para exportar`}
-                          checked={isSelected}
-                          onChange={() => toggleExportSelection(row.slug)}
-                          type="checkbox"
-                        />
-                      </td>
+                      {canExportExcel ? (
+                        <td className="overview-select-cell">
+                          <input
+                            aria-label={`Selecionar ${row.nome} para exportar`}
+                            checked={isSelected}
+                            onChange={() => toggleExportSelection(row.slug)}
+                            type="checkbox"
+                          />
+                        </td>
+                      ) : null}
                       <td className="item-cell">
                         <button
                           aria-expanded={isExpanded}
@@ -289,20 +298,22 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
                       <td className="money">{formatMoney(row.pagoQ26)}</td>
                       <td className="money">{formatMoney(row.transferencias)}</td>
                       <td className="money">{formatMoney(row.dinheiro)}</td>
-                      <td>
-                        <button
-                          aria-label={`Exportar ${row.nome} para Excel`}
-                          className="overview-export-button"
-                          onClick={() => exportOverviewEventToExcel(row)}
-                          type="button"
-                        >
-                          Excel
-                        </button>
-                      </td>
+                      {canExportExcel ? (
+                        <td>
+                          <button
+                            aria-label={`Exportar ${row.nome} para Excel`}
+                            className="overview-export-button"
+                            onClick={() => exportOverviewEventToExcel(row)}
+                            type="button"
+                          >
+                            Excel
+                          </button>
+                        </td>
+                      ) : null}
                     </tr>
                     {isExpanded ? (
                       <tr className="overview-expanded-row">
-                        <td colSpan={12}>
+                        <td colSpan={canExportExcel ? 12 : 10}>
                           <div className="overview-movements">
                             <div className="overview-movements-heading">
                               <strong>{row.nome}</strong>
@@ -362,7 +373,7 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
             </tbody>
             <tfoot>
               <tr className="overview-total-row">
-                <th />
+                {canExportExcel ? <th /> : null}
                 <th scope="row">Totais</th>
                 <td className="money">{formatMoney(totals.entradas)}</td>
                 <td className="money">{formatMoney(totals.saidas)}</td>
@@ -373,7 +384,7 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
                 <td className="money">{formatMoney(totals.pagoQ26)}</td>
                 <td className="money">{formatMoney(totals.transferencias)}</td>
                 <td className="money">{formatMoney(totals.dinheiro)}</td>
-                <td />
+                {canExportExcel ? <td /> : null}
               </tr>
             </tfoot>
           </table>
