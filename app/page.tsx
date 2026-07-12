@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAppLogo, getPhysicalCashSettings, getQ25Balance } from "./app-settings";
 import { getSession } from "./auth";
-import { canViewTreasury } from "./auth-types";
+import { canViewTreasury, isViewOnly } from "./auth-types";
 import { getNotas, getTesourariaData, type EventoResumo, type MovimentoDetalhe, type Nota } from "./supabase-data";
 import { getUserQuickNotes } from "./user-quick-notes";
 import { WelcomeClient } from "./welcome-client";
@@ -152,6 +152,7 @@ export default async function WelcomePage({ searchParams }: WelcomePageProps) {
   const targetPath = tesourariaTarget(params);
   const session = await getSession();
   if (!session) redirect(`/login?next=${encodeURIComponent(targetPath)}`);
+  if (isViewOnly(session)) redirect("/overview");
   if (targetPath !== "/") redirect(targetPath);
 
   const [{ eventos, movimentos, error }, q25Balance, physicalCashSettings, appLogo, notes, quickNotes] = await Promise.all([

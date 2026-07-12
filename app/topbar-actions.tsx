@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { canAccessAdmin, canViewTreasury, canWrite, type AuthSession } from "./auth-types";
+import { canAccessAdmin, canViewTreasury, canWrite, isViewOnly, type AuthSession } from "./auth-types";
 import { NotesMenu } from "./notes-menu";
 
 export type TopbarActive =
@@ -39,11 +39,12 @@ export function TopbarActions({ active, pendingPaymentsCount = 0, session }: Top
   const mayViewTreasury = canViewTreasury(session);
   const mayWrite = canWrite(session);
   const mayAccessAdmin = canAccessAdmin(session);
+  const viewOnly = isViewOnly(session);
   const groups: NavigationGroup[] = [
     {
       label: "Principal",
       items: [
-        { key: "inicio", href: "/", label: "Início", show: true },
+        { key: "inicio", href: "/", label: "Início", show: !viewOnly },
         { key: "tesouraria", href: "/tesouraria", label: "Tesouraria", show: mayViewTreasury },
         { key: "overview", href: "/overview", label: "OverView", show: true }
       ]
@@ -70,7 +71,7 @@ export function TopbarActions({ active, pendingPaymentsCount = 0, session }: Top
   return (
     <div className="top-actions top-actions-organized">
       <div className="top-menu-cluster">
-        <NotesMenu active={active === "notas"} session={session} />
+        {!viewOnly ? <NotesMenu active={active === "notas"} session={session} /> : null}
         <nav aria-label="Menu principal" className="top-nav-groups">
           {visibleGroups.map((group) => (
             <div aria-label={group.label} className="top-nav-group" key={group.label}>
@@ -97,14 +98,21 @@ export function TopbarActions({ active, pendingPaymentsCount = 0, session }: Top
         </Link>
       ) : null}
       <div className="top-session">
-        <Link
-          aria-current={active === "utilizador" ? "page" : undefined}
-          className={active === "utilizador" ? "user-chip active" : "user-chip"}
-          href="/utilizador"
-        >
-          <span>{session.username}</span>
-          <strong>{session.roleLabel}</strong>
-        </Link>
+        {viewOnly ? (
+          <span className="user-chip">
+            <span>{session.username}</span>
+            <strong>{session.roleLabel}</strong>
+          </span>
+        ) : (
+          <Link
+            aria-current={active === "utilizador" ? "page" : undefined}
+            className={active === "utilizador" ? "user-chip active" : "user-chip"}
+            href="/utilizador"
+          >
+            <span>{session.username}</span>
+            <strong>{session.roleLabel}</strong>
+          </Link>
+        )}
         <form action="/api/logout" method="post">
           <button className="logout-button" type="submit">
             Sair

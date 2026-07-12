@@ -364,6 +364,10 @@ export function canViewTreasury(input: UserRole | AuthSession) {
   return roleFor(input) === "admin" || permissionsFor(input).viewTreasury;
 }
 
+export function isViewOnly(input: UserRole | AuthSession) {
+  return roleFor(input) !== "admin" && permissionsFor(input).viewOnly;
+}
+
 export function canWrite(input: UserRole | AuthSession) {
   return roleFor(input) === "admin" || permissionsFor(input).manageRecords;
 }

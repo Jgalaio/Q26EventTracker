@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getAppLogo } from "../app-settings";
 import { getUserAuditLogs } from "../audit-log";
 import { getSession } from "../auth";
-import { canUnlockClosedEvents, canViewClosedEvents } from "../auth-types";
+import { canUnlockClosedEvents, canViewClosedEvents, isViewOnly } from "../auth-types";
 import { getClosedEvents } from "../supabase-data";
 import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
@@ -12,6 +12,7 @@ import { UserClient } from "./user-client";
 export default async function UserPage() {
   const session = await getSession();
   if (!session) redirect("/login?next=/utilizador");
+  if (isViewOnly(session)) redirect("/overview");
 
   const mayUnlockClosedEvents = canUnlockClosedEvents(session);
   const mayViewClosedEvents = canViewClosedEvents(session) || mayUnlockClosedEvents;

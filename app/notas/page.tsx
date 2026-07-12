@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAppLogo } from "../app-settings";
 import { getSession } from "../auth";
+import { isViewOnly } from "../auth-types";
 import { getNotas } from "../supabase-data";
 import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
@@ -17,6 +18,7 @@ function firstParam(value: string | string[] | undefined) {
 export default async function NotesPage({ searchParams }: NotesPageProps) {
   const session = await getSession();
   if (!session) redirect("/login?next=/notas");
+  if (isViewOnly(session)) redirect("/overview");
 
   const params = searchParams ? await searchParams : {};
   const selectedNoteId = firstParam(params.nota);

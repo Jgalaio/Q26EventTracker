@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME, createSessionToken, verifyCredentials } from "../../auth";
+import { isViewOnly } from "../../auth-types";
 
 function safeNextPath(value: FormDataEntryValue | null) {
   if (typeof value !== "string") return "/";
@@ -21,7 +22,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(url, 303);
   }
 
-  const response = NextResponse.redirect(new URL(nextPath, request.url), 303);
+  const redirectPath = isViewOnly(session) ? "/overview" : nextPath;
+  const response = NextResponse.redirect(new URL(redirectPath, request.url), 303);
   response.cookies.set(AUTH_COOKIE_NAME, createSessionToken(session), {
     httpOnly: true,
     path: "/",

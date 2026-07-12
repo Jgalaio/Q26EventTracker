@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAppLogo, getReportLogo } from "../app-settings";
 import { getSession } from "../auth";
+import { isViewOnly } from "../auth-types";
 
 type LoginPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -18,7 +19,7 @@ function safeNextPath(value: string | undefined) {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const session = await getSession();
-  if (session) redirect("/");
+  if (session) redirect(isViewOnly(session) ? "/overview" : "/");
 
   const params: Record<string, string | string[] | undefined> = searchParams ? await searchParams : {};
   const [appLogo, reportLogo] = await Promise.all([getAppLogo(), getReportLogo()]);
