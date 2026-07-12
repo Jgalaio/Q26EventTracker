@@ -348,7 +348,7 @@ export function ReportsClient({
           </header>
 
           <p className="report-authors">
-            Relatório Elaborado Por: <strong>J. Galaio / Ana Lopes</strong>
+            Relatório Elaborado Por: <strong>{session.username}</strong>
           </p>
 
           <div className="report-cover-grid">
