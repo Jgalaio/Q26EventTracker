@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getAppFavicon } from "./app-settings";
+import { SessionTimeout } from "./session-timeout";
 import "./globals.css";
 
 const baseMetadata: Metadata = {
@@ -18,7 +19,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-PT">
-      <body>{children}</body>
+      <body>
+        <SessionTimeout />
+        {children}
+      </body>
     </html>
   );
 }

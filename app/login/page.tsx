@@ -25,6 +25,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const loginLogo = appLogo ?? reportLogo;
   const next = safeNextPath(getSearchValue(params, "next"));
   const hasError = getSearchValue(params, "error") === "1";
+  const hasExpiredSession = getSearchValue(params, "expired") === "1";
 
   return (
     <main className="login-shell">
@@ -43,6 +44,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <h1>Login</h1>
         </div>
 
+        {hasExpiredSession ? <p className="auth-error">Sessão expirada. Entra novamente.</p> : null}
         {hasError ? <p className="auth-error">Username ou password inválidos.</p> : null}
 
         <form action="/api/login" className="auth-form" method="post">

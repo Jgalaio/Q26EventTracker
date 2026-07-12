@@ -4,6 +4,7 @@ import { roleIdIsSafe, sessionFromRole, type AuthSession, type UserRole } from "
 import { enrichSession } from "./role-settings";
 
 export const AUTH_COOKIE_NAME = "q26_session";
+export const SESSION_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
 type AuthUser = {
   username: string;
@@ -191,6 +192,7 @@ export function readSessionFromToken(token: string | undefined): AuthSession | n
   try {
     const decoded = JSON.parse(decodeBase64Url(payload)) as Record<string, unknown>;
     if (typeof decoded.username !== "string" || !isRole(decoded.role)) return null;
+    if (typeof decoded.iat !== "number" || Date.now() - decoded.iat > SESSION_IDLE_TIMEOUT_MS) return null;
     return sessionFromRole(
       decoded.username,
       decoded.role

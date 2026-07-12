@@ -24,7 +24,6 @@ export async function POST(request: NextRequest) {
   const response = NextResponse.redirect(new URL(nextPath, request.url), 303);
   response.cookies.set(AUTH_COOKIE_NAME, createSessionToken(session), {
     httpOnly: true,
-    maxAge: 60 * 60 * 10,
     path: "/",
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production"
