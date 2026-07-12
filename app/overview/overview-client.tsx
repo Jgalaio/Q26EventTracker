@@ -3,7 +3,7 @@
 import { Fragment, useState } from "react";
 import Link from "next/link";
 import type { AppLogo } from "../app-settings";
-import { canAccessAdmin, type AuthSession } from "../auth-types";
+import { canExportOverviewExcel, type AuthSession } from "../auth-types";
 import type { MovimentoDetalhe } from "../supabase-data";
 import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
@@ -73,7 +73,7 @@ function chartHeight(value: number, maxValue: number) {
 export function OverviewClient({ rows, totals, cashValue, physicalCashCount, error, session, appLogo }: OverviewClientProps) {
   const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
   const [selectedSlugs, setSelectedSlugs] = useState<Set<string>>(() => new Set());
-  const canExportExcel = canAccessAdmin(session.role);
+  const canExportExcel = canExportOverviewExcel(session);
   const countedRows = rows.filter((row) => row.contabilizarTotais).length;
   const selectedRows = canExportExcel ? rows.filter((row) => selectedSlugs.has(row.slug)) : [];
   const allRowsSelected = rows.length > 0 && selectedRows.length === rows.length;

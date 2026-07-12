@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { AuthSession } from "../auth-types";
+import { requiresJustification, type AuthSession } from "../auth-types";
 import type { MovimentoDetalhe } from "../supabase-data";
 
 type PendingPaymentsClientProps = {
   initialMovimentos: MovimentoDetalhe[];
-  role: AuthSession["role"];
+  session: AuthSession;
 };
 
 const moneyFormatter = new Intl.NumberFormat("pt-PT", {
@@ -35,7 +35,7 @@ function movementLabel(tipo: MovimentoDetalhe["tipo"]) {
   return "A pagamento";
 }
 
-export function PendingPaymentsClient({ initialMovimentos, role }: PendingPaymentsClientProps) {
+export function PendingPaymentsClient({ initialMovimentos, session }: PendingPaymentsClientProps) {
   const [movimentos, setMovimentos] = useState(initialMovimentos);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export function PendingPaymentsClient({ initialMovimentos, role }: PendingPaymen
     if (value !== "sim") return;
 
     let justification = "";
-    if (role === "operator") {
+    if (requiresJustification(session)) {
       const answer = window.prompt("Justificação para marcar como pago:");
       if (!answer?.trim()) {
         setMessage("A alteração precisa de justificação.");

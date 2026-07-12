@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { canDelete, canWrite, type AuthSession } from "./auth-types";
+import { canDelete, canWrite, requiresJustification, type AuthSession } from "./auth-types";
 import type { Nota } from "./supabase-data";
 
 type NotesMenuProps = {
   active?: boolean;
-  role: AuthSession["role"];
+  session: AuthSession;
 };
 
 async function requestJson<T>(url: string, options?: RequestInit) {
@@ -62,14 +62,15 @@ function statusLabel(value: string) {
   return "A fazer";
 }
 
-export function NotesMenu({ active = false, role }: NotesMenuProps) {
+export function NotesMenu({ active = false, session }: NotesMenuProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [notes, setNotes] = useState<Nota[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const mayWrite = canWrite(role);
-  const mayDelete = canDelete(role);
+  const mayWrite = canWrite(session);
+  const mayDelete = canDelete(session);
+  const mustJustify = requiresJustification(session);
 
   const loadNotes = async () => {
     setIsLoading(true);
@@ -124,8 +125,8 @@ export function NotesMenu({ active = false, role }: NotesMenuProps) {
     if (titulo === null) return;
     const conteudo = window.prompt("Descrição / lembrete", note.conteudo);
     if (conteudo === null) return;
-    const justification = role === "operator" ? window.prompt("Justificação da alteração") : "";
-    if (role === "operator" && !justification?.trim()) {
+    const justification = mustJustify ? window.prompt("Justificação da alteração") : "";
+    if (mustJustify && !justification?.trim()) {
       setMessage("Indica a justificação da alteração.");
       return;
     }

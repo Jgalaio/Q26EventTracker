@@ -1,10 +1,13 @@
 import { createHash, createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
-import type { AuthSession, UserRole } from "./auth-types";
+import { roleIdIsSafe, sessionFromRole, type AuthSession, type UserRole } from "./auth-types";
+import { enrichSession } from "./role-settings";
 
 export const AUTH_COOKIE_NAME = "q26_session";
 
-type AuthUser = AuthSession & {
+type AuthUser = {
+  username: string;
+  role: UserRole;
   passwordHash: string;
 };
 
@@ -76,7 +79,7 @@ function signPayload(payload: string) {
 }
 
 export function isRole(value: unknown): value is UserRole {
-  return value === "admin" || value === "operator" || value === "view";
+  return roleIdIsSafe(value);
 }
 
 export function supabaseEndpoint(resource: string) {
@@ -115,10 +118,10 @@ async function verifyStoredCredentials(username: string, password: string) {
 
     return {
       hasOverride: true,
-      session: {
+      session: await enrichSession({
         username: row.username,
         role: row.role
-      }
+      })
     };
   } catch {
     return null;
@@ -161,10 +164,10 @@ export async function verifyCredentials(username: string, password: string): Pro
   const passwordHash = hashCredential(normalizedUsername, password);
   if (!safeCompare(passwordHash, user.passwordHash)) return null;
 
-  return {
+  return enrichSession({
     username: user.username,
     role: user.role
-  };
+  });
 }
 
 export function createSessionToken(session: AuthSession) {
@@ -188,10 +191,10 @@ export function readSessionFromToken(token: string | undefined): AuthSession | n
   try {
     const decoded = JSON.parse(decodeBase64Url(payload)) as Record<string, unknown>;
     if (typeof decoded.username !== "string" || !isRole(decoded.role)) return null;
-    return {
-      username: decoded.username,
-      role: decoded.role
-    };
+    return sessionFromRole(
+      decoded.username,
+      decoded.role
+    );
   } catch {
     return null;
   }
@@ -199,5 +202,6 @@ export function readSessionFromToken(token: string | undefined): AuthSession | n
 
 export async function getSession() {
   const cookieStore = await cookies();
-  return readSessionFromToken(cookieStore.get(AUTH_COOKIE_NAME)?.value);
+  const session = readSessionFromToken(cookieStore.get(AUTH_COOKIE_NAME)?.value);
+  return session ? enrichSession(session) : null;
 }

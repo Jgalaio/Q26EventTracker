@@ -3773,7 +3773,8 @@ td {
 }
 
 .admin-settings-card input,
-.admin-settings-card select {
+.admin-settings-card select,
+.admin-settings-card textarea {
   background: #f8fbff;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -3781,6 +3782,12 @@ td {
   min-height: 42px;
   min-width: 0;
   padding: 0 11px;
+}
+
+.admin-settings-card textarea {
+  min-height: 84px;
+  padding: 10px 11px;
+  resize: vertical;
 }
 
 .admin-settings-card input[readonly] {
@@ -4120,6 +4127,81 @@ td {
 .admin-role-pill.view {
   background: #f2f5f9;
   color: #556987;
+}
+
+.admin-role-pill.custom {
+  background: #f2edff;
+  color: var(--purple);
+}
+
+.admin-roles-panel {
+  border-top: 4px solid var(--blue);
+}
+
+.admin-role-form {
+  align-self: stretch;
+}
+
+.admin-permission-list {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-permission-option {
+  align-items: flex-start;
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+}
+
+.admin-permission-option input {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  min-height: auto;
+  width: auto;
+}
+
+.admin-permission-option span {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-permission-option small,
+.role-id-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.admin-roles-table {
+  min-width: 940px;
+}
+
+.admin-role-permissions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 460px;
+}
+
+.permission-pill {
+  background: #eef5ff;
+  border: 1px solid #c9dcff;
+  border-radius: 999px;
+  color: var(--blue);
+  font-size: 0.68rem;
+  font-weight: 900;
+  padding: 5px 8px;
+}
+
+.permission-pill.muted {
+  background: #f2f5f9;
+  border-color: var(--line);
+  color: var(--muted);
 }
 
 .admin-table-actions {

@@ -852,7 +852,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
                           <button className="small-action-button secondary" type="button" onClick={() => openEditReport(report)}>
                             Editar
                           </button>
-                          {canAccessAdmin(session.role) ? (
+                          {canAccessAdmin(session) ? (
                             <button className="small-action-button danger" type="button" onClick={() => deleteReport(report)}>
                               Apagar
                             </button>

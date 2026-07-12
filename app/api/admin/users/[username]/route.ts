@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeAuditLog } from "../../../../audit-log";
 import { hashCredential, supabaseAdminHeaders } from "../../../../auth";
-import { ROLE_LABELS } from "../../../../auth-types";
+import { getRoleLabel } from "../../../../role-settings";
 import {
   countAdminUsers,
   getManagedUser,
@@ -9,6 +9,7 @@ import {
   normalizeRole,
   normalizeUsername,
   requireAdminUserAccess,
+  roleExists,
   safeUser,
   supabaseAdminRequest
 } from "../user-utils";
@@ -33,6 +34,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
   if (Object.prototype.hasOwnProperty.call(body, "role") && !nextRole) {
     return NextResponse.json({ message: "Escolhe um role válido." }, { status: 400 });
+  }
+  if (nextRole && !(await roleExists(nextRole))) {
+    return NextResponse.json({ message: "Esse role não existe." }, { status: 400 });
   }
   if (password && password.length < 6) {
     return NextResponse.json({ message: "A password deve ter pelo menos 6 caracteres." }, { status: 400 });
@@ -118,7 +122,7 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       action: "Apagou utilizador",
       resource: "app_users",
       resourceId: currentUser.username,
-      summary: `Apagou utilizador ${currentUser.username} (${ROLE_LABELS[currentUser.role]})`,
+      summary: `Apagou utilizador ${currentUser.username} (${await getRoleLabel(currentUser.role)})`,
       details: { username: currentUser.username, role: currentUser.role }
     });
 

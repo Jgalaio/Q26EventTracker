@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeAuditLog } from "../audit-log";
 import { getSession } from "../auth";
-import type { AuthSession } from "../auth-types";
+import { canDelete, canWrite, requiresJustification, type AuthSession } from "../auth-types";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ushhacwtmpmwmvpaitdx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
@@ -60,7 +60,7 @@ export async function requireWriteAccess(): Promise<WriteAccess> {
     };
   }
 
-  if (session.role === "view") {
+  if (!canWrite(session)) {
     return {
       session: null,
       error: NextResponse.json({ message: "Sem permissão para gravar." }, { status: 403 })
@@ -71,8 +71,8 @@ export async function requireWriteAccess(): Promise<WriteAccess> {
 }
 
 export function requireDeleteAccess(session: AuthSession) {
-  if (session.role !== "admin") {
-    return NextResponse.json({ message: "Só Admin pode apagar registos." }, { status: 403 });
+  if (!canDelete(session)) {
+    return NextResponse.json({ message: "Sem permissão para apagar registos." }, { status: 403 });
   }
   return null;
 }
@@ -167,14 +167,15 @@ export function prepareWritePayload(
   const { justification, ...payload } = body;
   const justificationText = typeof justification === "string" ? justification.trim() : "";
 
-  if (session.role === "operator" && isEditing && !justificationText) {
+  const mustJustify = requiresJustification(session);
+  if (mustJustify && isEditing && !justificationText) {
     return {
       payload: null,
       error: NextResponse.json({ message: "Indica a justificação da alteração." }, { status: 400 })
     };
   }
 
-  if (session.role === "operator" && isEditing && auditTarget === "movement") {
+  if (mustJustify && isEditing && auditTarget === "movement") {
     const raw = typeof payload.raw === "object" && payload.raw !== null && !Array.isArray(payload.raw) ? payload.raw : {};
     payload.raw = {
       ...raw,

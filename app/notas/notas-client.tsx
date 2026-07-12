@@ -2,14 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { canDelete, canWrite, type AuthSession } from "../auth-types";
+import { canDelete, canWrite, requiresJustification, type AuthSession } from "../auth-types";
 import type { Nota } from "../supabase-data";
 
 type NotesPageClientProps = {
   initialNotes: Nota[];
   initialSelectedId: string | null;
   notesError: string | null;
-  role: AuthSession["role"];
+  session: AuthSession;
 };
 
 type TaskStatus = NonNullable<Nota["estado"]>;
@@ -190,19 +190,20 @@ function formPayload(form: FormState) {
   };
 }
 
-export function NotesPageClient({ initialNotes, initialSelectedId, notesError, role }: NotesPageClientProps) {
+export function NotesPageClient({ initialNotes, initialSelectedId, notesError, session }: NotesPageClientProps) {
   const router = useRouter();
   const initialVisibleId = initialNotes.find((note) => note.id === initialSelectedId)?.id ?? initialNotes[0]?.id ?? null;
   const [notes, setNotes] = useState(initialNotes);
   const [selectedId, setSelectedId] = useState<string | null>(initialVisibleId);
-  const [mode, setMode] = useState<Mode>(() => (initialNotes.length || !canWrite(role) ? "view" : "create"));
+  const [mode, setMode] = useState<Mode>(() => (initialNotes.length || !canWrite(session) ? "view" : "create"));
   const [form, setForm] = useState<FormState>(emptyForm);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ativas");
   const [query, setQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(notesError);
-  const mayWrite = canWrite(role);
-  const mayDelete = canDelete(role);
+  const mayWrite = canWrite(session);
+  const mayDelete = canDelete(session);
+  const mustJustify = requiresJustification(session);
 
   const selectedNote = useMemo(() => notes.find((note) => note.id === selectedId) ?? notes[0] ?? null, [notes, selectedId]);
 
@@ -287,7 +288,7 @@ export function NotesPageClient({ initialNotes, initialSelectedId, notesError, r
       setMessage("Indica o título da tarefa.");
       return;
     }
-    if (role === "operator" && mode === "edit" && !form.justification.trim()) {
+    if (mustJustify && mode === "edit" && !form.justification.trim()) {
       setMessage("Indica a justificação da alteração.");
       return;
     }
@@ -321,8 +322,8 @@ export function NotesPageClient({ initialNotes, initialSelectedId, notesError, r
   const quickStatus = async (note: Nota, estado: TaskStatus) => {
     if (!mayWrite) return;
     const justification =
-      role === "operator" ? window.prompt(`Justificação para alterar "${note.titulo}" para ${statusLabel(estado)}`) : "";
-    if (role === "operator" && !justification?.trim()) {
+      mustJustify ? window.prompt(`Justificação para alterar "${note.titulo}" para ${statusLabel(estado)}`) : "";
+    if (mustJustify && !justification?.trim()) {
       setMessage("Indica a justificação da alteração.");
       return;
     }
@@ -599,7 +600,7 @@ export function NotesPageClient({ initialNotes, initialSelectedId, notesError, r
                 onChange={(event) => setForm((current) => ({ ...current, conteudo: event.target.value }))}
               />
             </label>
-            {role === "operator" && mode === "edit" ? (
+            {mustJustify && mode === "edit" ? (
               <label className="full">
                 Justificação
                 <input

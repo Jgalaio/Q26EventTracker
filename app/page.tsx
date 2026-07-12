@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAppLogo, getPhysicalCashSettings, getQ25Balance, readAppSetting } from "./app-settings";
 import { getSession } from "./auth";
+import { canViewTreasury } from "./auth-types";
 import { getNotas, getTesourariaData, type EventoResumo, type MovimentoDetalhe, type Nota } from "./supabase-data";
 import { WelcomeClient } from "./welcome-client";
 
@@ -196,7 +197,7 @@ export default async function WelcomePage({ searchParams }: WelcomePageProps) {
   const cashValue = totals.lucro + q25Balance - accountBalance;
   const physicalCashDifference =
     physicalCashSettings.amount === null ? null : Number(physicalCashSettings.amount) - cashValue;
-  const canOpenPending = session.role !== "view";
+  const canOpenPending = canViewTreasury(session);
 
   const cards = [
     { label: "Entradas Totais", value: formatMoney(totals.entradas), detail: "Todas as entradas", tone: "blue" as const },

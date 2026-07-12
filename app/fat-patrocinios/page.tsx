@@ -40,7 +40,7 @@ function isInvoiceEntry(movimento: MovimentoDetalhe) {
 export default async function FatPatrociniosPage() {
   const session = await getSession();
   if (!session) redirect("/login?next=/fat-patrocinios");
-  if (!canWrite(session.role)) redirect("/overview");
+  if (!canWrite(session)) redirect("/overview");
 
   const [{ movimentos, error }, appLogo] = await Promise.all([getTesourariaData(), getAppLogo()]);
   const invoiceMovements = movimentos

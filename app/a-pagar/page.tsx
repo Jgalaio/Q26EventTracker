@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAppLogo } from "../app-settings";
 import { getSession } from "../auth";
+import { canViewTreasury } from "../auth-types";
 import { getTesourariaData, type MovimentoDetalhe } from "../supabase-data";
 import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
@@ -13,7 +14,7 @@ function isPendingPayment(movimento: MovimentoDetalhe) {
 export default async function PendingPaymentsPage() {
   const session = await getSession();
   if (!session) redirect("/login?next=/a-pagar");
-  if (session.role === "view") redirect("/overview");
+  if (!canViewTreasury(session)) redirect("/overview");
 
   const [{ movimentos, error }, appLogo] = await Promise.all([getTesourariaData(), getAppLogo()]);
   const pendingPayments = movimentos
@@ -34,7 +35,7 @@ export default async function PendingPaymentsPage() {
 
       {error ? <section className="notice">Não consegui ligar ao Supabase. {error}</section> : null}
 
-      <PendingPaymentsClient initialMovimentos={pendingPayments} role={session.role} />
+      <PendingPaymentsClient initialMovimentos={pendingPayments} session={session} />
     </main>
   );
 }

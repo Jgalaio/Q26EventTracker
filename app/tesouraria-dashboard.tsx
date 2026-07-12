@@ -4,7 +4,14 @@ import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { AppLogo } from "./app-settings";
-import { ROLE_LABELS, canAccessAdmin, canDelete, canWrite, type AuthSession } from "./auth-types";
+import {
+  canAccessAdmin,
+  canDelete,
+  canWrite,
+  getRoleLabel,
+  requiresJustification,
+  type AuthSession
+} from "./auth-types";
 import type { EventoResumo, MovimentoDetalhe } from "./supabase-data";
 import { TopbarActions } from "./topbar-actions";
 import { TopbarBrand } from "./topbar-brand";
@@ -530,9 +537,10 @@ export function Dashboard({
   appLogo
 }: DashboardProps) {
   const router = useRouter();
-  const mayWrite = canWrite(session.role);
-  const mayDelete = canDelete(session.role);
-  const mayAccessAdmin = canAccessAdmin(session.role);
+  const mayWrite = canWrite(session);
+  const mayDelete = canDelete(session);
+  const mayAccessAdmin = canAccessAdmin(session);
+  const mustJustify = requiresJustification(session);
   const [targetEventParam, setTargetEventParam] = useState<string | null>(null);
   const [targetMovementParam, setTargetMovementParam] = useState<string | null>(null);
   const [sectionMode, setSectionMode] = useState<SectionMode>("eventos");
@@ -949,7 +957,7 @@ export function Dashboard({
 
     if (!selectedEvent) throw new Error("Escolhe um evento para editar.");
     if (selectedEventClosed) throw new Error("Este evento está fechado. Desbloqueia no Admin para voltar a editar.");
-    if (session.role === "operator" && !justification.trim()) throw new Error("Indica a justificação da alteração.");
+    if (mustJustify && !justification.trim()) throw new Error("Indica a justificação da alteração.");
     await appWrite(`eventos/${selectedEvent.id}`, {
       method: "PATCH",
       body: JSON.stringify({
@@ -1036,7 +1044,7 @@ export function Dashboard({
     if (isEntryMode && movementForm.valor_teorico.trim() && theoreticalAmount === null) {
       throw new Error("Indica um valor teórico válido.");
     }
-    if (session.role === "operator" && isEditing && !justification.trim()) {
+    if (mustJustify && isEditing && !justification.trim()) {
       throw new Error("Indica a justificação da alteração.");
     }
 
@@ -2644,7 +2652,7 @@ export function Dashboard({
               </div>
             )}
 
-            {session.role === "operator" &&
+            {mustJustify &&
             (modalMode === "edit-event" || modalMode === "edit-entry" || modalMode === "edit-exit") ? (
               <label className="justification-field">
                 Justificação da alteração
@@ -2736,7 +2744,7 @@ export function Dashboard({
                           <span>{log.summary ?? "Movimento alterado"}</span>
                         </div>
                         <small>
-                          {formatDateTime(log.created_at)} · {log.username} · {ROLE_LABELS[log.role]}
+                          {formatDateTime(log.created_at)} · {log.username} · {getRoleLabel(log.role)}
                         </small>
                       </header>
 

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getAppFavicon, getAppLogo, getReportLogo } from "../app-settings";
 import { getAuditLogs } from "../audit-log";
 import { getSession, listAuthUsers } from "../auth";
+import { getRoleDefinitions } from "../role-settings";
 import { getClosedEvents } from "../supabase-data";
 import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
@@ -24,8 +25,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const params = searchParams ? await searchParams : {};
   const auditPage = parseLogPage(params.logPage);
-  const [users, reportLogo, appFavicon, appLogo, audit, closedEvents] = await Promise.all([
+  const [users, roles, reportLogo, appFavicon, appLogo, audit, closedEvents] = await Promise.all([
     listAuthUsers(),
+    getRoleDefinitions(),
     getReportLogo(),
     getAppFavicon(),
     getAppLogo(),
@@ -50,6 +52,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         closedEvents={closedEvents.data}
         closedEventsError={closedEvents.error}
         reportLogo={reportLogo}
+        roles={roles}
         session={session}
         users={users}
       />

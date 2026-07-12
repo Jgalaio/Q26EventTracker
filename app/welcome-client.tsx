@@ -67,7 +67,7 @@ function shortText(value: string) {
 }
 
 export function WelcomeClient({ appLogo, cards, dataError, quickNotes, session, urgentNotes }: WelcomeClientProps) {
-  const mayWrite = canWrite(session.role);
+  const mayWrite = canWrite(session);
   const [notesContent, setNotesContent] = useState(quickNotes.content);
   const [notesMeta, setNotesMeta] = useState({ updatedAt: quickNotes.updatedAt, updatedBy: quickNotes.updatedBy });
   const [isSavingNotes, setIsSavingNotes] = useState(false);

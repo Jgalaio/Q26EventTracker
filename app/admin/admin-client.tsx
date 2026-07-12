@@ -5,7 +5,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { AppFavicon, AppLogo, ReportLogo } from "../app-settings";
 import type { AuditLogEntry } from "../audit-log";
-import { ROLE_LABELS, type AuthSession, type UserRole } from "../auth-types";
+import {
+  getRoleLabel,
+  roleIdIsSafe,
+  roleSlugFromLabel,
+  type AuthSession,
+  type RoleDefinition,
+  type RolePermissions,
+  type UserRole
+} from "../auth-types";
 import type { EventoResumo } from "../supabase-data";
 
 type AdminUser = {
@@ -17,6 +25,7 @@ type AdminUser = {
 type AdminClientProps = {
   session: AuthSession;
   users: AdminUser[];
+  roles: RoleDefinition[];
   reportLogo: ReportLogo | null;
   appLogo: AppLogo | null;
   appFavicon: AppFavicon | null;
@@ -43,6 +52,15 @@ type UserForm = {
   confirmPassword: string;
 };
 
+type RoleFormMode = "create" | "edit";
+
+type RoleForm = {
+  id: string;
+  label: string;
+  description: string;
+  permissions: RolePermissions;
+};
+
 const emptyPasswordForm: PasswordForm = {
   currentPassword: "",
   newPassword: "",
@@ -55,6 +73,47 @@ const emptyUserForm: UserForm = {
   password: "",
   confirmPassword: ""
 };
+
+const emptyRoleForm: RoleForm = {
+  id: "",
+  label: "",
+  description: "",
+  permissions: {
+    viewTreasury: true,
+    manageRecords: false,
+    deleteRecords: false,
+    exportOverviewExcel: false,
+    requiresJustification: false
+  }
+};
+
+const rolePermissionLabels: Array<{ key: keyof RolePermissions; label: string; hint: string }> = [
+  {
+    key: "viewTreasury",
+    label: "Consultar Tesouraria",
+    hint: "Acesso às páginas de consulta, pesquisa e pagamentos."
+  },
+  {
+    key: "manageRecords",
+    label: "Adicionar e alterar",
+    hint: "Pode criar e editar movimentos, eventos, relatórios e faturas."
+  },
+  {
+    key: "deleteRecords",
+    label: "Apagar registos",
+    hint: "Permite apagar movimentos e eventos."
+  },
+  {
+    key: "exportOverviewExcel",
+    label: "Exportar Excel",
+    hint: "Permite exportar eventos no OverView."
+  },
+  {
+    key: "requiresJustification",
+    label: "Pedir justificação",
+    hint: "Ao editar, obriga a preencher a justificação."
+  }
+];
 
 const logDateFormatter = new Intl.DateTimeFormat("pt-PT", {
   day: "2-digit",
@@ -103,10 +162,16 @@ function sortAdminUsers(users: AdminUser[]) {
   return [...users].sort((left, right) => left.username.localeCompare(right.username, "pt-PT"));
 }
 
-function roleDescription(role: UserRole) {
-  if (role === "admin") return "Acesso total, incluindo apagar registos e painel Admin.";
-  if (role === "operator") return "Pode adicionar e alterar. Alterações exigem justificação.";
-  return "Pode apenas consultar o OverView.";
+function sortRoles(roles: RoleDefinition[]) {
+  return [...roles].sort((left, right) => {
+    if (left.builtIn && !right.builtIn) return -1;
+    if (!left.builtIn && right.builtIn) return 1;
+    return left.label.localeCompare(right.label, "pt-PT");
+  });
+}
+
+function rolePillClass(role: UserRole) {
+  return role === "admin" || role === "operator" || role === "view" ? role : "custom";
 }
 
 function auditLogTarget(log: AuditLogEntry) {
@@ -119,6 +184,7 @@ function auditLogTarget(log: AuditLogEntry) {
 export function AdminClient({
   session,
   users,
+  roles,
   reportLogo,
   appLogo,
   appFavicon,
@@ -133,9 +199,13 @@ export function AdminClient({
   const [passwordForm, setPasswordForm] = useState<PasswordForm>(emptyPasswordForm);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [usersState, setUsersState] = useState(() => sortAdminUsers(users));
+  const [rolesState, setRolesState] = useState(() => sortRoles(roles));
   const [userFormMode, setUserFormMode] = useState<UserFormMode>("create");
   const [userForm, setUserForm] = useState<UserForm>(emptyUserForm);
   const [userMessage, setUserMessage] = useState<string | null>(null);
+  const [roleFormMode, setRoleFormMode] = useState<RoleFormMode>("create");
+  const [roleForm, setRoleForm] = useState<RoleForm>(emptyRoleForm);
+  const [roleMessage, setRoleMessage] = useState<string | null>(null);
   const [logoMessage, setLogoMessage] = useState<string | null>(null);
   const [appLogoMessage, setAppLogoMessage] = useState<string | null>(null);
   const [faviconMessage, setFaviconMessage] = useState<string | null>(null);
@@ -156,6 +226,7 @@ export function AdminClient({
   const [resetConfirmation, setResetConfirmation] = useState("");
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isSavingUser, setIsSavingUser] = useState(false);
+  const [isSavingRoles, setIsSavingRoles] = useState(false);
   const [deletingUsername, setDeletingUsername] = useState<string | null>(null);
   const [isSavingLogo, setIsSavingLogo] = useState(false);
   const [isSavingAppLogo, setIsSavingAppLogo] = useState(false);
@@ -173,10 +244,120 @@ export function AdminClient({
     setUserForm((current) => ({ ...current, [field]: value }));
   };
 
+  const updateRoleField = (field: "id" | "label" | "description", value: string) => {
+    setRoleForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const updateRolePermission = (field: keyof RolePermissions, value: boolean) => {
+    setRoleForm((current) => ({
+      ...current,
+      permissions: {
+        ...current.permissions,
+        [field]: value
+      }
+    }));
+  };
+
+  const roleName = (role: UserRole) => getRoleLabel(role, rolesState);
+
+  const roleDescription = (role: UserRole) =>
+    rolesState.find((definition) => definition.id === role)?.description ?? "Role personalizado.";
+
   const resetUserForm = () => {
     setUserFormMode("create");
     setUserForm(emptyUserForm);
     setUserMessage(null);
+  };
+
+  const resetRoleForm = () => {
+    setRoleFormMode("create");
+    setRoleForm(emptyRoleForm);
+    setRoleMessage(null);
+  };
+
+  const editRole = (role: RoleDefinition) => {
+    if (role.builtIn) return;
+    setRoleFormMode("edit");
+    setRoleForm({
+      id: role.id,
+      label: role.label,
+      description: role.description,
+      permissions: role.permissions
+    });
+    setRoleMessage(null);
+  };
+
+  const saveRoles = async (nextRoles: RoleDefinition[], successMessage: string) => {
+    setIsSavingRoles(true);
+    setRoleMessage(null);
+    try {
+      const response = await fetch("/api/admin/roles", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roles: nextRoles.filter((role) => !role.builtIn) })
+      });
+      const body = (await response.json().catch(() => null)) as { message?: string; roles?: RoleDefinition[] } | null;
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível guardar os roles.");
+      setRolesState(sortRoles(body?.roles ?? nextRoles));
+      setRoleMessage(body?.message ?? successMessage);
+      router.refresh();
+      return true;
+    } catch (error) {
+      setRoleMessage(error instanceof Error ? error.message : "Não foi possível guardar os roles.");
+      return false;
+    } finally {
+      setIsSavingRoles(false);
+    }
+  };
+
+  const handleRoleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const id = roleFormMode === "edit" ? roleForm.id.trim() : roleSlugFromLabel(roleForm.id || roleForm.label);
+    const label = roleForm.label.trim();
+    const description = roleForm.description.trim() || "Role personalizado.";
+
+    if (!label) {
+      setRoleMessage("Indica o nome do role.");
+      return;
+    }
+    if (!roleIdIsSafe(id)) {
+      setRoleMessage("O ID do role só pode ter letras minúsculas, números, _ ou -.");
+      return;
+    }
+    if (roleFormMode === "create" && rolesState.some((role) => role.id === id)) {
+      setRoleMessage("Já existe um role com esse ID.");
+      return;
+    }
+
+    const nextRole: RoleDefinition = {
+      id,
+      label,
+      description,
+      permissions: roleForm.permissions,
+      builtIn: false
+    };
+    const nextRoles =
+      roleFormMode === "edit"
+        ? rolesState.map((role) => (role.id === id ? nextRole : role))
+        : [...rolesState, nextRole];
+    const saved = await saveRoles(nextRoles, roleFormMode === "edit" ? "Role atualizado." : "Role criado.");
+    if (saved) {
+      setRoleFormMode("create");
+      setRoleForm(emptyRoleForm);
+    }
+  };
+
+  const deleteRole = async (role: RoleDefinition) => {
+    if (role.builtIn) {
+      setRoleMessage("Os roles base não podem ser apagados.");
+      return;
+    }
+    if (!window.confirm(`Apagar o role "${role.label}"?`)) return;
+    const saved = await saveRoles(
+      rolesState.filter((item) => item.id !== role.id),
+      `Role "${role.label}" apagado.`
+    );
+    if (saved && roleForm.id === role.id) resetRoleForm();
   };
 
   const editUser = (user: AdminUser) => {
@@ -815,6 +996,132 @@ export function AdminClient({
         </div>
       </section>
 
+      <section className="admin-users-panel admin-roles-panel" aria-label="Gestão de roles">
+        <div className="admin-log-header">
+          <div>
+            <p className="eyebrow">Permissões</p>
+            <h2>Roles e acessos</h2>
+          </div>
+          <span>{rolesState.length} roles</span>
+        </div>
+        <div className="admin-users-layout">
+          <form className="admin-settings-card admin-user-form admin-role-form" onSubmit={handleRoleSubmit}>
+            <div>
+              <p className="eyebrow">{roleFormMode === "create" ? "Novo role" : "Editar role"}</p>
+              <h3>{roleFormMode === "create" ? "Criar role" : roleForm.label}</h3>
+            </div>
+            <label>
+              Nome do role
+              <input
+                value={roleForm.label}
+                onChange={(event) => {
+                  updateRoleField("label", event.target.value);
+                  if (roleFormMode === "create") updateRoleField("id", roleSlugFromLabel(event.target.value));
+                }}
+              />
+            </label>
+            <label>
+              ID técnico
+              <input
+                disabled={roleFormMode === "edit"}
+                placeholder="ex: financeiro"
+                value={roleForm.id}
+                onChange={(event) => updateRoleField("id", roleSlugFromLabel(event.target.value))}
+              />
+            </label>
+            <label>
+              Descrição
+              <textarea
+                rows={3}
+                value={roleForm.description}
+                onChange={(event) => updateRoleField("description", event.target.value)}
+              />
+            </label>
+            <div className="admin-permission-list" aria-label="Permissões do role">
+              {rolePermissionLabels.map((permission) => (
+                <label className="admin-permission-option" key={permission.key}>
+                  <input
+                    checked={roleForm.permissions[permission.key]}
+                    type="checkbox"
+                    onChange={(event) => updateRolePermission(permission.key, event.target.checked)}
+                  />
+                  <span>
+                    <strong>{permission.label}</strong>
+                    <small>{permission.hint}</small>
+                  </span>
+                </label>
+              ))}
+            </div>
+            {roleMessage ? <p className="form-message">{roleMessage}</p> : null}
+            <div className="admin-inline-actions">
+              <button disabled={isSavingRoles} type="submit">
+                {isSavingRoles ? "A guardar..." : roleFormMode === "create" ? "Criar role" : "Guardar role"}
+              </button>
+              {roleFormMode === "edit" ? (
+                <button className="secondary-button" disabled={isSavingRoles} type="button" onClick={resetRoleForm}>
+                  Cancelar
+                </button>
+              ) : null}
+            </div>
+          </form>
+
+          <div className="admin-users-table-wrap">
+            <table className="admin-users-table admin-roles-table">
+              <thead>
+                <tr>
+                  <th>Role</th>
+                  <th>Descrição</th>
+                  <th>Permissões</th>
+                  <th>Tipo</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rolesState.map((role) => (
+                  <tr key={role.id}>
+                    <td>
+                      <span className={`admin-role-pill ${rolePillClass(role.id)}`}>{role.label}</span>
+                      <small className="role-id-label">{role.id}</small>
+                    </td>
+                    <td>{role.description}</td>
+                    <td>
+                      <div className="admin-role-permissions">
+                        {rolePermissionLabels
+                          .filter((permission) => role.permissions[permission.key])
+                          .map((permission) => (
+                            <span className="permission-pill" key={permission.key}>
+                              {permission.label}
+                            </span>
+                          ))}
+                        {!rolePermissionLabels.some((permission) => role.permissions[permission.key]) ? (
+                          <span className="permission-pill muted">Sem permissões</span>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td>{role.builtIn ? "Base" : "Personalizado"}</td>
+                    <td>
+                      <div className="admin-table-actions">
+                        <button disabled={role.builtIn || isSavingRoles} type="button" onClick={() => editRole(role)}>
+                          Editar
+                        </button>
+                        <button
+                          className="danger-table-button"
+                          disabled={role.builtIn || isSavingRoles}
+                          type="button"
+                          onClick={() => deleteRole(role)}
+                        >
+                          Apagar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <section className="admin-users-panel" aria-label="Gestão de utilizadores">
         <div className="admin-log-header">
           <div>
@@ -843,9 +1150,11 @@ export function AdminClient({
                 value={userForm.role}
                 onChange={(event) => updateUserField("role", event.target.value as UserRole)}
               >
-                <option value="admin">Admin</option>
-                <option value="operator">Operator</option>
-                <option value="view">View</option>
+                {rolesState.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.label}
+                  </option>
+                ))}
               </select>
             </label>
             <label>
@@ -900,7 +1209,7 @@ export function AdminClient({
                         {user.username === session.username ? <span className="current-user-badge">Atual</span> : null}
                       </td>
                       <td>
-                        <span className={`admin-role-pill ${user.role}`}>{ROLE_LABELS[user.role]}</span>
+                        <span className={`admin-role-pill ${rolePillClass(user.role)}`}>{roleName(user.role)}</span>
                       </td>
                       <td>{roleDescription(user.role)}</td>
                       <td>{user.updated_at ? formatLogDate(user.updated_at) : "Base"}</td>
@@ -981,7 +1290,7 @@ export function AdminClient({
                     >
                       <td>{formatLogDate(log.created_at)}</td>
                       <td>{log.username}</td>
-                      <td>{ROLE_LABELS[log.role]}</td>
+                      <td>{roleName(log.role)}</td>
                       <td>{log.action}</td>
                       <td>{log.summary ?? "-"}</td>
                       <td className="admin-log-details">{formatDetails(log.details)}</td>

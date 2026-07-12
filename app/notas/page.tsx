@@ -33,7 +33,7 @@ export default async function NotesPage({ searchParams }: NotesPageProps) {
         initialNotes={notes.data}
         initialSelectedId={selectedNoteId}
         notesError={notes.error}
-        role={session.role}
+        session={session}
       />
     </main>
   );

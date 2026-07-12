@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession, isRole, supabaseAdminHeaders, supabaseEndpoint } from "../../../auth";
 import type { AuthSession, UserRole } from "../../../auth-types";
+import { getRoleDefinition } from "../../../role-settings";
 
 export type ManagedUser = {
   username: string;
@@ -80,6 +81,10 @@ export function normalizeUsername(value: unknown) {
 
 export function normalizeRole(value: unknown) {
   return isRole(value) ? value : null;
+}
+
+export async function roleExists(role: UserRole) {
+  return Boolean(await getRoleDefinition(role));
 }
 
 export async function getManagedUser(username: string) {

@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeAuditLog } from "../../../audit-log";
 import { hashCredential, listAuthUsers, supabaseAdminHeaders } from "../../../auth";
-import { ROLE_LABELS } from "../../../auth-types";
+import { getRoleLabel } from "../../../role-settings";
 import {
   getManagedUser,
   missingAdminKeyResponse,
   normalizeRole,
   normalizeUsername,
   requireAdminUserAccess,
+  roleExists,
   safeUser,
   supabaseAdminRequest,
   type ManagedUser
@@ -36,6 +37,9 @@ export async function POST(request: NextRequest) {
   }
   if (!role) {
     return NextResponse.json({ message: "Escolhe um role válido." }, { status: 400 });
+  }
+  if (!(await roleExists(role))) {
+    return NextResponse.json({ message: "Esse role não existe." }, { status: 400 });
   }
   if (password.length < 6) {
     return NextResponse.json({ message: "A password deve ter pelo menos 6 caracteres." }, { status: 400 });
@@ -66,7 +70,7 @@ export async function POST(request: NextRequest) {
       action: "Criou utilizador",
       resource: "app_users",
       resourceId: username,
-      summary: `Criou utilizador ${username} (${ROLE_LABELS[role]})`,
+      summary: `Criou utilizador ${username} (${await getRoleLabel(role)})`,
       details: { username, role }
     });
 

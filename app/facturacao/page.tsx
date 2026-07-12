@@ -8,7 +8,7 @@ import { FacturacaoClient } from "./facturacao-client";
 export default async function FacturacaoPage() {
   const session = await getSession();
   if (!session) redirect("/login?next=/facturacao");
-  if (!canWrite(session.role)) redirect("/overview");
+  if (!canWrite(session)) redirect("/overview");
 
   const [{ eventos, movimentos, error }, reports, appLogo] = await Promise.all([
     getTesourariaData(),

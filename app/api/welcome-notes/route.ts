@@ -23,7 +23,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ message: "Sessão expirada." }, { status: 401 });
-  if (!canWrite(session.role)) return NextResponse.json({ message: "Sem permissão para alterar apontamentos." }, { status: 403 });
+  if (!canWrite(session)) return NextResponse.json({ message: "Sem permissão para alterar apontamentos." }, { status: 403 });
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const content = typeof body.content === "string" ? body.content.slice(0, 6000) : "";

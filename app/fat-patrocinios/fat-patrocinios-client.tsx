@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { AppLogo } from "../app-settings";
-import type { AuthSession } from "../auth-types";
+import { requiresJustification, type AuthSession } from "../auth-types";
 import type { MovimentoDetalhe } from "../supabase-data";
 import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
@@ -163,7 +163,7 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
   };
 
   const askJustification = () => {
-    if (session.role !== "operator") return "";
+    if (!requiresJustification(session)) return "";
     const answer = window.prompt("Justificação da alteração:");
     if (!answer?.trim()) {
       setMessage("A alteração precisa de justificação.");

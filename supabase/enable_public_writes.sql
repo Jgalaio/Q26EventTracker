@@ -83,7 +83,7 @@ where slug = 'decoracao';
 
 create table if not exists public.app_users (
   username text primary key,
-  role text not null check (role in ('admin', 'operator', 'view')),
+  role text not null,
   password_hash text not null,
   updated_at timestamptz not null default now()
 );
@@ -98,13 +98,16 @@ create table if not exists public.app_audit_logs (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
   username text not null,
-  role text not null check (role in ('admin', 'operator', 'view')),
+  role text not null,
   action text not null,
   resource text not null,
   resource_id text,
   summary text,
   details jsonb not null default '{}'::jsonb
 );
+
+alter table public.app_users drop constraint if exists app_users_role_check;
+alter table public.app_audit_logs drop constraint if exists app_audit_logs_role_check;
 
 create index if not exists app_audit_logs_created_at_idx on public.app_audit_logs(created_at desc);
 create index if not exists app_audit_logs_resource_idx on public.app_audit_logs(resource, resource_id);
