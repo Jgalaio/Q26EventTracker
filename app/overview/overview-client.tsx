@@ -70,6 +70,10 @@ function chartHeight(value: number, maxValue: number) {
   return `${Math.max(8, (value / maxValue) * 100)}%`;
 }
 
+function formatPercent(value: number) {
+  return `${Math.round(value)}%`;
+}
+
 export function OverviewClient({ rows, totals, cashValue, physicalCashCount, error, session, appLogo }: OverviewClientProps) {
   const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
   const [selectedSlugs, setSelectedSlugs] = useState<Set<string>>(() => new Set());
@@ -84,6 +88,12 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
     { label: "Pagamentos em falta", value: totals.aPagamento, className: "bar-muted" }
   ];
   const chartMax = Math.max(...chartItems.map((item) => item.value), 1);
+  const pieProfitValue = Math.max(totals.lucro, 0);
+  const pieExpenseValue = Math.max(totals.saidas, 0);
+  const pieTotal = pieProfitValue + pieExpenseValue;
+  const pieProfitPercent = pieTotal > 0 ? (pieProfitValue / pieTotal) * 100 : 0;
+  const pieExpensePercent = pieTotal > 0 ? 100 - pieProfitPercent : 0;
+  const pieProfitDegrees = (pieProfitPercent / 100) * 360;
 
   const toggleExportSelection = (slug: string) => {
     if (!canExportExcel) return;
@@ -194,6 +204,40 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
               </div>
             ))}
           </div>
+          <section className="overview-pie-panel" aria-label="Gráfico circular de lucro e despesas">
+            <div className="overview-pie-chart-wrap">
+              <div
+                aria-hidden="true"
+                className="overview-pie-chart"
+                style={{
+                  background:
+                    pieTotal > 0
+                      ? `conic-gradient(#25815c 0deg ${pieProfitDegrees}deg, #5d91f2 ${pieProfitDegrees}deg 360deg)`
+                      : "#eaf2ff"
+                }}
+              >
+                <span>{formatPercent(pieProfitPercent)}</span>
+              </div>
+            </div>
+            <div className="overview-pie-details">
+              <div>
+                <span>
+                  <i className="pie-profit-dot" />
+                  Lucro
+                </span>
+                <strong>{formatMoney(totals.lucro)}</strong>
+                <small>{formatPercent(pieProfitPercent)}</small>
+              </div>
+              <div>
+                <span>
+                  <i className="pie-expense-dot" />
+                  Despesas
+                </span>
+                <strong>{formatMoney(totals.saidas)}</strong>
+                <small>{formatPercent(pieExpensePercent)}</small>
+              </div>
+            </div>
+          </section>
           <div className="chart-legend">
             {chartItems.map((item) => (
               <span key={item.label}>

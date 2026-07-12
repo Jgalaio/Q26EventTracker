@@ -5178,6 +5178,105 @@ td {
   width: 9px;
 }
 
+.overview-pie-panel {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(150px, 190px) minmax(0, 1fr);
+  padding: 18px 22px;
+}
+
+.overview-pie-chart-wrap {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
+.overview-pie-chart {
+  align-items: center;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow: 0 14px 34px rgba(31, 102, 229, 0.16);
+  display: flex;
+  justify-content: center;
+  max-width: 170px;
+  min-width: 132px;
+  position: relative;
+  width: 100%;
+}
+
+.overview-pie-chart::after {
+  background: var(--panel);
+  border-radius: 50%;
+  content: "";
+  inset: 21%;
+  position: absolute;
+}
+
+.overview-pie-chart span {
+  color: var(--ink);
+  font-size: clamp(1.15rem, 2vw, 1.75rem);
+  font-weight: 900;
+  position: relative;
+  z-index: 1;
+}
+
+.overview-pie-details {
+  display: grid;
+  gap: 10px;
+}
+
+.overview-pie-details > div {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px;
+}
+
+.overview-pie-details span {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 900;
+  gap: 7px;
+  text-transform: uppercase;
+}
+
+.overview-pie-details i {
+  border-radius: 999px;
+  display: inline-block;
+  height: 10px;
+  width: 10px;
+}
+
+.overview-pie-details strong {
+  color: var(--ink);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.overview-pie-details small {
+  align-self: center;
+  color: var(--blue);
+  font-size: 1.05rem;
+  font-weight: 900;
+  grid-row: span 2;
+}
+
+.pie-profit-dot {
+  background: #25815c;
+}
+
+.pie-expense-dot {
+  background: #5d91f2;
+}
+
 .overview-table-wrap {
   max-width: 100%;
   max-height: none;
@@ -5555,7 +5654,8 @@ td {
   .search-summary-grid,
   .welcome-card-grid,
   .history-field-grid,
-  .bar-chart {
+  .bar-chart,
+  .overview-pie-panel {
     grid-template-columns: 1fr;
   }
 
