@@ -208,6 +208,12 @@ export default async function WelcomePage({ searchParams }: WelcomePageProps) {
     { label: "Faturado", value: formatMoney(totals.faturado), detail: "Fatura C/NIF: Sim", tone: "blue" as const },
     { label: "Não Faturado", value: formatMoney(totals.naoFaturado), detail: "Fatura C/NIF: Não", tone: "purple" as const },
     { label: "Transferências", value: formatMoney(totals.transferencias), detail: "Pagas por transferência", tone: "purple" as const },
+    {
+      label: "Saldo em conta",
+      value: formatMoney(accountBalance),
+      detail: "Conta Q26",
+      tone: accountBalance < 0 ? ("red" as const) : ("green" as const)
+    },
     { label: "Valor Dinheiro", value: formatMoney(cashValue), detail: "Lucro + Q25 - Saldo Conta", tone: "blue" as const },
     {
       label: "Dif. Dinheiro Físico",
