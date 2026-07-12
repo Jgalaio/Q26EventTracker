@@ -70,6 +70,18 @@ export async function requireWriteAccess(): Promise<WriteAccess> {
   return { session, error: null };
 }
 
+export async function requireSessionAccess(): Promise<WriteAccess> {
+  const session = await getSession();
+  if (!session) {
+    return {
+      session: null,
+      error: NextResponse.json({ message: "Sessão expirada. Entra novamente." }, { status: 401 })
+    };
+  }
+
+  return { session, error: null };
+}
+
 export function requireDeleteAccess(session: AuthSession) {
   if (!canDelete(session)) {
     return NextResponse.json({ message: "Sem permissão para apagar registos." }, { status: 403 });

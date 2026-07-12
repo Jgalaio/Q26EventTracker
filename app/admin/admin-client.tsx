@@ -84,6 +84,7 @@ const emptyRoleForm: RoleForm = {
     deleteRecords: false,
     exportOverviewExcel: false,
     viewClosedEvents: false,
+    unlockClosedEvents: false,
     requiresJustification: false
   }
 };
@@ -113,6 +114,11 @@ const rolePermissionLabels: Array<{ key: keyof RolePermissions; label: string; h
     key: "viewClosedEvents",
     label: "Ver eventos fechados",
     hint: "Mostra a lista de eventos fechados no perfil do utilizador."
+  },
+  {
+    key: "unlockClosedEvents",
+    label: "Abrir eventos fechados",
+    hint: "Permite desbloquear eventos fechados a partir do perfil."
   },
   {
     key: "requiresJustification",

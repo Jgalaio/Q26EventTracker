@@ -10,6 +10,7 @@ import type { UserQuickNotes } from "../user-quick-notes";
 type UserClientProps = {
   auditError: string | null;
   auditLogs: AuditLogEntry[];
+  canUnlockClosedEvents: boolean;
   closedEvents: EventoResumo[] | null;
   closedEventsError: string | null;
   quickNotes: UserQuickNotes;
@@ -34,6 +35,7 @@ const permissionLabels: Array<{ key: keyof RolePermissions; label: string }> = [
   { key: "deleteRecords", label: "Apagar registos" },
   { key: "exportOverviewExcel", label: "Exportar Excel no OverView" },
   { key: "viewClosedEvents", label: "Ver eventos fechados" },
+  { key: "unlockClosedEvents", label: "Abrir eventos fechados" },
   { key: "requiresJustification", label: "Pedir justificação ao alterar" }
 ];
 
@@ -87,10 +89,21 @@ function auditLogTarget(log: AuditLogEntry) {
   return null;
 }
 
-export function UserClient({ auditError, auditLogs, closedEvents, closedEventsError, quickNotes, session }: UserClientProps) {
+export function UserClient({
+  auditError,
+  auditLogs,
+  canUnlockClosedEvents,
+  closedEvents,
+  closedEventsError,
+  quickNotes,
+  session
+}: UserClientProps) {
   const [passwordForm, setPasswordForm] = useState<PasswordForm>(emptyPasswordForm);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [closedEventsState, setClosedEventsState] = useState(closedEvents ?? []);
+  const [closedEventsMessage, setClosedEventsMessage] = useState<string | null>(null);
+  const [unlockingEventId, setUnlockingEventId] = useState<string | null>(null);
   const [notesContent, setNotesContent] = useState(quickNotes.content);
   const [notesMeta, setNotesMeta] = useState({ updatedAt: quickNotes.updatedAt, updatedBy: quickNotes.updatedBy });
   const [isSavingNotes, setIsSavingNotes] = useState(false);
@@ -141,6 +154,37 @@ export function UserClient({ auditError, auditLogs, closedEvents, closedEventsEr
       setNotesMessage(error instanceof Error ? error.message : "Não foi possível guardar os apontamentos.");
     } finally {
       setIsSavingNotes(false);
+    }
+  };
+
+  const unlockEvent = async (event: EventoResumo) => {
+    const confirmed = window.confirm(`Abrir o evento "${event.nome}" para voltar a permitir alterações?`);
+    if (!confirmed) return;
+
+    const justification = session.permissions.requiresJustification
+      ? window.prompt("Indica a justificação para abrir este evento.")?.trim()
+      : "";
+    if (session.permissions.requiresJustification && !justification) {
+      setClosedEventsMessage("A abertura do evento precisa de justificação.");
+      return;
+    }
+
+    setUnlockingEventId(event.id);
+    setClosedEventsMessage(null);
+    try {
+      const response = await fetch(`/api/eventos/${event.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fechado: false, ...(justification ? { justification } : {}) })
+      });
+      const body = (await response.json().catch(() => null)) as { message?: string } | null;
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível abrir o evento.");
+      setClosedEventsState((current) => current.filter((item) => item.id !== event.id));
+      setClosedEventsMessage(`Evento "${event.nome}" aberto.`);
+    } catch (error) {
+      setClosedEventsMessage(error instanceof Error ? error.message : "Não foi possível abrir o evento.");
+    } finally {
+      setUnlockingEventId(null);
     }
   };
 
@@ -246,14 +290,15 @@ export function UserClient({ auditError, auditLogs, closedEvents, closedEventsEr
               <p className="eyebrow">Eventos</p>
               <h2>Eventos fechados</h2>
             </div>
-            <span>{closedEvents.length} fechados</span>
+            <span>{closedEventsState.length} fechados</span>
           </div>
           {closedEventsError ? (
             <p className="form-message">Não foi possível carregar os eventos fechados. {closedEventsError}</p>
           ) : null}
+          {closedEventsMessage ? <p className="form-message">{closedEventsMessage}</p> : null}
           <div className="closed-events-list">
-            {closedEvents.length ? (
-              closedEvents.map((event) => (
+            {closedEventsState.length ? (
+              closedEventsState.map((event) => (
                 <article className="closed-event-card user-closed-event-card" key={event.id}>
                   <div>
                     <span className="event-lock-badge">
@@ -265,6 +310,11 @@ export function UserClient({ auditError, auditLogs, closedEvents, closedEventsEr
                       {formatEventDate(event.data_inicio)} · {formatMoney(event.saldo)}
                     </small>
                   </div>
+                  {canUnlockClosedEvents ? (
+                    <button disabled={unlockingEventId === event.id} type="button" onClick={() => unlockEvent(event)}>
+                      {unlockingEventId === event.id ? "A abrir..." : "Abrir evento"}
+                    </button>
+                  ) : null}
                 </article>
               ))
             ) : (

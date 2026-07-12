@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { canUnlockClosedEvents, canWrite } from "../../../auth-types";
 import {
   bodyHasClosedState,
   bodyOnlyUnlocksEvent,
@@ -7,6 +8,7 @@ import {
   prepareWritePayload,
   readJsonBody,
   requireDeleteAccess,
+  requireSessionAccess,
   requireWriteAccess,
   supabaseWrite
 } from "../../q26-write";
@@ -16,19 +18,33 @@ type RouteContext = {
 };
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
-  const access = await requireWriteAccess();
+  const access = await requireSessionAccess();
   if (access.error) return access.error;
 
   const { id } = await context.params;
   const body = await readJsonBody(request);
+  const unlockRequest = bodyOnlyUnlocksEvent(body);
+  const mayUnlock = canUnlockClosedEvents(access.session);
+  const mayWrite = canWrite(access.session);
+
+  if (!mayWrite && !(unlockRequest && mayUnlock)) {
+    return NextResponse.json({ message: "Sem permissão para gravar." }, { status: 403 });
+  }
+
   const lock = await getEventLockState(id);
   if (lock.error) return lock.error;
 
-  if (bodyHasClosedState(body) && access.session.role !== "admin") {
-    return NextResponse.json({ message: "Só Admin pode fechar ou desbloquear eventos." }, { status: 403 });
+  if (bodyHasClosedState(body)) {
+    if (unlockRequest) {
+      if (!mayUnlock) {
+        return NextResponse.json({ message: "Sem permissão para abrir eventos fechados." }, { status: 403 });
+      }
+    } else if (access.session.role !== "admin") {
+      return NextResponse.json({ message: "Só Admin pode fechar eventos." }, { status: 403 });
+    }
   }
 
-  if (lock.event.fechado && !(access.session.role === "admin" && bodyOnlyUnlocksEvent(body))) {
+  if (lock.event.fechado && !(unlockRequest && mayUnlock)) {
     return eventLockedResponse(lock.event.nome);
   }
 
