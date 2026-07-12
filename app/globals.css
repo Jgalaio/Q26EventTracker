@@ -5355,6 +5355,22 @@ td {
   table-layout: fixed;
 }
 
+.overview-col-select {
+  width: 42px;
+}
+
+.overview-col-event {
+  width: 230px;
+}
+
+.overview-col-money {
+  width: 102px;
+}
+
+.overview-col-excel {
+  width: 86px;
+}
+
 .overview-table th,
 .overview-table td {
   font-size: 0.76rem;
@@ -5366,45 +5382,10 @@ td {
   line-height: 1.15;
 }
 
-.overview-table th:nth-child(1),
-.overview-table td:nth-child(1) {
-  width: 38px;
-}
-
-.overview-table th:nth-child(2),
-.overview-table td:nth-child(2) {
-  width: 205px;
-}
-
-.overview-table th:nth-child(3),
-.overview-table td:nth-child(3),
-.overview-table th:nth-child(4),
-.overview-table td:nth-child(4),
-.overview-table th:nth-child(5),
-.overview-table td:nth-child(5),
-.overview-table th:nth-child(6),
-.overview-table td:nth-child(6),
-.overview-table th:nth-child(7),
-.overview-table td:nth-child(7),
-.overview-table th:nth-child(8),
-.overview-table td:nth-child(8),
-.overview-table th:nth-child(9),
-.overview-table td:nth-child(9),
-.overview-table th:nth-child(10),
-.overview-table td:nth-child(10),
-.overview-table th:nth-child(11),
-.overview-table td:nth-child(11) {
-  width: 88px;
-}
-
-.overview-table th:nth-child(12),
-.overview-table td:nth-child(12) {
-  width: 68px;
-}
-
 .overview-table .item-cell {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .overview-select-cell {

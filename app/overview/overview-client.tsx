@@ -50,6 +50,8 @@ const dateFormatter = new Intl.DateTimeFormat("pt-PT", {
   year: "numeric"
 });
 
+const OVERVIEW_MONEY_COLUMNS = 9;
+
 function formatMoney(value: number | null | undefined) {
   return moneyFormatter.format(Number(value ?? 0));
 }
@@ -271,6 +273,14 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
         </div>
         <div className="table-wrap overview-table-wrap">
           <table className="overview-table">
+            <colgroup>
+              {canExportExcel ? <col className="overview-col-select" /> : null}
+              <col className="overview-col-event" />
+              {Array.from({ length: OVERVIEW_MONEY_COLUMNS }, (_, index) => (
+                <col className="overview-col-money" key={`overview-money-column-${index}`} />
+              ))}
+              {canExportExcel ? <col className="overview-col-excel" /> : null}
+            </colgroup>
             <thead>
               <tr>
                 {canExportExcel ? (
