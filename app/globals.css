@@ -2129,6 +2129,73 @@ h2 {
   );
 }
 
+.report-cover-pie {
+  align-items: center;
+  border-top: 1px solid #c4d8ff;
+  display: grid;
+  gap: 14px;
+  grid-column: 1 / -1;
+  grid-template-columns: 112px minmax(0, 1fr);
+  padding-top: 12px;
+}
+
+.report-cover-pie-chart {
+  align-items: center;
+  border-radius: 50%;
+  display: flex;
+  height: 104px;
+  justify-content: center;
+  position: relative;
+  width: 104px;
+}
+
+.report-cover-pie-chart::after {
+  background: white;
+  border-radius: 50%;
+  content: "";
+  height: 50px;
+  position: absolute;
+  width: 50px;
+}
+
+.report-cover-pie-chart span {
+  color: #1f4f9d;
+  font-size: 0.94rem;
+  font-weight: 900;
+  position: relative;
+  z-index: 1;
+}
+
+.report-cover-pie-legend {
+  align-items: center;
+  display: grid;
+  gap: 5px 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.report-cover-pie-legend span {
+  align-items: center;
+  color: #375d93;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 800;
+  gap: 8px;
+}
+
+.report-cover-pie-legend strong {
+  color: #25569a;
+  font-size: 0.84rem;
+  font-weight: 900;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.report-cover-pie-legend i {
+  display: inline-block;
+  height: 11px;
+  width: 11px;
+}
+
 .report-cover-summary {
   display: grid;
 }
@@ -5771,6 +5838,15 @@ td {
     justify-content: flex-start;
   }
 
+  .report-cover-pie {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .report-cover-pie-legend {
+    width: 100%;
+  }
+
   .reports-toolbar button {
     width: 100%;
   }
@@ -5910,6 +5986,40 @@ td {
   .cover-bar-column small,
   .cover-bar span {
     font-size: 0.54rem;
+  }
+
+  .report-cover-pie {
+    gap: 9px;
+    grid-template-columns: 86px minmax(0, 1fr);
+    padding-top: 8px;
+  }
+
+  .report-cover-pie-chart {
+    height: 78px;
+    width: 78px;
+  }
+
+  .report-cover-pie-chart::after {
+    height: 38px;
+    width: 38px;
+  }
+
+  .report-cover-pie-chart span {
+    font-size: 0.72rem;
+  }
+
+  .report-cover-pie-legend {
+    gap: 3px 8px;
+  }
+
+  .report-cover-pie-legend span,
+  .report-cover-pie-legend strong {
+    font-size: 0.62rem;
+  }
+
+  .report-cover-pie-legend i {
+    height: 8px;
+    width: 8px;
   }
 
   .report-cover-summary article {

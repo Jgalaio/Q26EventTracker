@@ -188,6 +188,23 @@ function eventPie(summary: Summary) {
   };
 }
 
+function profitExpensePie(summary: Summary) {
+  const lucro = Math.max(0, summary.lucro);
+  const despesas = Math.max(0, summary.saidas);
+  const total = lucro + despesas;
+  const lucroPercent = total > 0 ? Math.round((lucro / total) * 100) : 0;
+  const despesasPercent = total > 0 ? 100 - lucroPercent : 0;
+
+  return {
+    lucroPercent,
+    despesasPercent,
+    background:
+      total > 0
+        ? `conic-gradient(#1f66e5 0 ${lucroPercent}%, #93b7f4 ${lucroPercent}% 100%)`
+        : "conic-gradient(#d8e5ff 0 100%)"
+  };
+}
+
 export function ReportsClient({
   eventos,
   movimentos,
@@ -267,6 +284,7 @@ export function ReportsClient({
     { label: "Pagamentos em falta", value: totals.aPagamento, className: "cover-bar-yellow" }
   ];
   const chartMax = Math.max(...chartItems.map((item) => item.value), 1);
+  const coverPie = profitExpensePie(totals);
   const overviewChartMax = Math.max(
     ...visibleEvents.flatMap((item) => [
       item.summary.entradas,
@@ -374,6 +392,23 @@ export function ReportsClient({
                     <small>{item.label}</small>
                   </div>
                 ))}
+              </div>
+              <div className="report-cover-pie" aria-label="Gráfico circular de lucro e despesas">
+                <div className="report-cover-pie-chart" style={{ background: coverPie.background }}>
+                  <span>{coverPie.lucroPercent}%</span>
+                </div>
+                <div className="report-cover-pie-legend">
+                  <span>
+                    <i className="pie-blue" />
+                    Lucro {coverPie.lucroPercent}%
+                  </span>
+                  <strong>{formatMoney(totals.lucro)}</strong>
+                  <span>
+                    <i className="pie-orange" />
+                    Despesas {coverPie.despesasPercent}%
+                  </span>
+                  <strong>{formatMoney(totals.saidas)}</strong>
+                </div>
               </div>
             </section>
 
