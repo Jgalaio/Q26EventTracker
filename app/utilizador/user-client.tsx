@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import type { AuditLogEntry } from "../audit-log";
-import type { AuthSession, RolePermissions } from "../auth-types";
+import type { AuthSession } from "../auth-types";
 import type { EventoResumo } from "../supabase-data";
 import type { UserQuickNotes } from "../user-quick-notes";
 
@@ -28,16 +28,6 @@ const emptyPasswordForm: PasswordForm = {
   newPassword: "",
   confirmPassword: ""
 };
-
-const permissionLabels: Array<{ key: keyof RolePermissions; label: string }> = [
-  { key: "viewTreasury", label: "Consultar Tesouraria" },
-  { key: "manageRecords", label: "Adicionar e alterar" },
-  { key: "deleteRecords", label: "Apagar registos" },
-  { key: "exportOverviewExcel", label: "Exportar Excel no OverView" },
-  { key: "viewClosedEvents", label: "Ver eventos fechados" },
-  { key: "unlockClosedEvents", label: "Abrir eventos fechados" },
-  { key: "requiresJustification", label: "Pedir justificação ao alterar" }
-];
 
 const dateFormatter = new Intl.DateTimeFormat("pt-PT", {
   day: "2-digit",
@@ -188,8 +178,6 @@ export function UserClient({
     }
   };
 
-  const activePermissions = permissionLabels.filter((permission) => session.permissions[permission.key]);
-
   return (
     <>
       <section className="user-profile-grid" aria-label="Informação do utilizador">
@@ -199,19 +187,7 @@ export function UserClient({
             <h2>{session.username}</h2>
           </div>
           <div className="user-profile-meta">
-            <span>Role</span>
             <strong>{session.roleLabel}</strong>
-          </div>
-          <div className="user-permission-list">
-            {activePermissions.length ? (
-              activePermissions.map((permission) => (
-                <span className="permission-pill" key={permission.key}>
-                  {permission.label}
-                </span>
-              ))
-            ) : (
-              <span className="permission-pill muted">Sem permissões operacionais</span>
-            )}
           </div>
         </article>
 
