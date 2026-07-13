@@ -3961,7 +3961,7 @@ td {
 }
 
 .database-maintenance-card {
-  grid-column: span 2;
+  grid-column: 1 / -1;
 }
 
 .database-actions {
@@ -3975,8 +3975,14 @@ td {
   border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
-  gap: 12px;
+  gap: 14px;
   padding: 12px;
+}
+
+.backup-automation-top {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(220px, 0.95fr) minmax(320px, 1.3fr) minmax(230px, auto) minmax(230px, 0.95fr);
 }
 
 .backup-automation-header,
@@ -3990,10 +3996,20 @@ td {
 
 .backup-automation-header > div,
 .stored-backups-heading > div,
-.stored-backup-row > div {
+.stored-backup-row > div:first-child {
   display: grid;
   gap: 4px;
   min-width: 0;
+}
+
+.backup-automation-header,
+.backup-automation-top .backup-settings-grid,
+.backup-main-actions,
+.backup-last-status {
+  background: white;
+  border: 1px solid #d9e8ff;
+  border-radius: 8px;
+  padding: 10px;
 }
 
 .backup-automation-header strong,
@@ -4041,18 +4057,24 @@ td {
   grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
 }
 
+.backup-automation-top .backup-settings-grid {
+  align-items: end;
+  grid-template-columns: minmax(170px, 1fr) minmax(150px, 1fr);
+}
+
 .backup-toggle {
   align-self: end;
   margin-bottom: 8px;
 }
 
+.backup-main-actions {
+  align-items: end;
+  align-content: end;
+}
+
 .backup-last-status {
-  background: white;
-  border: 1px solid #d9e8ff;
-  border-radius: 8px;
   display: grid;
   gap: 4px;
-  padding: 10px;
 }
 
 .backup-last-status strong {
@@ -4062,12 +4084,45 @@ td {
 
 .stored-backups-list {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .stored-backups-heading {
-  border-top: 1px solid var(--line);
-  padding-top: 10px;
+  border-top: 1px solid #c8dcff;
+  padding-top: 12px;
+}
+
+.stored-backup-columns {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stored-backup-column {
+  background: #fafdff;
+  border: 1px solid #d9e8ff;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.stored-backup-column-heading {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.stored-backup-column-heading strong {
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.stored-backup-column-heading span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 850;
 }
 
 .stored-backup-row {
@@ -5882,7 +5937,11 @@ td {
   }
 
   .database-maintenance-card {
-    grid-column: auto;
+    grid-column: 1 / -1;
+  }
+
+  .backup-automation-top {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .notes-page-layout,
@@ -5990,7 +6049,9 @@ td {
   }
 
   .overview-card-grid,
+  .backup-automation-top,
   .backup-settings-grid,
+  .stored-backup-columns,
   .search-filter-tabs,
   .search-summary-grid,
   .welcome-card-grid,

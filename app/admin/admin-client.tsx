@@ -1281,6 +1281,42 @@ export function AdminClient({
     }
   };
 
+  const manualBackupRuns = backupRunsState.filter((run) => run.trigger === "manual");
+  const automaticBackupRuns = backupRunsState.filter((run) => run.trigger === "automatic");
+
+  const renderStoredBackupRow = (run: BackupRunSummary) => (
+    <article className={run.status === "success" ? "stored-backup-row" : "stored-backup-row error"} key={run.id}>
+      <div>
+        <strong>{formatLogDate(run.createdAt)}</strong>
+        <span>
+          {run.createdBy} · {formatFileSize(run.sizeBytes)}
+        </span>
+        <small>
+          Eventos {run.counts.eventos ?? 0} · Movimentos {run.counts.movimentos ?? 0} · Notas {run.counts.notas ?? 0}
+        </small>
+        {run.storageBucket ? <small>Bucket {run.storageBucket}</small> : null}
+      </div>
+      <div className="stored-backup-actions">
+        <button
+          className="secondary-button"
+          disabled={!run.hasSnapshot || downloadingBackupId === run.id || deletingBackupId === run.id}
+          type="button"
+          onClick={() => downloadStoredBackup(run)}
+        >
+          {downloadingBackupId === run.id ? "A descarregar..." : "Download"}
+        </button>
+        <button
+          className="danger-inline-button"
+          disabled={deletingBackupId === run.id || downloadingBackupId === run.id}
+          type="button"
+          onClick={() => deleteStoredBackupRun(run)}
+        >
+          {deletingBackupId === run.id ? "A apagar..." : "Apagar"}
+        </button>
+      </div>
+    </article>
+  );
+
   return (
     <>
       <section className="admin-settings-grid" aria-label="Definições do admin">
@@ -1419,63 +1455,65 @@ export function AdminClient({
             {isImportingDatabase ? "A importar..." : "Importar e substituir"}
           </button>
           <div className="backup-automation-box">
-            <div className="backup-automation-header">
-              <div>
-                <strong>Backups automáticos</strong>
-                <span>
-                  {backupSettingsState.enabled
-                    ? `Ativo · ${backupFrequencyLabels[backupSettingsState.frequency]}`
-                    : "Pausado"}
+            <div className="backup-automation-top">
+              <div className="backup-automation-header">
+                <div>
+                  <strong>Backups automáticos</strong>
+                  <span>
+                    {backupSettingsState.enabled
+                      ? `Ativo · ${backupFrequencyLabels[backupSettingsState.frequency]}`
+                      : "Pausado"}
+                  </span>
+                </div>
+                <span className={backupSettingsState.enabled ? "backup-status-pill active" : "backup-status-pill paused"}>
+                  {backupSettingsState.enabled ? "Ativo" : "Pausado"}
                 </span>
               </div>
-              <span className={backupSettingsState.enabled ? "backup-status-pill active" : "backup-status-pill paused"}>
-                {backupSettingsState.enabled ? "Ativo" : "Pausado"}
-              </span>
-            </div>
-            <div className="backup-settings-grid">
-              <label className="table-checkbox backup-toggle">
-                <input
-                  checked={backupSettingsState.enabled}
-                  type="checkbox"
-                  onChange={(event) =>
-                    setBackupSettingsState((current) => ({ ...current, enabled: event.target.checked }))
-                  }
-                />
-                <span>Backup automático ativo</span>
-              </label>
-              <label>
-                Periodicidade
-                <select
-                  value={backupSettingsState.frequency}
-                  onChange={(event) =>
-                    setBackupSettingsState((current) => ({
-                      ...current,
-                      frequency: event.target.value as BackupFrequency
-                    }))
-                  }
-                >
-                  {Object.entries(backupFrequencyLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div className="admin-inline-actions">
-              <button disabled={isSavingBackupSettings} type="button" onClick={saveBackupSettings}>
-                {isSavingBackupSettings ? "A guardar..." : "Guardar definições"}
-              </button>
-              <button className="secondary-button" disabled={isCreatingStoredBackup} type="button" onClick={createStoredBackup}>
-                {isCreatingStoredBackup ? "A criar..." : "Criar backup agora"}
-              </button>
-            </div>
-            <div className="backup-last-status">
-              <span>Último backup</span>
-              <strong>
-                {backupSettingsState.lastRunAt ? formatLogDate(backupSettingsState.lastRunAt) : "Ainda sem backups"}
-              </strong>
-              {backupSettingsState.lastMessage ? <small>{backupSettingsState.lastMessage}</small> : null}
+              <div className="backup-settings-grid">
+                <label className="table-checkbox backup-toggle">
+                  <input
+                    checked={backupSettingsState.enabled}
+                    type="checkbox"
+                    onChange={(event) =>
+                      setBackupSettingsState((current) => ({ ...current, enabled: event.target.checked }))
+                    }
+                  />
+                  <span>Backup automático ativo</span>
+                </label>
+                <label>
+                  Periodicidade
+                  <select
+                    value={backupSettingsState.frequency}
+                    onChange={(event) =>
+                      setBackupSettingsState((current) => ({
+                        ...current,
+                        frequency: event.target.value as BackupFrequency
+                      }))
+                    }
+                  >
+                    {Object.entries(backupFrequencyLabels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="admin-inline-actions backup-main-actions">
+                <button disabled={isSavingBackupSettings} type="button" onClick={saveBackupSettings}>
+                  {isSavingBackupSettings ? "A guardar..." : "Guardar definições"}
+                </button>
+                <button className="secondary-button" disabled={isCreatingStoredBackup} type="button" onClick={createStoredBackup}>
+                  {isCreatingStoredBackup ? "A criar..." : "Criar backup agora"}
+                </button>
+              </div>
+              <div className="backup-last-status">
+                <span>Último backup</span>
+                <strong>
+                  {backupSettingsState.lastRunAt ? formatLogDate(backupSettingsState.lastRunAt) : "Ainda sem backups"}
+                </strong>
+                {backupSettingsState.lastMessage ? <small>{backupSettingsState.lastMessage}</small> : null}
+              </div>
             </div>
             {backupMessage ? <p className="form-message">{backupMessage}</p> : null}
             <div className="stored-backups-list" aria-label="Últimos backups guardados">
@@ -1486,42 +1524,30 @@ export function AdminClient({
                 </div>
                 <span>{backupRunsState.length} guardados</span>
               </div>
-              {backupRunsState.length ? (
-                backupRunsState.map((run) => (
-                  <article className={run.status === "success" ? "stored-backup-row" : "stored-backup-row error"} key={run.id}>
-                    <div>
-                      <strong>{formatLogDate(run.createdAt)}</strong>
-                      <span>
-                        {run.trigger === "automatic" ? "Automático" : "Manual"} · {run.createdBy} · {formatFileSize(run.sizeBytes)}
-                      </span>
-                      <small>
-                        Eventos {run.counts.eventos ?? 0} · Movimentos {run.counts.movimentos ?? 0} · Notas {run.counts.notas ?? 0}
-                      </small>
-                      {run.storageBucket ? <small>Bucket {run.storageBucket}</small> : null}
-                    </div>
-                    <div className="stored-backup-actions">
-                      <button
-                        className="secondary-button"
-                        disabled={!run.hasSnapshot || downloadingBackupId === run.id || deletingBackupId === run.id}
-                        type="button"
-                        onClick={() => downloadStoredBackup(run)}
-                      >
-                        {downloadingBackupId === run.id ? "A descarregar..." : "Download"}
-                      </button>
-                      <button
-                        className="danger-inline-button"
-                        disabled={deletingBackupId === run.id || downloadingBackupId === run.id}
-                        type="button"
-                        onClick={() => deleteStoredBackupRun(run)}
-                      >
-                        {deletingBackupId === run.id ? "A apagar..." : "Apagar"}
-                      </button>
-                    </div>
-                  </article>
-                ))
-              ) : (
-                <p className="backup-empty-state">Ainda não existem backups guardados.</p>
-              )}
+              <div className="stored-backup-columns">
+                <section className="stored-backup-column" aria-label="Backups manuais">
+                  <div className="stored-backup-column-heading">
+                    <strong>Manuais</strong>
+                    <span>{manualBackupRuns.length} guardados</span>
+                  </div>
+                  {manualBackupRuns.length ? (
+                    manualBackupRuns.map(renderStoredBackupRow)
+                  ) : (
+                    <p className="backup-empty-state">Sem backups manuais.</p>
+                  )}
+                </section>
+                <section className="stored-backup-column" aria-label="Backups automáticos">
+                  <div className="stored-backup-column-heading">
+                    <strong>Automáticos</strong>
+                    <span>{automaticBackupRuns.length} nos últimos 30 dias</span>
+                  </div>
+                  {automaticBackupRuns.length ? (
+                    automaticBackupRuns.map(renderStoredBackupRow)
+                  ) : (
+                    <p className="backup-empty-state">Sem backups automáticos.</p>
+                  )}
+                </section>
+              </div>
             </div>
           </div>
           <div className="database-reset-box">
