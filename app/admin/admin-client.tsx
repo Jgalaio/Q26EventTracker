@@ -604,6 +604,7 @@ export function AdminClient({
   const [isSavingBackupSettings, setIsSavingBackupSettings] = useState(false);
   const [isCreatingStoredBackup, setIsCreatingStoredBackup] = useState(false);
   const [downloadingBackupId, setDownloadingBackupId] = useState<string | null>(null);
+  const [deletingBackupId, setDeletingBackupId] = useState<string | null>(null);
   const [unlockingEventId, setUnlockingEventId] = useState<string | null>(null);
 
   const updatePasswordField = (field: keyof PasswordForm, value: string) => {
@@ -1232,6 +1233,31 @@ export function AdminClient({
     }
   };
 
+  const deleteStoredBackupRun = async (run: BackupRunSummary) => {
+    const confirmed = window.confirm(
+      `Apagar o backup ${run.trigger === "automatic" ? "automático" : "manual"} de ${formatLogDate(run.createdAt)}?`
+    );
+    if (!confirmed) return;
+
+    setDeletingBackupId(run.id);
+    setBackupMessage(null);
+    try {
+      const response = await fetch(`/api/admin/backups/${encodeURIComponent(run.id)}`, { method: "DELETE" });
+      const body = (await response.json().catch(() => null)) as {
+        message?: string;
+        runs?: BackupRunSummary[];
+      } | null;
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível apagar o backup.");
+      if (body?.runs) setBackupRunsState(body.runs);
+      setBackupMessage(body?.message ?? "Backup apagado.");
+      router.refresh();
+    } catch (error) {
+      setBackupMessage(error instanceof Error ? error.message : "Não foi possível apagar o backup.");
+    } finally {
+      setDeletingBackupId(null);
+    }
+  };
+
   const unlockEvent = async (event: EventoResumo) => {
     const confirmed = window.confirm(`Desbloquear o evento "${event.nome}" para voltar a permitir alterações?`);
     if (!confirmed) return;
@@ -1454,8 +1480,11 @@ export function AdminClient({
             {backupMessage ? <p className="form-message">{backupMessage}</p> : null}
             <div className="stored-backups-list" aria-label="Últimos backups guardados">
               <div className="stored-backups-heading">
-                <strong>Últimos backups</strong>
-                <span>{backupRunsState.length}/20 guardados</span>
+                <div>
+                  <strong>Backups guardados</strong>
+                  <span>Automáticos: últimos 30 dias · Manuais: permanentes</span>
+                </div>
+                <span>{backupRunsState.length} guardados</span>
               </div>
               {backupRunsState.length ? (
                 backupRunsState.map((run) => (
@@ -1470,14 +1499,24 @@ export function AdminClient({
                       </small>
                       {run.storageBucket ? <small>Bucket {run.storageBucket}</small> : null}
                     </div>
-                    <button
-                      className="secondary-button"
-                      disabled={!run.hasSnapshot || downloadingBackupId === run.id}
-                      type="button"
-                      onClick={() => downloadStoredBackup(run)}
-                    >
-                      {downloadingBackupId === run.id ? "A descarregar..." : "Download"}
-                    </button>
+                    <div className="stored-backup-actions">
+                      <button
+                        className="secondary-button"
+                        disabled={!run.hasSnapshot || downloadingBackupId === run.id || deletingBackupId === run.id}
+                        type="button"
+                        onClick={() => downloadStoredBackup(run)}
+                      >
+                        {downloadingBackupId === run.id ? "A descarregar..." : "Download"}
+                      </button>
+                      <button
+                        className="danger-inline-button"
+                        disabled={deletingBackupId === run.id || downloadingBackupId === run.id}
+                        type="button"
+                        onClick={() => deleteStoredBackupRun(run)}
+                      >
+                        {deletingBackupId === run.id ? "A apagar..." : "Apagar"}
+                      </button>
+                    </div>
                   </article>
                 ))
               ) : (

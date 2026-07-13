@@ -77,6 +77,8 @@ SUPABASE_BACKUP_BUCKET=q26-backups
 
 `SUPABASE_BACKUP_BUCKET` é opcional. Se não existir, os backups automáticos e manuais usam o bucket privado `q26-backups`, criado automaticamente quando for necessário.
 
+Os backups automáticos mantêm apenas os últimos 30 dias. Os backups manuais ficam guardados sem limite de tempo e só são removidos quando um Admin os apaga na zona de backups.
+
 ## 3. Correr localmente
 
 ```bash

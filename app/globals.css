@@ -3989,6 +3989,7 @@ td {
 }
 
 .backup-automation-header > div,
+.stored-backups-heading > div,
 .stored-backup-row > div {
   display: grid;
   gap: 4px;
@@ -4081,8 +4082,34 @@ td {
   border-color: #f0b8c2;
 }
 
+.stored-backup-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .stored-backup-row button {
   flex: 0 0 auto;
+}
+
+.danger-inline-button {
+  background: #fff1f2;
+  border: 1px solid #f0b8c2;
+  border-radius: 6px;
+  color: var(--red);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 850;
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.danger-inline-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .backup-empty-state {

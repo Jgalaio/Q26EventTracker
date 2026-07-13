@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getBackupRun } from "../../../../backup-manager";
+import { writeAuditLog } from "../../../../audit-log";
+import { backupRunSummary, deleteStoredBackup, getBackupRun } from "../../../../backup-manager";
 import { getSession } from "../../../../auth";
 
 type RouteContext = {
@@ -8,9 +9,11 @@ type RouteContext = {
 
 async function requireAdmin() {
   const session = await getSession();
-  if (!session) return { error: NextResponse.json({ message: "Sessão expirada." }, { status: 401 }) };
-  if (session.role !== "admin") return { error: NextResponse.json({ message: "Só Admin pode descarregar backups." }, { status: 403 }) };
-  return { error: null };
+  if (!session) return { session: null, error: NextResponse.json({ message: "Sessão expirada." }, { status: 401 }) };
+  if (session.role !== "admin") {
+    return { session: null, error: NextResponse.json({ message: "Só Admin pode gerir backups." }, { status: 403 }) };
+  }
+  return { session, error: null };
 }
 
 function backupFileName(createdAt: string) {
@@ -43,4 +46,42 @@ export async function GET(_request: Request, { params }: RouteContext) {
       "Content-Type": "application/json; charset=utf-8"
     }
   });
+}
+
+export async function DELETE(_request: Request, { params }: RouteContext) {
+  const access = await requireAdmin();
+  if (access.error) return access.error;
+  if (!access.session) return NextResponse.json({ message: "Sessão expirada." }, { status: 401 });
+
+  const { id } = await params;
+  try {
+    const result = await deleteStoredBackup(id);
+    if (!result) {
+      return NextResponse.json({ message: "Backup não encontrado." }, { status: 404 });
+    }
+
+    await writeAuditLog({
+      session: access.session,
+      action: "Apagou backup guardado",
+      resource: "database",
+      resourceId: result.run.id,
+      summary: `Apagou backup ${result.run.trigger === "automatic" ? "automático" : "manual"} da base de dados`,
+      details: {
+        createdAt: result.run.createdAt,
+        trigger: result.run.trigger,
+        storageBucket: result.run.storageBucket ?? null,
+        storagePath: result.run.storagePath ?? null
+      }
+    });
+
+    return NextResponse.json({
+      message: "Backup apagado.",
+      runs: result.runs.map(backupRunSummary)
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : "Não foi possível apagar o backup." },
+      { status: 500 }
+    );
+  }
 }

@@ -8,7 +8,8 @@ const SUPABASE_PUBLISHABLE_KEY =
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 const PAGE_SIZE = 1000;
-const MAX_BACKUPS = 20;
+const AUTOMATIC_BACKUP_RETENTION_DAYS = 30;
+const AUTOMATIC_BACKUP_RETENTION_MS = AUTOMATIC_BACKUP_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 const BACKUP_SETTINGS_KEY = "database_backup_settings";
 const BACKUP_RUNS_KEY = "database_backup_runs";
 const BACKUP_SNAPSHOT_KEY_PREFIX = "database_backup_snapshot_";
@@ -338,7 +339,13 @@ async function deleteBackupSnapshotFromBucket(run: BackupRun) {
   if (!response.ok && response.status !== 404) throw await storageResponseError(response);
 }
 
-async function deleteStoredSnapshotForRun(run: BackupRun) {
+async function deleteStoredSnapshotForRun(run: BackupRun, strictStorageDelete = false) {
+  if (strictStorageDelete) {
+    await deleteBackupSnapshotFromBucket(run);
+    await deleteAppSetting(backupSnapshotKey(run.id)).catch(() => undefined);
+    return;
+  }
+
   await Promise.all([
     deleteAppSetting(backupSnapshotKey(run.id)).catch(() => undefined),
     deleteBackupSnapshotFromBucket(run).catch(() => undefined)
@@ -393,6 +400,30 @@ function backupCounts(snapshot: DatabaseBackupSnapshot) {
   return Object.fromEntries(Object.entries(snapshot.tables).map(([table, rows]) => [table, rows.length]));
 }
 
+function backupRunTime(run: BackupRun) {
+  const time = new Date(run.createdAt).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function sortBackupRuns(runs: BackupRun[]) {
+  return [...runs].sort((first, second) => backupRunTime(second) - backupRunTime(first));
+}
+
+function isExpiredAutomaticBackup(run: BackupRun, now = new Date()) {
+  if (run.trigger !== "automatic") return false;
+  const createdAt = backupRunTime(run);
+  if (!createdAt) return false;
+  return now.getTime() - createdAt > AUTOMATIC_BACKUP_RETENTION_MS;
+}
+
+function splitRetainedBackupRuns(runs: BackupRun[], now = new Date()) {
+  const sortedRuns = sortBackupRuns(runs);
+  return {
+    retainedRuns: sortedRuns.filter((run) => !isExpiredAutomaticBackup(run, now)),
+    expiredRuns: sortedRuns.filter((run) => isExpiredAutomaticBackup(run, now))
+  };
+}
+
 export function backupRunSummary(run: BackupRun): BackupRunSummary {
   const { snapshot: _snapshot, ...summary } = run;
   return { ...summary, hasSnapshot: Boolean(run.hasSnapshot || run.snapshot) };
@@ -420,10 +451,16 @@ export async function saveBackupSettings(input: Partial<BackupSettings>, session
   return next;
 }
 
-export async function getBackupRuns() {
+async function readStoredBackupRuns() {
   const value = await readAppSetting<unknown>(BACKUP_RUNS_KEY);
   if (!Array.isArray(value)) return [];
-  return value.map(normalizeRun).filter((run): run is BackupRun => Boolean(run)).slice(0, MAX_BACKUPS);
+  const runs = value.map(normalizeRun).filter((run): run is BackupRun => Boolean(run));
+  return sortBackupRuns(runs);
+}
+
+export async function getBackupRuns() {
+  const runs = await readStoredBackupRuns();
+  return splitRetainedBackupRuns(runs).retainedRuns;
 }
 
 export async function getBackupRunSummaries() {
@@ -467,7 +504,7 @@ export async function createDatabaseBackupSnapshot(): Promise<DatabaseBackupSnap
 
 export async function createStoredBackup(session: AuthSession, trigger: BackupRunTrigger) {
   const now = new Date().toISOString();
-  const runs = await getBackupRuns();
+  const runs = await readStoredBackupRuns();
   let run: BackupRun;
 
   try {
@@ -503,8 +540,7 @@ export async function createStoredBackup(session: AuthSession, trigger: BackupRu
 
   const runMetadata = backupRunMetadata(run);
   const candidateRuns = [runMetadata, ...runs.map(backupRunMetadata)];
-  const nextRuns = candidateRuns.slice(0, MAX_BACKUPS);
-  const expiredRuns = candidateRuns.slice(MAX_BACKUPS);
+  const { retainedRuns: nextRuns, expiredRuns } = splitRetainedBackupRuns(candidateRuns, new Date(now));
   const currentSettings = await getBackupSettings();
   const nextSettings: BackupSettings = {
     ...currentSettings,
@@ -519,4 +555,17 @@ export async function createStoredBackup(session: AuthSession, trigger: BackupRu
 
   if (run.status === "error") throw new Error(run.message);
   return { run, settings: nextSettings, runs: nextRuns };
+}
+
+export async function deleteStoredBackup(id: string) {
+  const runs = await readStoredBackupRuns();
+  const runToDelete = runs.find((run) => run.id === id) ?? null;
+  if (!runToDelete) return null;
+
+  await deleteStoredSnapshotForRun(runToDelete, true);
+  const { retainedRuns: nextRuns } = splitRetainedBackupRuns(runs.filter((run) => run.id !== id));
+  const nextRunMetadata = nextRuns.map(backupRunMetadata);
+  await writeAppSetting(BACKUP_RUNS_KEY, nextRunMetadata);
+
+  return { run: runToDelete, runs: nextRunMetadata };
 }
