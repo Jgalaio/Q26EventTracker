@@ -267,12 +267,11 @@ async function storageResponseError(response: Response) {
   return new Error(`${response.status} ${response.statusText}: ${responseText}`);
 }
 
-async function ensureBackupBucket() {
-  const encodedBucket = encodeURIComponent(BACKUP_BUCKET);
-  const bucketResponse = await storageRequest(`bucket/${encodedBucket}`, { method: "HEAD" });
-  if (bucketResponse.ok) return;
-  if (bucketResponse.status !== 404) throw await storageResponseError(bucketResponse);
+function isExistingBucketError(status: number, responseText: string) {
+  return status === 409 || (status === 400 && /already exists|already_exist|duplicate|The resource already exists/i.test(responseText));
+}
 
+async function ensureBackupBucket() {
   const createResponse = await storageRequest("bucket", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -285,7 +284,7 @@ async function ensureBackupBucket() {
 
   if (createResponse.ok) return;
   const errorText = await createResponse.text().catch(() => "");
-  if (createResponse.status === 409 || /already exists|already_exist|Duplicate/i.test(errorText)) return;
+  if (isExistingBucketError(createResponse.status, errorText) || createResponse.status === 400) return;
   throw new Error(`${createResponse.status} ${createResponse.statusText}: ${errorText}`);
 }
 
@@ -301,7 +300,10 @@ async function uploadBackupSnapshotToBucket(id: string, serialized: string) {
     body: serialized
   });
 
-  if (!response.ok) throw await storageResponseError(response);
+  if (!response.ok) {
+    const error = await storageResponseError(response);
+    throw new Error(`Não foi possível guardar o backup no bucket "${BACKUP_BUCKET}". ${error.message}`);
+  }
 
   return {
     storageBucket: BACKUP_BUCKET,
