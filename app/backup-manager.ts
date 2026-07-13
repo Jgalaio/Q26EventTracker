@@ -551,7 +551,7 @@ export async function createStoredBackup(session: AuthSession, trigger: BackupRu
 
   await writeAppSetting(BACKUP_RUNS_KEY, nextRuns);
   await writeAppSetting(BACKUP_SETTINGS_KEY, nextSettings);
-  await Promise.all(expiredRuns.map(deleteStoredSnapshotForRun));
+  await Promise.all(expiredRuns.map((expiredRun) => deleteStoredSnapshotForRun(expiredRun)));
 
   if (run.status === "error") throw new Error(run.message);
   return { run, settings: nextSettings, runs: nextRuns };
