@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeAuditLog } from "../../../audit-log";
 import {
+  backupRunSummary,
   createStoredBackup,
   getBackupRunSummaries,
   getBackupSettings,
@@ -67,17 +68,7 @@ export async function POST(request: NextRequest) {
   if (body.action === "create") {
     try {
       const result = await createStoredBackup(access.session, "manual");
-      const runs = result.runs.map((run) => ({
-        id: run.id,
-        createdAt: run.createdAt,
-        createdBy: run.createdBy,
-        trigger: run.trigger,
-        status: run.status,
-        message: run.message,
-        sizeBytes: run.sizeBytes,
-        counts: run.counts,
-        hasSnapshot: Boolean(run.snapshot)
-      }));
+      const runs = result.runs.map(backupRunSummary);
 
       await writeAuditLog({
         session: access.session,

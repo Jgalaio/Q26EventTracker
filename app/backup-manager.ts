@@ -5,12 +5,15 @@ import { deleteAppSetting, readAppSetting, writeAppSetting } from "./app-setting
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ushhacwtmpmwmvpaitdx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 const PAGE_SIZE = 1000;
 const MAX_BACKUPS = 20;
 const BACKUP_SETTINGS_KEY = "database_backup_settings";
 const BACKUP_RUNS_KEY = "database_backup_runs";
 const BACKUP_SNAPSHOT_KEY_PREFIX = "database_backup_snapshot_";
+const BACKUP_BUCKET = process.env.SUPABASE_BACKUP_BUCKET || "q26-backups";
+const BACKUP_STORAGE_FOLDER = "database-backups";
 const BACKUP_FREQUENCY_MS: Record<BackupFrequency, number> = {
   daily: 24 * 60 * 60 * 1000,
   weekly: 7 * 24 * 60 * 60 * 1000
@@ -128,6 +131,9 @@ export type BackupRun = {
   sizeBytes: number;
   counts: Record<string, number>;
   hasSnapshot?: boolean;
+  storageBucket?: string;
+  storagePath?: string;
+  storageProvider?: "supabase-storage";
   snapshot?: DatabaseBackupSnapshot;
 };
 
@@ -164,8 +170,20 @@ function endpoint(resource: string) {
   return `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${resource}`;
 }
 
+function storageEndpoint(resource: string) {
+  return `${SUPABASE_URL.replace(/\/$/, "")}/storage/v1/${resource.replace(/^\//, "")}`;
+}
+
 function backupSnapshotKey(id: string) {
   return `${BACKUP_SNAPSHOT_KEY_PREFIX}${id}`;
+}
+
+function backupStoragePath(id: string) {
+  return `${BACKUP_STORAGE_FOLDER}/${id}.json`;
+}
+
+function encodeStoragePath(path: string) {
+  return path.split("/").map(encodeURIComponent).join("/");
 }
 
 function isBackupStorageSettingKey(value: unknown) {
@@ -196,6 +214,10 @@ function normalizeSettings(value: unknown): BackupSettings {
 function normalizeRun(value: unknown): BackupRun | null {
   if (!isRecord(value)) return null;
   if (typeof value.id !== "string" || typeof value.createdAt !== "string") return null;
+  const storagePath = typeof value.storagePath === "string" ? value.storagePath : undefined;
+  const storageBucket = typeof value.storageBucket === "string" ? value.storageBucket : undefined;
+  const storageProvider =
+    value.storageProvider === "supabase-storage" || storagePath ? "supabase-storage" : undefined;
   return {
     id: value.id,
     createdAt: value.createdAt,
@@ -207,9 +229,120 @@ function normalizeRun(value: unknown): BackupRun | null {
     counts: isRecord(value.counts)
       ? Object.fromEntries(Object.entries(value.counts).map(([key, count]) => [key, Number(count) || 0]))
       : {},
-    hasSnapshot: typeof value.hasSnapshot === "boolean" ? value.hasSnapshot : isRecord(value.snapshot),
+    hasSnapshot:
+      typeof value.hasSnapshot === "boolean" ? value.hasSnapshot : Boolean(storagePath || isRecord(value.snapshot)),
+    storageBucket,
+    storagePath,
+    storageProvider,
     snapshot: isRecord(value.snapshot) ? (value.snapshot as DatabaseBackupSnapshot) : undefined
   };
+}
+
+function requireBackupStorageKey() {
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Falta configurar SUPABASE_SERVICE_ROLE_KEY para guardar backups no bucket.");
+  }
+  return SUPABASE_SERVICE_ROLE_KEY;
+}
+
+function storageHeaders(extra?: HeadersInit) {
+  const key = requireBackupStorageKey();
+  const headers = new Headers(extra);
+  headers.set("apikey", key);
+  headers.set("Authorization", `Bearer ${key}`);
+  return headers;
+}
+
+async function storageRequest(resource: string, init: RequestInit) {
+  return fetch(storageEndpoint(resource), {
+    ...init,
+    headers: storageHeaders(init.headers),
+    cache: "no-store"
+  });
+}
+
+async function storageResponseError(response: Response) {
+  const responseText = await response.text().catch(() => "");
+  return new Error(`${response.status} ${response.statusText}: ${responseText}`);
+}
+
+async function ensureBackupBucket() {
+  const encodedBucket = encodeURIComponent(BACKUP_BUCKET);
+  const bucketResponse = await storageRequest(`bucket/${encodedBucket}`, { method: "HEAD" });
+  if (bucketResponse.ok) return;
+  if (bucketResponse.status !== 404) throw await storageResponseError(bucketResponse);
+
+  const createResponse = await storageRequest("bucket", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id: BACKUP_BUCKET,
+      name: BACKUP_BUCKET,
+      public: false
+    })
+  });
+
+  if (createResponse.ok) return;
+  const errorText = await createResponse.text().catch(() => "");
+  if (createResponse.status === 409 || /already exists|already_exist|Duplicate/i.test(errorText)) return;
+  throw new Error(`${createResponse.status} ${createResponse.statusText}: ${errorText}`);
+}
+
+async function uploadBackupSnapshotToBucket(id: string, serialized: string) {
+  await ensureBackupBucket();
+  const storagePath = backupStoragePath(id);
+  const response = await storageRequest(`object/${encodeURIComponent(BACKUP_BUCKET)}/${encodeStoragePath(storagePath)}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "x-upsert": "true"
+    },
+    body: serialized
+  });
+
+  if (!response.ok) throw await storageResponseError(response);
+
+  return {
+    storageBucket: BACKUP_BUCKET,
+    storagePath,
+    storageProvider: "supabase-storage" as const
+  };
+}
+
+async function readBackupSnapshotFromBucket(run: BackupRun) {
+  if (!run.storagePath) return null;
+  const bucket = run.storageBucket || BACKUP_BUCKET;
+  const response = await storageRequest(`object/${encodeURIComponent(bucket)}/${encodeStoragePath(run.storagePath)}`, {
+    method: "GET"
+  });
+
+  if (response.status === 404) return null;
+  if (!response.ok) throw await storageResponseError(response);
+
+  try {
+    return (await response.json()) as DatabaseBackupSnapshot;
+  } catch {
+    throw new Error("O ficheiro do backup guardado no bucket está inválido.");
+  }
+}
+
+async function deleteBackupSnapshotFromBucket(run: BackupRun) {
+  if (!run.storagePath) return;
+  const bucket = run.storageBucket || BACKUP_BUCKET;
+  const response = await storageRequest(`object/${encodeURIComponent(bucket)}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prefixes: [run.storagePath] })
+  });
+
+  if (!response.ok && response.status !== 404) throw await storageResponseError(response);
+}
+
+async function deleteStoredSnapshotForRun(run: BackupRun) {
+  await Promise.all([
+    deleteAppSetting(backupSnapshotKey(run.id)).catch(() => undefined),
+    deleteBackupSnapshotFromBucket(run).catch(() => undefined)
+  ]);
 }
 
 async function supabaseRequest<T>(resource: string, method: string) {
@@ -301,7 +434,9 @@ export async function getBackupRun(id: string) {
   const run = (await getBackupRuns()).find((item) => item.id === id) ?? null;
   if (!run) return null;
   const snapshot =
-    run.snapshot ?? (run.hasSnapshot ? await readAppSetting<DatabaseBackupSnapshot>(backupSnapshotKey(id)) : null);
+    run.snapshot ??
+    (await readBackupSnapshotFromBucket(run)) ??
+    (run.hasSnapshot ? await readAppSetting<DatabaseBackupSnapshot>(backupSnapshotKey(id)) : null);
   return snapshot ? { ...run, snapshot } : run;
 }
 
@@ -336,10 +471,12 @@ export async function createStoredBackup(session: AuthSession, trigger: BackupRu
   let run: BackupRun;
 
   try {
+    const id = randomUUID();
     const snapshot = await createDatabaseBackupSnapshot();
     const serialized = JSON.stringify(snapshot);
+    const storageLocation = await uploadBackupSnapshotToBucket(id, serialized);
     run = {
-      id: randomUUID(),
+      id,
       createdAt: now,
       createdBy: trigger === "automatic" ? "Sistema" : session.username,
       trigger,
@@ -348,7 +485,7 @@ export async function createStoredBackup(session: AuthSession, trigger: BackupRu
       sizeBytes: Buffer.byteLength(serialized, "utf8"),
       counts: backupCounts(snapshot),
       hasSnapshot: true,
-      snapshot
+      ...storageLocation
     };
   } catch (error) {
     run = {
@@ -364,8 +501,6 @@ export async function createStoredBackup(session: AuthSession, trigger: BackupRu
     };
   }
 
-  if (run.snapshot) await writeAppSetting(backupSnapshotKey(run.id), run.snapshot);
-
   const runMetadata = backupRunMetadata(run);
   const candidateRuns = [runMetadata, ...runs.map(backupRunMetadata)];
   const nextRuns = candidateRuns.slice(0, MAX_BACKUPS);
@@ -380,7 +515,7 @@ export async function createStoredBackup(session: AuthSession, trigger: BackupRu
 
   await writeAppSetting(BACKUP_RUNS_KEY, nextRuns);
   await writeAppSetting(BACKUP_SETTINGS_KEY, nextSettings);
-  await Promise.all(expiredRuns.map((expiredRun) => deleteAppSetting(backupSnapshotKey(expiredRun.id)).catch(() => undefined)));
+  await Promise.all(expiredRuns.map(deleteStoredSnapshotForRun));
 
   if (run.status === "error") throw new Error(run.message);
   return { run, settings: nextSettings, runs: nextRuns };

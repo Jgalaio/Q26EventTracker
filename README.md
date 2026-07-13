@@ -70,9 +70,12 @@ NEXT_PUBLIC_SUPABASE_URL=https://ushhacwtmpmwmvpaitdx.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB
 Q26_AUTH_SECRET=troca-este-valor-por-um-segredo-longo
 SUPABASE_SERVICE_ROLE_KEY=chave-service-role-do-supabase
+SUPABASE_BACKUP_BUCKET=q26-backups
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` deve ficar apenas em variáveis de servidor. É necessária para a zona Admin conseguir criar, editar e apagar utilizadores sem abrir a tabela `app_users` ao público.
+`SUPABASE_SERVICE_ROLE_KEY` deve ficar apenas em variáveis de servidor. É necessária para a zona Admin conseguir criar, editar e apagar utilizadores sem abrir a tabela `app_users` ao público, e para guardar os backups no bucket privado do Supabase Storage.
+
+`SUPABASE_BACKUP_BUCKET` é opcional. Se não existir, os backups automáticos e manuais usam o bucket privado `q26-backups`, criado automaticamente quando for necessário.
 
 ## 3. Correr localmente
 
@@ -106,6 +109,7 @@ No GitHub, adiciona estes secrets em Settings > Secrets and variables > Actions:
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SERVICE_ROLE_KEY
+SUPABASE_BACKUP_BUCKET
 ```
 
 Depois liga esse repositório ao Vercel. O Vercel faz deploy automático quando houver push para `main`.

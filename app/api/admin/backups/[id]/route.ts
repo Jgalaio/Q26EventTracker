@@ -23,7 +23,16 @@ export async function GET(_request: Request, { params }: RouteContext) {
   if (access.error) return access.error;
 
   const { id } = await params;
-  const run = await getBackupRun(id);
+  let run: Awaited<ReturnType<typeof getBackupRun>>;
+  try {
+    run = await getBackupRun(id);
+  } catch (error) {
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : "Não foi possível abrir o backup guardado." },
+      { status: 500 }
+    );
+  }
+
   if (!run?.snapshot) {
     return NextResponse.json({ message: "Backup não encontrado ou sem ficheiro guardado." }, { status: 404 });
   }
@@ -35,4 +44,3 @@ export async function GET(_request: Request, { params }: RouteContext) {
     }
   });
 }
-

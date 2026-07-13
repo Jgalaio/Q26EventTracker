@@ -1468,6 +1468,7 @@ export function AdminClient({
                       <small>
                         Eventos {run.counts.eventos ?? 0} · Movimentos {run.counts.movimentos ?? 0} · Notas {run.counts.notas ?? 0}
                       </small>
+                      {run.storageBucket ? <small>Bucket {run.storageBucket}</small> : null}
                     </div>
                     <button
                       className="secondary-button"
