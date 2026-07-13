@@ -1635,59 +1635,70 @@ export function AdminClient({
             </div>
           </form>
 
-          <div className="admin-users-table-wrap">
-            <table className="admin-users-table admin-roles-table">
-              <thead>
-                <tr>
-                  <th>Role</th>
-                  <th>Descrição</th>
-                  <th>Permissões</th>
-                  <th>Tipo</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rolesState.map((role) => (
-                  <tr key={role.id}>
-                    <td>
+          <div className="admin-roles-accordion" aria-label="Roles existentes">
+            {rolesState.map((role, index) => {
+              const enabledPermissions = rolePermissionLabels.filter((permission) => role.permissions[permission.key]);
+              return (
+                <details className="admin-role-card" key={role.id} open={index === 0 || role.id === roleForm.id}>
+                  <summary>
+                    <span className="admin-role-card-title">
                       <span className={`admin-role-pill ${rolePillClass(role.id)}`}>{role.label}</span>
-                      <small className="role-id-label">{role.id}</small>
-                    </td>
-                    <td>{role.description}</td>
-                    <td>
-                      <div className="admin-role-permissions">
-                        {rolePermissionLabels
-                          .filter((permission) => role.permissions[permission.key])
-                          .map((permission) => (
-                            <span className="permission-pill" key={permission.key}>
-                              {permission.label}
-                            </span>
-                          ))}
-                        {!rolePermissionLabels.some((permission) => role.permissions[permission.key]) ? (
-                          <span className="permission-pill muted">Sem permissões</span>
-                        ) : null}
-                      </div>
-                    </td>
-                    <td>{role.builtIn ? "Base" : "Personalizado"}</td>
-                    <td>
-                      <div className="admin-table-actions">
-                        <button disabled={role.id === "admin" || isSavingRoles} type="button" onClick={() => editRole(role)}>
-                          Editar
-                        </button>
-                        <button
-                          className="danger-table-button"
-                          disabled={role.builtIn || isSavingRoles}
-                          type="button"
-                          onClick={() => deleteRole(role)}
-                        >
-                          Apagar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <strong>{role.label}</strong>
+                      <small>{role.id}</small>
+                    </span>
+                    <span className="admin-role-card-meta">
+                      <em>
+                        {enabledPermissions.length} {enabledPermissions.length === 1 ? "permissão" : "permissões"}
+                      </em>
+                      <small>{role.builtIn ? "Base" : "Personalizado"}</small>
+                    </span>
+                  </summary>
+                  <div className="admin-role-card-body">
+                    <div className="admin-role-card-info">
+                      <span>Descrição</span>
+                      <p>{role.description}</p>
+                    </div>
+                    <div className="admin-role-module-list" aria-label={`Permissões do role ${role.label}`}>
+                      {rolePermissionModules.map((module) => {
+                        const modulePermissions = module.permissions.filter((permission) => role.permissions[permission.key]);
+                        if (!modulePermissions.length) return null;
+                        return (
+                          <section className="admin-role-module-group" key={module.id}>
+                            <div>
+                              <strong>{module.title}</strong>
+                              <small>
+                                {modulePermissions.length}/{module.permissions.length}
+                              </small>
+                            </div>
+                            <div className="admin-role-permissions">
+                              {modulePermissions.map((permission) => (
+                                <span className="permission-pill" key={permission.key}>
+                                  {permission.label}
+                                </span>
+                              ))}
+                            </div>
+                          </section>
+                        );
+                      })}
+                      {!enabledPermissions.length ? <span className="permission-pill muted">Sem permissões</span> : null}
+                    </div>
+                    <div className="admin-table-actions admin-role-card-actions">
+                      <button disabled={role.id === "admin" || isSavingRoles} type="button" onClick={() => editRole(role)}>
+                        Editar
+                      </button>
+                      <button
+                        className="danger-table-button"
+                        disabled={role.builtIn || isSavingRoles}
+                        type="button"
+                        onClick={() => deleteRole(role)}
+                      >
+                        Apagar
+                      </button>
+                    </div>
+                  </div>
+                </details>
+              );
+            })}
           </div>
         </div>
       </section>

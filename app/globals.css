@@ -4477,11 +4477,146 @@ td {
   min-width: 940px;
 }
 
+.admin-roles-accordion {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-role-card {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.admin-role-card[open] {
+  border-color: #bcd4ff;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.08);
+}
+
+.admin-role-card summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: space-between;
+  list-style: none;
+  min-width: 0;
+  padding: 12px 14px;
+}
+
+.admin-role-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-role-card-title,
+.admin-role-card-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-role-card-title strong {
+  color: var(--ink);
+  font-size: 0.98rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-role-card-title small,
+.admin-role-card-meta small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.admin-role-card-meta {
+  flex: 0 0 auto;
+}
+
+.admin-role-card-meta em {
+  background: #eef5ff;
+  border: 1px solid #c9dcff;
+  border-radius: 999px;
+  color: var(--blue);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 900;
+  padding: 5px 8px;
+}
+
+.admin-role-card-body {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.admin-role-card-info {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+}
+
+.admin-role-card-info span {
+  color: var(--blue);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-role-card-info p {
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.admin-role-module-list {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-role-module-group {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.admin-role-module-group > div:first-child {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-role-module-group strong {
+  color: var(--ink);
+  font-size: 0.82rem;
+}
+
+.admin-role-module-group small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
 .admin-role-permissions {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  max-width: 460px;
+  max-width: 100%;
 }
 
 .permission-pill {
@@ -4520,6 +4655,10 @@ td {
 
 .admin-table-actions .danger-table-button {
   background: var(--red);
+}
+
+.admin-role-card-actions {
+  justify-content: flex-end;
 }
 
 .admin-table-actions button:disabled {
