@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import type { AuditLogEntry } from "../audit-log";
-import type { AuthSession } from "../auth-types";
+import { canChangeOwnPassword, type AuthSession } from "../auth-types";
 import type { EventoResumo } from "../supabase-data";
 import type { UserQuickNotes } from "../user-quick-notes";
 
@@ -98,6 +98,7 @@ export function UserClient({
   const [notesMeta, setNotesMeta] = useState({ updatedAt: quickNotes.updatedAt, updatedBy: quickNotes.updatedBy });
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [notesMessage, setNotesMessage] = useState<string | null>(null);
+  const mayChangeOwnPassword = canChangeOwnPassword(session);
 
   const updatePasswordField = (field: keyof PasswordForm, value: string) => {
     setPasswordForm((current) => ({ ...current, [field]: value }));
@@ -191,45 +192,47 @@ export function UserClient({
           </div>
         </article>
 
-        <form className="admin-settings-card user-password-card" onSubmit={handlePasswordSubmit}>
-          <div>
-            <p className="eyebrow">Segurança</p>
-            <h2>Alterar password</h2>
-          </div>
-          <label>
-            Password atual
-            <input
-              required
-              type="password"
-              value={passwordForm.currentPassword}
-              onChange={(event) => updatePasswordField("currentPassword", event.target.value)}
-            />
-          </label>
-          <label>
-            Nova password
-            <input
-              minLength={6}
-              required
-              type="password"
-              value={passwordForm.newPassword}
-              onChange={(event) => updatePasswordField("newPassword", event.target.value)}
-            />
-          </label>
-          <label>
-            Confirmar nova password
-            <input
-              minLength={6}
-              required
-              type="password"
-              value={passwordForm.confirmPassword}
-              onChange={(event) => updatePasswordField("confirmPassword", event.target.value)}
-            />
-          </label>
-          {passwordMessage ? <p className="form-message">{passwordMessage}</p> : null}
-          <button disabled={isSavingPassword} type="submit">
-            {isSavingPassword ? "A guardar..." : "Guardar password"}
-          </button>
-        </form>
+        {mayChangeOwnPassword ? (
+          <form className="admin-settings-card user-password-card" onSubmit={handlePasswordSubmit}>
+            <div>
+              <p className="eyebrow">Segurança</p>
+              <h2>Alterar password</h2>
+            </div>
+            <label>
+              Password atual
+              <input
+                required
+                type="password"
+                value={passwordForm.currentPassword}
+                onChange={(event) => updatePasswordField("currentPassword", event.target.value)}
+              />
+            </label>
+            <label>
+              Nova password
+              <input
+                minLength={6}
+                required
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={(event) => updatePasswordField("newPassword", event.target.value)}
+              />
+            </label>
+            <label>
+              Confirmar nova password
+              <input
+                minLength={6}
+                required
+                type="password"
+                value={passwordForm.confirmPassword}
+                onChange={(event) => updatePasswordField("confirmPassword", event.target.value)}
+              />
+            </label>
+            {passwordMessage ? <p className="form-message">{passwordMessage}</p> : null}
+            <button disabled={isSavingPassword} type="submit">
+              {isSavingPassword ? "A guardar..." : "Guardar password"}
+            </button>
+          </form>
+        ) : null}
 
         <article className="welcome-panel quick-notes-panel user-quick-notes-card">
           <div className="welcome-panel-heading">

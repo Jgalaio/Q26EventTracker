@@ -52,6 +52,7 @@ export type RolePermissions = {
   openAuditLogItem: boolean;
   editQ25Balance: boolean;
   toggleGlobalCards: boolean;
+  changeOwnPassword: boolean;
   viewTodo: boolean;
   createTasks: boolean;
   editOwnTasks: boolean;
@@ -133,6 +134,7 @@ export const EMPTY_ROLE_PERMISSIONS: RolePermissions = {
   openAuditLogItem: false,
   editQ25Balance: false,
   toggleGlobalCards: false,
+  changeOwnPassword: false,
   viewTodo: false,
   createTasks: false,
   editOwnTasks: false,
@@ -206,6 +208,7 @@ export const BUILTIN_ROLE_DEFINITIONS: RoleDefinition[] = [
       openAuditLogItem: true,
       editQ25Balance: true,
       toggleGlobalCards: true,
+      changeOwnPassword: true,
       viewTodo: true,
       createTasks: true,
       editOwnTasks: true,
@@ -257,6 +260,7 @@ export const BUILTIN_ROLE_DEFINITIONS: RoleDefinition[] = [
       completeTasks: true,
       viewPersonalNotes: true,
       editPersonalNotes: true,
+      changeOwnPassword: true,
       requireUnlockJustification: true,
       onlyOpenEventsActions: true
     },
@@ -390,6 +394,10 @@ export function canViewClosedEvents(input: UserRole | AuthSession) {
 
 export function canUnlockClosedEvents(input: UserRole | AuthSession) {
   return roleFor(input) === "admin" || permissionsFor(input).unlockClosedEvents;
+}
+
+export function canChangeOwnPassword(input: UserRole | AuthSession) {
+  return roleFor(input) === "admin" || permissionsFor(input).changeOwnPassword;
 }
 
 export function requiresJustification(input: UserRole | AuthSession) {

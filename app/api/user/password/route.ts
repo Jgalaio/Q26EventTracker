@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeAuditLog } from "../../../audit-log";
 import { getSession, verifyCredentials } from "../../../auth";
+import { canChangeOwnPassword } from "../../../auth-types";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ushhacwtmpmwmvpaitdx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
@@ -9,6 +10,9 @@ const SUPABASE_PUBLISHABLE_KEY =
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ message: "Sessão expirada." }, { status: 401 });
+  if (!canChangeOwnPassword(session)) {
+    return NextResponse.json({ message: "Sem permissão para alterar a própria password." }, { status: 403 });
+  }
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const currentPassword = typeof body.currentPassword === "string" ? body.currentPassword : "";

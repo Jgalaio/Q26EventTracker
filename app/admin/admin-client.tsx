@@ -436,6 +436,11 @@ const rolePermissionModules: Array<{
         hint: "Ao editar, obriga a preencher a justificação."
       },
       {
+        key: "changeOwnPassword",
+        label: "Alterar a própria password",
+        hint: "Permite ao utilizador alterar a password na sua página de perfil."
+      },
+      {
         key: "requireDeleteJustification",
         label: "Exigir justificação ao apagar",
         hint: "Ao apagar, obriga a preencher a justificação."
