@@ -190,7 +190,7 @@ begin
     select
       v_user.username,
       v_user.role,
-      v_user.password_hash = encode(digest(v_user.username || ':' || p_password, 'sha256'), 'hex'),
+      v_user.password_hash = encode(digest(convert_to(v_user.username || ':' || p_password, 'UTF8'), 'sha256'::text), 'hex'),
       true;
     return;
   end if;
@@ -221,12 +221,12 @@ begin
     return false;
   end if;
 
-  if v_user.password_hash <> encode(digest(v_user.username || ':' || p_current_password, 'sha256'), 'hex') then
+  if v_user.password_hash <> encode(digest(convert_to(v_user.username || ':' || p_current_password, 'UTF8'), 'sha256'::text), 'hex') then
     return false;
   end if;
 
   update public.app_users
-  set password_hash = encode(digest(v_user.username || ':' || p_new_password, 'sha256'), 'hex'),
+  set password_hash = encode(digest(convert_to(v_user.username || ':' || p_new_password, 'UTF8'), 'sha256'::text), 'hex'),
       updated_at = now()
   where public.app_users.username = v_user.username;
 

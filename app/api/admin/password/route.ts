@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeAuditLog } from "../../../audit-log";
 import { getSession, verifyCredentials } from "../../../auth";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ushhacwtmpmwmvpaitdx.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB";
+import { saveUserPassword } from "../../../password-storage";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -29,31 +26,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "A password atual não está correta." }, { status: 400 });
   }
 
-  const response = await fetch(`${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/rpc/app_change_password`, {
-    method: "POST",
-    headers: {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      p_username: session.username,
-      p_current_password: currentPassword,
-      p_new_password: newPassword
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    return NextResponse.json(
-      { message: `Não consegui guardar no Supabase. Confirma se já correste o SQL de admin. ${error}` },
-      { status: 500 }
-    );
-  }
-
-  const result = (await response.json().catch(() => false)) as boolean;
-  if (!result) {
-    return NextResponse.json({ message: "A password atual não está correta." }, { status: 400 });
-  }
+  const savedPassword = await saveUserPassword(session.username, session.role, newPassword);
+  if (!savedPassword.ok) return NextResponse.json({ message: savedPassword.message }, { status: savedPassword.status });
 
   await writeAuditLog({
     session,
