@@ -1282,6 +1282,18 @@ h2 {
   background: #b7791f;
 }
 
+.metrics article.metric-income-card::before {
+  background: var(--blue);
+}
+
+.metrics article.metric-expense-card::before {
+  background: var(--red);
+}
+
+.metrics article.metric-balance-card::before {
+  background: #25815c;
+}
+
 .metrics span,
 .controls label,
 .event-meta {
@@ -1331,6 +1343,14 @@ h2 {
 
 .metrics article.metric-peditorio-card strong {
   color: #b7791f;
+}
+
+.metrics article.metric-income-card strong {
+  color: var(--blue);
+}
+
+.metrics article.metric-expense-card strong {
+  color: var(--red);
 }
 
 .metrics strong.metric-positive {
@@ -1403,17 +1423,21 @@ h2 {
 }
 
 .metrics article.cash-check-card {
-  align-content: start;
-  column-gap: 18px;
+  align-items: center;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(247, 250, 255, 0.9));
+  box-shadow: 0 10px 22px rgba(31, 102, 229, 0.06);
+  column-gap: 14px;
   display: grid;
-  grid-column: span 2;
-  grid-template-columns: minmax(0, 1fr) auto;
-  min-height: 132px;
-  row-gap: 6px;
+  grid-column: 1 / -1;
+  grid-template-columns: auto minmax(210px, 0.42fr) auto minmax(120px, auto);
+  min-height: 58px;
+  padding: 12px 14px;
+  row-gap: 8px;
 }
 
 .metrics article.cash-check-card.is-positive {
-  border-color: #9fd7bd;
+  border-color: #c8e5d7;
 }
 
 .metrics article.cash-check-card.is-positive::before {
@@ -1421,7 +1445,7 @@ h2 {
 }
 
 .metrics article.cash-check-card.is-negative {
-  border-color: #efb2bf;
+  border-color: #f2ccd3;
 }
 
 .metrics article.cash-check-card.is-negative::before {
@@ -1429,16 +1453,18 @@ h2 {
 }
 
 .cash-count-form {
-  align-items: end;
+  align-items: center;
   display: grid;
   gap: 8px;
-  grid-column: 1;
-  grid-template-columns: minmax(0, 1fr) auto;
-  margin-top: 10px;
+  grid-column: auto;
+  grid-template-columns: minmax(120px, 160px) auto;
+  margin-top: 0;
 }
 
 .cash-check-card > span {
-  grid-column: 1 / -1;
+  color: var(--ink);
+  grid-column: auto;
+  white-space: nowrap;
 }
 
 .cash-count-form label {
@@ -1496,20 +1522,22 @@ h2 {
 
 .metrics article.cash-check-card strong {
   align-self: center;
-  grid-column: 2;
-  grid-row: 2;
-  margin-top: 12px;
+  font-size: clamp(1.08rem, 1.35vw, 1.42rem);
+  grid-column: auto;
+  grid-row: auto;
+  margin-top: 0;
   text-align: right;
 }
 
 .cash-check-card small {
-  grid-column: 2;
-  text-align: right;
+  grid-column: auto;
+  text-align: left;
+  white-space: nowrap;
 }
 
 .cash-check-card em {
   grid-column: 1 / -1;
-  margin-top: 6px;
+  margin-top: 0;
 }
 
 .reports-shell {

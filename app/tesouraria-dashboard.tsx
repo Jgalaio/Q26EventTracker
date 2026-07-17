@@ -1566,11 +1566,39 @@ export function Dashboard({
       <section className="metrics" aria-label="Resumo financeiro">
         {!isAccountSection ? (
           <>
-            <article>
+            <article className={`cash-check-card ${physicalCashDifference === null || physicalCashDifference >= 0 ? "is-positive" : "is-negative"}`}>
+              <span>Dif. Dinheiro Físico</span>
+              <form className="cash-count-form" onSubmit={savePhysicalCashCount}>
+                <label>
+                  <span>Dinheiro físico contado</span>
+                  <input
+                    disabled={!mayWrite || isSavingPhysicalCash}
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    value={physicalCashInput}
+                    onChange={(event) => {
+                      setPhysicalCashInput(event.target.value);
+                      setPhysicalCashMessage(null);
+                    }}
+                  />
+                </label>
+                {mayWrite ? (
+                  <button disabled={isSavingPhysicalCash} type="submit">
+                    {isSavingPhysicalCash ? "..." : "Guardar"}
+                  </button>
+                ) : null}
+              </form>
+              <strong className={physicalCashDifference === null || physicalCashDifference >= 0 ? "metric-positive" : "metric-negative"}>
+                {physicalCashDifference === null ? "—" : formatMoney(physicalCashDifference)}
+              </strong>
+              <small>Contado - Valor Dinheiro</small>
+              {physicalCashMessage ? <em>{physicalCashMessage}</em> : null}
+            </article>
+            <article className="metric-income-card">
               <span>Entradas</span>
               <strong>{formatMoney(totals.entradas)}</strong>
             </article>
-            <article>
+            <article className="metric-expense-card">
               <span>Saídas</span>
               <strong>{formatMoney(totals.saidas)}</strong>
             </article>
@@ -1580,7 +1608,7 @@ export function Dashboard({
                 <strong>{formatMoney(totals.aPagamento)}</strong>
               </Link>
             </article>
-            <article>
+            <article className="metric-balance-card">
               <span>Saldo</span>
               <strong className={eventProfit >= 0 ? "metric-positive" : "metric-negative"}>{formatMoney(eventProfit)}</strong>
             </article>
@@ -1613,34 +1641,6 @@ export function Dashboard({
             <article>
               <span>Valor Dinheiro</span>
               <strong className={cashValue >= 0 ? "metric-positive" : "metric-negative"}>{formatMoney(cashValue)}</strong>
-            </article>
-            <article className={`cash-check-card ${physicalCashDifference === null || physicalCashDifference >= 0 ? "is-positive" : "is-negative"}`}>
-              <span>Dif. Dinheiro Físico</span>
-              <form className="cash-count-form" onSubmit={savePhysicalCashCount}>
-                <label>
-                  <span>Dinheiro físico contado</span>
-                  <input
-                    disabled={!mayWrite || isSavingPhysicalCash}
-                    inputMode="decimal"
-                    placeholder="0,00"
-                    value={physicalCashInput}
-                    onChange={(event) => {
-                      setPhysicalCashInput(event.target.value);
-                      setPhysicalCashMessage(null);
-                    }}
-                  />
-                </label>
-                {mayWrite ? (
-                  <button disabled={isSavingPhysicalCash} type="submit">
-                    {isSavingPhysicalCash ? "..." : "Guardar"}
-                  </button>
-                ) : null}
-              </form>
-              <strong className={physicalCashDifference === null || physicalCashDifference >= 0 ? "metric-positive" : "metric-negative"}>
-                {physicalCashDifference === null ? "—" : formatMoney(physicalCashDifference)}
-              </strong>
-              <small>Contado - Valor Dinheiro</small>
-              {physicalCashMessage ? <em>{physicalCashMessage}</em> : null}
             </article>
           </>
         ) : (
