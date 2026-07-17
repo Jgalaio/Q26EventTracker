@@ -31,6 +31,11 @@ export type OverviewRow = Summary & {
 type OverviewClientProps = {
   rows: OverviewRow[];
   totals: Summary;
+  sectionTotals: {
+    eventos: Summary;
+    patrocinios: Summary;
+    peditorio: Summary;
+  };
   cashValue: number;
   physicalCashCount: number | null;
   error: string | null;
@@ -329,7 +334,16 @@ function importedArchiveFromJson(value: unknown, fileName: string): ImportedArch
   };
 }
 
-export function OverviewClient({ rows, totals, cashValue, physicalCashCount, error, session, appLogo }: OverviewClientProps) {
+export function OverviewClient({
+  rows,
+  totals,
+  sectionTotals,
+  cashValue,
+  physicalCashCount,
+  error,
+  session,
+  appLogo
+}: OverviewClientProps) {
   const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
   const [selectedSlugs, setSelectedSlugs] = useState<Set<string>>(() => new Set());
   const [uploadedArchive, setUploadedArchive] = useState<ImportedArchiveView | null>(null);
@@ -444,6 +458,27 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
             <span>Saldo Total</span>
             <small>Lucro final</small>
             <strong className={totals.lucro >= 0 ? "value-green" : "value-red"}>{formatMoney(totals.lucro)}</strong>
+          </article>
+          <article>
+            <span>Eventos</span>
+            <small>Saldo dos eventos</small>
+            <strong className={sectionTotals.eventos.lucro >= 0 ? "value-blue" : "value-red"}>
+              {formatMoney(sectionTotals.eventos.lucro)}
+            </strong>
+          </article>
+          <article>
+            <span>Patrocínios</span>
+            <small>Saldo de patrocínios</small>
+            <strong className={sectionTotals.patrocinios.lucro >= 0 ? "value-purple" : "value-red"}>
+              {formatMoney(sectionTotals.patrocinios.lucro)}
+            </strong>
+          </article>
+          <article>
+            <span>Peditório</span>
+            <small>Saldo do peditório</small>
+            <strong className={sectionTotals.peditorio.lucro >= 0 ? "value-amber" : "value-red"}>
+              {formatMoney(sectionTotals.peditorio.lucro)}
+            </strong>
           </article>
           <article>
             <span>Transferencias</span>

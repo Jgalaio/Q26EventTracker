@@ -6,6 +6,11 @@ import { OverviewClient, type OverviewRow } from "./overview-client";
 
 type Summary = Omit<OverviewRow, "nome" | "slug" | "movimentos" | "contabilizarTotais">;
 
+const SPECIAL_EVENT_SECTIONS = [
+  { mode: "peditorio", slugs: ["peditorio"] },
+  { mode: "patrocinios", slugs: ["patrocinios-festa", "patrocinios"] }
+] as const;
+
 function normalizePayment(value: string | null | undefined) {
   return value
     ?.normalize("NFD")
@@ -78,6 +83,27 @@ function finalizeSummary(summary: Summary) {
   return summary;
 }
 
+function slugify(value: string) {
+  return (
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "evento"
+  );
+}
+
+function specialSectionForRow(row: OverviewRow) {
+  const slug = slugify(row.slug);
+  const nameSlug = slugify(row.nome);
+  return (
+    SPECIAL_EVENT_SECTIONS.find(
+      (section) => (section.slugs as readonly string[]).includes(slug) || (section.slugs as readonly string[]).includes(nameSlug)
+    )?.mode ?? null
+  );
+}
+
 function isEventCounted(event: EventoResumo) {
   if (typeof event.contabilizar_totais === "boolean") return event.contabilizar_totais;
   return event.slug !== "decoracao";
@@ -102,6 +128,17 @@ function summarizeEvent(event: EventoResumo, movimentos: MovimentoDetalhe[]): Ov
     movimentos,
     ...summary
   };
+}
+
+function summarizeRows(rows: OverviewRow[]) {
+  return finalizeSummary(
+    rows.filter((row) => row.contabilizarTotais).reduce((acc, row) => {
+      row.movimentos.filter(isMovementCounted).forEach((movimento) => {
+        addMovimento(acc, movimento);
+      });
+      return acc;
+    }, emptySummary())
+  );
 }
 
 export default async function OverviewPage() {
@@ -148,6 +185,11 @@ export default async function OverviewPage() {
     .reduce((sum, movimento) => sum + Number(movimento.montante ?? 0), 0);
   const accountBalance = accountEntradas - accountSaidas;
   const cashValue = totals.lucro + q25Balance - accountBalance;
+  const sectionTotals = {
+    eventos: summarizeRows(rows.filter((row) => !specialSectionForRow(row))),
+    patrocinios: summarizeRows(rows.filter((row) => specialSectionForRow(row) === "patrocinios")),
+    peditorio: summarizeRows(rows.filter((row) => specialSectionForRow(row) === "peditorio"))
+  };
 
   return (
     <OverviewClient
@@ -157,6 +199,7 @@ export default async function OverviewPage() {
       physicalCashCount={physicalCashSettings.amount}
       rows={rows}
       session={session}
+      sectionTotals={sectionTotals}
       totals={totals}
     />
   );

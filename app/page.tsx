@@ -22,6 +22,11 @@ type WelcomePageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
+const SPECIAL_EVENT_SECTIONS = [
+  { mode: "peditorio", slugs: ["peditorio"] },
+  { mode: "patrocinios", slugs: ["patrocinios-festa", "patrocinios"] }
+] as const;
+
 const moneyFormatter = new Intl.NumberFormat("pt-PT", {
   style: "currency",
   currency: "EUR",
@@ -109,6 +114,38 @@ function finalizeSummary(summary: Summary) {
   return summary;
 }
 
+function slugify(value: string) {
+  return (
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "evento"
+  );
+}
+
+function specialSectionForEvent(event: EventoResumo) {
+  const slug = slugify(event.slug);
+  const nameSlug = slugify(event.nome);
+  return (
+    SPECIAL_EVENT_SECTIONS.find(
+      (section) => (section.slugs as readonly string[]).includes(slug) || (section.slugs as readonly string[]).includes(nameSlug)
+    )?.mode ?? null
+  );
+}
+
+function summarizeEventGroup(events: EventoResumo[], movimentos: MovimentoDetalhe[]) {
+  const countedSlugs = new Set(events.filter(isEventCounted).map((event) => event.slug));
+  return finalizeSummary(
+    movimentos.reduce((acc, movimento) => {
+      if (!countedSlugs.has(movimento.evento_slug) || !isMovementCounted(movimento)) return acc;
+      addMovimento(acc, movimento);
+      return acc;
+    }, emptySummary())
+  );
+}
+
 function priorityRank(note: Nota) {
   if (note.prioridade === "urgente") return 0;
   if (note.prioridade === "alta") return 1;
@@ -194,6 +231,18 @@ export default async function WelcomePage({ searchParams }: WelcomePageProps) {
   const physicalCashDifference =
     physicalCashSettings.amount === null ? null : Number(physicalCashSettings.amount) - cashValue;
   const canOpenPending = canViewTreasury(session);
+  const regularEventTotals = summarizeEventGroup(
+    eventos.filter((event) => event.slug !== "contas" && !specialSectionForEvent(event)),
+    movimentos
+  );
+  const sponsorTotals = summarizeEventGroup(
+    eventos.filter((event) => specialSectionForEvent(event) === "patrocinios"),
+    movimentos
+  );
+  const peditorioTotals = summarizeEventGroup(
+    eventos.filter((event) => specialSectionForEvent(event) === "peditorio"),
+    movimentos
+  );
 
   const cards = [
     { label: "Entradas Totais", value: formatMoney(totals.entradas), detail: "Todas as entradas", tone: "blue" as const },
@@ -206,6 +255,24 @@ export default async function WelcomePage({ searchParams }: WelcomePageProps) {
       href: canOpenPending ? "/a-pagar" : undefined
     },
     { label: "Saldo Total", value: formatMoney(totals.lucro), detail: "Lucro final", tone: "green" as const },
+    {
+      label: "Eventos",
+      value: formatMoney(regularEventTotals.lucro),
+      detail: "Eventos gerais",
+      tone: regularEventTotals.lucro < 0 ? ("red" as const) : ("blue" as const)
+    },
+    {
+      label: "Patrocínios",
+      value: formatMoney(sponsorTotals.lucro),
+      detail: "Saldo de patrocínios",
+      tone: sponsorTotals.lucro < 0 ? ("red" as const) : ("purple" as const)
+    },
+    {
+      label: "Peditório",
+      value: formatMoney(peditorioTotals.lucro),
+      detail: "Saldo do peditório",
+      tone: peditorioTotals.lucro < 0 ? ("red" as const) : ("amber" as const)
+    },
     { label: "Faturado", value: formatMoney(totals.faturado), detail: "Fatura C/NIF: Sim", tone: "blue" as const },
     { label: "Não Faturado", value: formatMoney(totals.naoFaturado), detail: "Fatura C/NIF: Não", tone: "purple" as const },
     { label: "Transferências", value: formatMoney(totals.transferencias), detail: "Pagas por transferência", tone: "purple" as const },

@@ -825,6 +825,8 @@ export function Dashboard({
   const profitWithQ25Balance = eventProfit + q25Balance;
   const cashValue = profitWithQ25Balance - accountBalance;
   const physicalCashDifference = physicalCashAmount === null ? null : physicalCashAmount - cashValue;
+  const specialSectionTotals =
+    sectionMode === "patrocinios" ? sponsorTotals : sectionMode === "peditorio" ? peditorioTotals : null;
 
   const filteredAccountMovimentos = useMemo(() => {
     const source = activeTab === "entrada" ? accountEntries : accountSaidas;
@@ -1564,7 +1566,55 @@ export function Dashboard({
       {error ? <section className="notice">Não consegui ligar ao Supabase. {error}</section> : null}
 
       <section className="metrics" aria-label="Resumo financeiro">
-        {!isAccountSection ? (
+        {isAccountSection ? (
+          <>
+            <article>
+              <span>Entradas na conta</span>
+              <strong>{formatMoney(accountCounts.totalEntradas)}</strong>
+            </article>
+            <article>
+              <span>Saídas Conta Q26</span>
+              <strong>{formatMoney(accountCounts.totalSaidas)}</strong>
+            </article>
+            <article>
+              <span>Saldo em conta</span>
+              <strong className={accountBalance >= 0 ? "metric-positive" : "metric-negative"}>{formatMoney(accountBalance)}</strong>
+            </article>
+            <article>
+              <span>Movimentos</span>
+              <strong>{accountCounts.entradas + accountCounts.saidas}</strong>
+            </article>
+          </>
+        ) : specialSectionTotals ? (
+          <>
+            <article className="metric-income-card">
+              <span>Entradas</span>
+              <strong>{formatMoney(specialSectionTotals.entradas)}</strong>
+            </article>
+            <article className="metric-expense-card">
+              <span>Saídas</span>
+              <strong>{formatMoney(specialSectionTotals.saidas)}</strong>
+            </article>
+            {specialSectionTotals.aPagamento > 0 ? (
+              <article className="payment-status-card is-due">
+                <Link className="payment-card-link" href="/a-pagar">
+                  <span>Pagamentos em falta</span>
+                  <strong>{formatMoney(specialSectionTotals.aPagamento)}</strong>
+                </Link>
+              </article>
+            ) : null}
+            <article className="metric-balance-card">
+              <span>Saldo {selectedSectionLabel}</span>
+              <strong className={specialSectionTotals.saldo >= 0 ? "metric-positive" : "metric-negative"}>
+                {formatMoney(specialSectionTotals.saldo)}
+              </strong>
+            </article>
+            <article>
+              <span>Movimentos</span>
+              <strong>{eventMovimentos.filter(isMovementCounted).length}</strong>
+            </article>
+          </>
+        ) : (
           <>
             <article className={`cash-check-card ${physicalCashDifference === null || physicalCashDifference >= 0 ? "is-positive" : "is-negative"}`}>
               <span>Dif. Dinheiro Físico</span>
@@ -1641,25 +1691,6 @@ export function Dashboard({
             <article>
               <span>Valor Dinheiro</span>
               <strong className={cashValue >= 0 ? "metric-positive" : "metric-negative"}>{formatMoney(cashValue)}</strong>
-            </article>
-          </>
-        ) : (
-          <>
-            <article>
-              <span>Entradas na conta</span>
-              <strong>{formatMoney(accountCounts.totalEntradas)}</strong>
-            </article>
-            <article>
-              <span>Saídas Conta Q26</span>
-              <strong>{formatMoney(accountCounts.totalSaidas)}</strong>
-            </article>
-            <article>
-              <span>Saldo em conta</span>
-              <strong className={accountBalance >= 0 ? "metric-positive" : "metric-negative"}>{formatMoney(accountBalance)}</strong>
-            </article>
-            <article>
-              <span>Movimentos</span>
-              <strong>{accountCounts.entradas + accountCounts.saidas}</strong>
             </article>
           </>
         )}

@@ -13,7 +13,7 @@ type WelcomeCard = {
   label: string;
   value: string;
   detail: string;
-  tone?: "blue" | "green" | "red" | "purple";
+  tone?: "blue" | "green" | "red" | "purple" | "amber";
   href?: string;
 };
 

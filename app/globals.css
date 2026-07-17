@@ -2255,8 +2255,8 @@ h2 {
 .report-cover-summary article {
   border-bottom: 1px solid #c4d8ff;
   display: grid;
-  gap: 4px;
-  padding: 8px 0 11px;
+  gap: 3px;
+  padding: 6px 0 8px;
 }
 
 .report-cover-summary span {
@@ -2271,7 +2271,7 @@ h2 {
 
 .report-cover-summary strong {
   color: #25569a;
-  font-size: 1.45rem;
+  font-size: 1.22rem;
   font-weight: 500;
   overflow-wrap: anywhere;
 }
@@ -5593,6 +5593,10 @@ td {
   color: #7552c7;
 }
 
+.welcome-card-value.amber {
+  color: #b7791f;
+}
+
 .welcome-card-link:hover {
   border-color: var(--blue);
   transform: translateY(-1px);
@@ -5786,6 +5790,10 @@ td {
 
 .value-purple {
   color: #6f2fb6;
+}
+
+.value-amber {
+  color: #b7791f;
 }
 
 .chart-panel,
