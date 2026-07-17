@@ -3860,6 +3860,83 @@ td {
   color: var(--ink);
 }
 
+.whats-new-backdrop {
+  background: rgba(7, 31, 75, 0.42);
+  z-index: 40;
+}
+
+.whats-new-modal {
+  gap: 16px;
+  width: min(560px, 100%);
+}
+
+.whats-new-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.whats-new-header h2 {
+  color: var(--ink);
+  font-size: clamp(1.5rem, 2vw, 2rem);
+  line-height: 1.05;
+  margin: 4px 0 0;
+}
+
+.whats-new-header span {
+  background: #eef5ff;
+  border: 1px solid #c8dbff;
+  border-radius: 999px;
+  color: var(--blue);
+  flex: 0 0 auto;
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 7px 10px;
+}
+
+.whats-new-summary {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.whats-new-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.whats-new-list li {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1.35;
+  padding: 12px 12px 12px 34px;
+  position: relative;
+}
+
+.whats-new-list li::before {
+  background: var(--blue);
+  border-radius: 999px;
+  content: "";
+  height: 9px;
+  left: 14px;
+  position: absolute;
+  top: 17px;
+  width: 9px;
+}
+
+.whats-new-actions button {
+  min-width: 118px;
+}
+
 .description-button {
   background: transparent;
   border: 0;
