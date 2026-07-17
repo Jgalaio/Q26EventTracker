@@ -990,7 +990,7 @@ h2 {
   border-radius: 8px;
   display: grid;
   gap: 4px;
-  grid-template-columns: repeat(2, minmax(110px, 1fr));
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
   min-height: 42px;
   padding: 4px;
 }
@@ -1270,6 +1270,18 @@ h2 {
   background: #7552c7;
 }
 
+.metrics article.metric-events-card::before {
+  background: #147d9f;
+}
+
+.metrics article.metric-sponsor-card::before {
+  background: #7552c7;
+}
+
+.metrics article.metric-peditorio-card::before {
+  background: #b7791f;
+}
+
 .metrics span,
 .controls label,
 .event-meta {
@@ -1307,6 +1319,18 @@ h2 {
 .metrics article:nth-child(5) strong,
 .metrics article:nth-child(6) strong {
   color: #7552c7;
+}
+
+.metrics article.metric-events-card strong {
+  color: #147d9f;
+}
+
+.metrics article.metric-sponsor-card strong {
+  color: #7552c7;
+}
+
+.metrics article.metric-peditorio-card strong {
+  color: #b7791f;
 }
 
 .metrics strong.metric-positive {
@@ -6358,6 +6382,10 @@ td {
   .overview-pie-panel,
   .overview-archive-summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .section-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .movement-history-entry header {
