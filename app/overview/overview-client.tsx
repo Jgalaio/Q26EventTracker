@@ -531,12 +531,12 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
       <section className="overview-archive-panel" aria-label="Consulta de encerramento anual">
         <div className="table-heading">
           <div>
-            <p className="eyebrow">Encerramentos</p>
-            <h2>Consultar ano fechado</h2>
+            <p className="eyebrow">Encerramento anual</p>
+            <h2>Carregar base de dados do ano fechado</h2>
           </div>
           <div className="table-heading-actions overview-archive-actions">
             <label className="overview-upload-button">
-              Carregar JSON
+              Carregar base de dados
               <input accept="application/json,.json" type="file" onChange={handleArchiveUpload} />
             </label>
             {uploadedArchive ? (
@@ -622,7 +622,9 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
             </div>
           </div>
         ) : (
-          <p className="overview-archive-empty">Carrega o JSON de encerramento anual para consulta temporária.</p>
+          <p className="overview-archive-empty">
+            Faz upload do ficheiro JSON gerado no encerramento anual para consultar esses dados temporariamente.
+          </p>
         )}
       </section>
 

@@ -5566,6 +5566,8 @@ td {
 }
 
 .overview-shell {
+  display: flex;
+  flex-direction: column;
   max-width: 1600px;
 }
 
@@ -5575,6 +5577,7 @@ td {
   gap: 16px;
   grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
   margin-bottom: 16px;
+  order: 2;
 }
 
 .overview-card-grid {
@@ -5669,8 +5672,13 @@ td {
 .overview-archive-panel {
   display: grid;
   gap: 14px;
-  margin-top: 16px;
+  margin-bottom: 16px;
+  order: 1;
   padding-bottom: 18px;
+}
+
+.overview-table-panel {
+  order: 3;
 }
 
 .overview-archive-actions {
