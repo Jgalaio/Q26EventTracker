@@ -1454,131 +1454,154 @@ export function AdminClient({
 
   return (
     <>
-      <details className="admin-collapse-panel" aria-label="Definições do admin">
+      <details className="admin-collapse-panel" aria-label="Segurança do admin">
         <summary className="admin-collapse-summary">
           <span>
             <span className="eyebrow">Admin</span>
-            <strong>Definições e base de dados</strong>
+            <strong>Segurança</strong>
           </span>
-          <em>6 zonas</em>
+          <em>1 zona</em>
         </summary>
 
-        <section className="admin-settings-grid" aria-label="Definições do admin">
+        <section className="admin-settings-grid" aria-label="Segurança do admin">
           <form className="admin-settings-card" onSubmit={handlePasswordSubmit}>
-          <div>
-            <p className="eyebrow">Segurança</p>
-            <h2>Alterar a minha password</h2>
-          </div>
-          <label>
-            Utilizador
-            <input readOnly value={session.username} />
-          </label>
-          <label>
-            Password atual
-            <input
-              required
-              type="password"
-              value={passwordForm.currentPassword}
-              onChange={(event) => updatePasswordField("currentPassword", event.target.value)}
-            />
-          </label>
-          <label>
-            Nova password
-            <input
-              minLength={6}
-              required
-              type="password"
-              value={passwordForm.newPassword}
-              onChange={(event) => updatePasswordField("newPassword", event.target.value)}
-            />
-          </label>
-          <label>
-            Confirmar nova password
-            <input
-              minLength={6}
-              required
-              type="password"
-              value={passwordForm.confirmPassword}
-              onChange={(event) => updatePasswordField("confirmPassword", event.target.value)}
-            />
-          </label>
-          {passwordMessage ? <p className="form-message">{passwordMessage}</p> : null}
-          <button disabled={isSavingPassword} type="submit">
-            {isSavingPassword ? "A guardar..." : "Guardar password"}
-          </button>
-        </form>
+            <div>
+              <p className="eyebrow">Segurança</p>
+              <h2>Alterar a minha password</h2>
+            </div>
+            <label>
+              Utilizador
+              <input readOnly value={session.username} />
+            </label>
+            <label>
+              Password atual
+              <input
+                required
+                type="password"
+                value={passwordForm.currentPassword}
+                onChange={(event) => updatePasswordField("currentPassword", event.target.value)}
+              />
+            </label>
+            <label>
+              Nova password
+              <input
+                minLength={6}
+                required
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={(event) => updatePasswordField("newPassword", event.target.value)}
+              />
+            </label>
+            <label>
+              Confirmar nova password
+              <input
+                minLength={6}
+                required
+                type="password"
+                value={passwordForm.confirmPassword}
+                onChange={(event) => updatePasswordField("confirmPassword", event.target.value)}
+              />
+            </label>
+            {passwordMessage ? <p className="form-message">{passwordMessage}</p> : null}
+            <button disabled={isSavingPassword} type="submit">
+              {isSavingPassword ? "A guardar..." : "Guardar password"}
+            </button>
+          </form>
+        </section>
+      </details>
 
-        <form className="admin-settings-card" onSubmit={handleAppLogoSubmit}>
-          <div>
-            <p className="eyebrow">Aplicação</p>
-            <h2>Alterar logo do topo</h2>
-          </div>
-          <div className="logo-preview-box app-logo-preview-box">
-            {appLogoPreview ? <img alt="Logo atual da aplicação" src={appLogoPreview} /> : <span>Q26</span>}
-          </div>
-          <label>
-            Imagem
-            <input accept="image/*" type="file" onChange={handleAppLogoChange} />
-          </label>
-          {appLogoFileName ? <p className="admin-file-name">{appLogoFileName}</p> : null}
-          {appLogoMessage ? <p className="form-message">{appLogoMessage}</p> : null}
-          <div className="admin-inline-actions">
-            <button disabled={isSavingAppLogo || !appLogoDataUrl} type="submit">
-              {isSavingAppLogo ? "A guardar..." : "Guardar logo"}
-            </button>
-            <button className="secondary-button" disabled={isSavingAppLogo || !appLogoPreview} type="button" onClick={removeAppLogo}>
-              Remover
-            </button>
-          </div>
-        </form>
+      <details className="admin-collapse-panel" aria-label="Logos e imagem">
+        <summary className="admin-collapse-summary">
+          <span>
+            <span className="eyebrow">Imagem</span>
+            <strong>Logos e imagem</strong>
+          </span>
+          <em>3 zonas</em>
+        </summary>
 
-        <form className="admin-settings-card" onSubmit={handleLogoSubmit}>
-          <div>
-            <p className="eyebrow">Relatório</p>
-            <h2>Alterar logo do relatório</h2>
-          </div>
-          <div className="logo-preview-box">
-            {logoPreview ? <img alt="Logo atual do relatório" src={logoPreview} /> : <span>Q26</span>}
-          </div>
-          <label>
-            Imagem
-            <input accept="image/*" type="file" onChange={handleLogoChange} />
-          </label>
-          {logoFileName ? <p className="admin-file-name">{logoFileName}</p> : null}
-          {logoMessage ? <p className="form-message">{logoMessage}</p> : null}
-          <div className="admin-inline-actions">
-            <button disabled={isSavingLogo || !logoDataUrl} type="submit">
-              {isSavingLogo ? "A guardar..." : "Guardar logo"}
-            </button>
-            <button className="secondary-button" disabled={isSavingLogo || !logoPreview} type="button" onClick={removeLogo}>
-              Remover
-            </button>
-          </div>
-        </form>
+        <section className="admin-settings-grid" aria-label="Logos e imagem">
+          <form className="admin-settings-card" onSubmit={handleAppLogoSubmit}>
+            <div>
+              <p className="eyebrow">Aplicação</p>
+              <h2>Alterar logo do topo</h2>
+            </div>
+            <div className="logo-preview-box app-logo-preview-box">
+              {appLogoPreview ? <img alt="Logo atual da aplicação" src={appLogoPreview} /> : <span>Q26</span>}
+            </div>
+            <label>
+              Imagem
+              <input accept="image/*" type="file" onChange={handleAppLogoChange} />
+            </label>
+            {appLogoFileName ? <p className="admin-file-name">{appLogoFileName}</p> : null}
+            {appLogoMessage ? <p className="form-message">{appLogoMessage}</p> : null}
+            <div className="admin-inline-actions">
+              <button disabled={isSavingAppLogo || !appLogoDataUrl} type="submit">
+                {isSavingAppLogo ? "A guardar..." : "Guardar logo"}
+              </button>
+              <button className="secondary-button" disabled={isSavingAppLogo || !appLogoPreview} type="button" onClick={removeAppLogo}>
+                Remover
+              </button>
+            </div>
+          </form>
 
-        <form className="admin-settings-card" onSubmit={handleFaviconSubmit}>
-          <div>
-            <p className="eyebrow">Aplicação</p>
-            <h2>Alterar favicon</h2>
-          </div>
-          <div className="favicon-preview-box">
-            {faviconPreview ? <img alt="Favicon atual" src={faviconPreview} /> : <span>Q26</span>}
-          </div>
-          <label>
-            Imagem
-            <input accept="image/*" type="file" onChange={handleFaviconChange} />
-          </label>
-          {faviconFileName ? <p className="admin-file-name">{faviconFileName}</p> : null}
-          {faviconMessage ? <p className="form-message">{faviconMessage}</p> : null}
-          <div className="admin-inline-actions">
-            <button disabled={isSavingFavicon || !faviconDataUrl} type="submit">
-              {isSavingFavicon ? "A guardar..." : "Guardar favicon"}
-            </button>
-            <button className="secondary-button" disabled={isSavingFavicon || !faviconPreview} type="button" onClick={removeFavicon}>
-              Remover
-            </button>
-          </div>
-        </form>
+          <form className="admin-settings-card" onSubmit={handleLogoSubmit}>
+            <div>
+              <p className="eyebrow">Relatório</p>
+              <h2>Alterar logo do relatório</h2>
+            </div>
+            <div className="logo-preview-box">
+              {logoPreview ? <img alt="Logo atual do relatório" src={logoPreview} /> : <span>Q26</span>}
+            </div>
+            <label>
+              Imagem
+              <input accept="image/*" type="file" onChange={handleLogoChange} />
+            </label>
+            {logoFileName ? <p className="admin-file-name">{logoFileName}</p> : null}
+            {logoMessage ? <p className="form-message">{logoMessage}</p> : null}
+            <div className="admin-inline-actions">
+              <button disabled={isSavingLogo || !logoDataUrl} type="submit">
+                {isSavingLogo ? "A guardar..." : "Guardar logo"}
+              </button>
+              <button className="secondary-button" disabled={isSavingLogo || !logoPreview} type="button" onClick={removeLogo}>
+                Remover
+              </button>
+            </div>
+          </form>
+
+          <form className="admin-settings-card" onSubmit={handleFaviconSubmit}>
+            <div>
+              <p className="eyebrow">Aplicação</p>
+              <h2>Alterar favicon</h2>
+            </div>
+            <div className="favicon-preview-box">
+              {faviconPreview ? <img alt="Favicon atual" src={faviconPreview} /> : <span>Q26</span>}
+            </div>
+            <label>
+              Imagem
+              <input accept="image/*" type="file" onChange={handleFaviconChange} />
+            </label>
+            {faviconFileName ? <p className="admin-file-name">{faviconFileName}</p> : null}
+            {faviconMessage ? <p className="form-message">{faviconMessage}</p> : null}
+            <div className="admin-inline-actions">
+              <button disabled={isSavingFavicon || !faviconDataUrl} type="submit">
+                {isSavingFavicon ? "A guardar..." : "Guardar favicon"}
+              </button>
+              <button className="secondary-button" disabled={isSavingFavicon || !faviconPreview} type="button" onClick={removeFavicon}>
+                Remover
+              </button>
+            </div>
+          </form>
+        </section>
+      </details>
+
+      <details className="admin-collapse-panel" aria-label="Base de dados">
+        <summary className="admin-collapse-summary">
+          <span>
+            <span className="eyebrow">Base de dados</span>
+            <strong>Backups, importação e encerramento</strong>
+          </span>
+          <em>3 zonas</em>
+        </summary>
 
         <section className="admin-settings-card database-maintenance-card">
           <div>
@@ -1759,7 +1782,6 @@ export function AdminClient({
             </button>
           </div>
           {databaseMessage ? <p className="form-message">{databaseMessage}</p> : null}
-        </section>
         </section>
       </details>
 
