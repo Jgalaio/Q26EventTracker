@@ -3857,6 +3857,92 @@ td {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.admin-collapse-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 0;
+  margin-bottom: 14px;
+  overflow: hidden;
+  padding: 0;
+}
+
+.admin-collapse-panel[open] {
+  gap: 14px;
+  padding-bottom: 18px;
+}
+
+.admin-collapse-summary {
+  align-items: center;
+  cursor: pointer;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  list-style: none;
+  min-height: 72px;
+  padding: 16px 18px;
+}
+
+.admin-collapse-summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-collapse-summary::before {
+  border-bottom: 2px solid var(--blue);
+  border-right: 2px solid var(--blue);
+  content: "";
+  flex: 0 0 auto;
+  height: 9px;
+  transform: rotate(-45deg);
+  transition: transform 0.18s ease;
+  width: 9px;
+}
+
+.admin-collapse-panel[open] > .admin-collapse-summary::before {
+  transform: rotate(45deg);
+}
+
+.admin-collapse-summary > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-collapse-summary .eyebrow {
+  display: block;
+  margin: 0;
+}
+
+.admin-collapse-summary strong {
+  color: var(--ink);
+  font-size: 1.15rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-collapse-summary em {
+  background: #eef5ff;
+  border: 1px solid #c9dcff;
+  border-radius: 999px;
+  color: var(--blue);
+  flex: 0 0 auto;
+  font-size: 0.76rem;
+  font-style: normal;
+  font-weight: 900;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.admin-collapse-panel > :not(summary) {
+  margin-left: 18px;
+  margin-right: 18px;
+}
+
+.admin-collapse-panel > .admin-settings-grid {
+  margin: 0 18px;
+}
+
 .admin-settings-grid {
   display: grid;
   gap: 14px;
@@ -4757,6 +4843,21 @@ td {
   gap: 14px;
   margin-top: 18px;
   padding: 18px;
+}
+
+.admin-collapse-panel.admin-closed-events-panel,
+.admin-collapse-panel.admin-users-panel,
+.admin-collapse-panel.admin-log-panel {
+  gap: 0;
+  margin: 0 0 14px;
+  padding: 0;
+}
+
+.admin-collapse-panel.admin-closed-events-panel[open],
+.admin-collapse-panel.admin-users-panel[open],
+.admin-collapse-panel.admin-log-panel[open] {
+  gap: 14px;
+  padding-bottom: 18px;
 }
 
 .admin-log-header {
@@ -5934,6 +6035,16 @@ td {
 
   .admin-users-layout {
     grid-template-columns: 1fr;
+  }
+
+  .admin-collapse-summary {
+    align-items: start;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .admin-collapse-summary em {
+    grid-column: 2;
+    justify-self: start;
   }
 
   .database-maintenance-card {

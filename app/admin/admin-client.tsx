@@ -1324,8 +1324,17 @@ export function AdminClient({
 
   return (
     <>
-      <section className="admin-settings-grid" aria-label="Definições do admin">
-        <form className="admin-settings-card" onSubmit={handlePasswordSubmit}>
+      <details className="admin-collapse-panel" aria-label="Definições do admin">
+        <summary className="admin-collapse-summary">
+          <span>
+            <span className="eyebrow">Admin</span>
+            <strong>Definições e base de dados</strong>
+          </span>
+          <em>5 zonas</em>
+        </summary>
+
+        <section className="admin-settings-grid" aria-label="Definições do admin">
+          <form className="admin-settings-card" onSubmit={handlePasswordSubmit}>
           <div>
             <p className="eyebrow">Segurança</p>
             <h2>Alterar a minha password</h2>
@@ -1577,16 +1586,17 @@ export function AdminClient({
           </div>
           {databaseMessage ? <p className="form-message">{databaseMessage}</p> : null}
         </section>
-      </section>
+        </section>
+      </details>
 
-      <section className="admin-closed-events-panel" aria-label="Eventos fechados">
-        <div className="admin-log-header">
-          <div>
-            <p className="eyebrow">Eventos</p>
-            <h2>Eventos fechados</h2>
-          </div>
-          <span>{closedEventsState.length} fechados</span>
-        </div>
+      <details className="admin-collapse-panel admin-closed-events-panel" aria-label="Eventos fechados">
+        <summary className="admin-collapse-summary">
+          <span>
+            <span className="eyebrow">Eventos</span>
+            <strong>Eventos fechados</strong>
+          </span>
+          <em>{closedEventsState.length} fechados</em>
+        </summary>
         {closedEventsError ? (
           <p className="form-message">Não foi possível carregar os eventos fechados. {closedEventsError}</p>
         ) : null}
@@ -1617,16 +1627,16 @@ export function AdminClient({
             </div>
           )}
         </div>
-      </section>
+      </details>
 
-      <section className="admin-users-panel admin-roles-panel" aria-label="Gestão de roles">
-        <div className="admin-log-header">
-          <div>
-            <p className="eyebrow">Permissões</p>
-            <h2>Roles e acessos</h2>
-          </div>
-          <span>{rolesState.length} roles</span>
-        </div>
+      <details className="admin-collapse-panel admin-users-panel admin-roles-panel" aria-label="Gestão de roles">
+        <summary className="admin-collapse-summary">
+          <span>
+            <span className="eyebrow">Permissões</span>
+            <strong>Roles e acessos</strong>
+          </span>
+          <em>{rolesState.length} roles</em>
+        </summary>
         <div className="admin-users-layout">
           <form className="admin-settings-card admin-user-form admin-role-form" onSubmit={handleRoleSubmit}>
             <div>
@@ -1772,16 +1782,16 @@ export function AdminClient({
             })}
           </div>
         </div>
-      </section>
+      </details>
 
-      <section className="admin-users-panel" aria-label="Gestão de utilizadores">
-        <div className="admin-log-header">
-          <div>
-            <p className="eyebrow">Segurança</p>
-            <h2>Utilizadores</h2>
-          </div>
-          <span>Só Admin</span>
-        </div>
+      <details className="admin-collapse-panel admin-users-panel" aria-label="Gestão de utilizadores">
+        <summary className="admin-collapse-summary">
+          <span>
+            <span className="eyebrow">Segurança</span>
+            <strong>Utilizadores</strong>
+          </span>
+          <em>{usersState.length} acessos</em>
+        </summary>
         <div className="admin-users-layout">
           <form className="admin-settings-card admin-user-form" onSubmit={handleUserSubmit}>
             <div>
@@ -1893,16 +1903,16 @@ export function AdminClient({
             </table>
           </div>
         </div>
-      </section>
+      </details>
 
-      <section className="admin-log-panel" aria-label="Log de alterações">
-        <div className="admin-log-header">
-          <div>
-            <p className="eyebrow">Auditoria</p>
-            <h2>Log de alterações</h2>
-          </div>
-          <span>50 linhas por página</span>
-        </div>
+      <details className="admin-collapse-panel admin-log-panel" aria-label="Log de alterações">
+        <summary className="admin-collapse-summary">
+          <span>
+            <span className="eyebrow">Auditoria</span>
+            <strong>Log de alterações</strong>
+          </span>
+          <em>{auditLogs.length} nesta página</em>
+        </summary>
         {auditLogError ? <p className="form-message">Não foi possível carregar o log. {auditLogError}</p> : null}
         <div className="admin-log-table-wrap">
           <table className="admin-log-table">
@@ -1976,7 +1986,7 @@ export function AdminClient({
             Seguinte
           </Link>
         </div>
-      </section>
+      </details>
     </>
   );
 }
