@@ -1428,17 +1428,17 @@ h2 {
 }
 
 .metrics article.cash-check-card {
-  align-items: center;
+  align-items: stretch;
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(247, 250, 255, 0.9));
   box-shadow: 0 6px 18px rgba(31, 102, 229, 0.06);
-  column-gap: 12px;
+  column-gap: 10px;
   display: grid;
   grid-column: span 2;
-  grid-template-columns: minmax(0, 1fr) minmax(210px, 1.3fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   min-height: 86px;
   padding: 12px;
-  row-gap: 8px;
+  row-gap: 6px;
 }
 
 .metrics article.cash-check-card.is-positive {
@@ -1461,15 +1461,16 @@ h2 {
   align-items: center;
   display: grid;
   gap: 8px;
-  grid-column: auto;
-  grid-template-columns: minmax(120px, 160px) auto;
+  grid-column: 1;
+  grid-row: 2 / span 2;
+  grid-template-columns: minmax(0, 1fr) auto;
   margin-top: 0;
 }
 
 .cash-check-card > span {
   color: var(--ink);
-  grid-column: auto;
-  white-space: nowrap;
+  grid-column: 1 / -1;
+  white-space: normal;
 }
 
 .cash-count-form label {
@@ -1526,16 +1527,19 @@ h2 {
 }
 
 .metrics article.cash-check-card strong {
-  align-self: center;
+  align-self: end;
   font-size: clamp(1.04rem, 1.35vw, 1.32rem);
-  grid-column: auto;
-  grid-row: auto;
+  grid-column: 2;
+  grid-row: 2;
   margin-top: 0;
+  min-width: max-content;
   text-align: right;
 }
 
 .cash-check-card small {
-  grid-column: 3;
+  align-self: start;
+  grid-column: 2;
+  grid-row: 3;
   text-align: right;
   white-space: nowrap;
 }
