@@ -38,6 +38,11 @@ type ReportsClientProps = {
   appLogo: AppLogo | null;
 };
 
+const SPECIAL_EVENT_SECTIONS = [
+  { mode: "peditorio", slugs: ["peditorio"] },
+  { mode: "patrocinios", slugs: ["patrocinios-festa", "patrocinios"] }
+] as const;
+
 const moneyFormatter = new Intl.NumberFormat("pt-PT", {
   style: "currency",
   currency: "EUR",
@@ -152,6 +157,27 @@ function finalizeSummary(summary: Summary) {
   return summary;
 }
 
+function slugify(value: string) {
+  return (
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "evento"
+  );
+}
+
+function specialSectionForEvent(event: EventoResumo) {
+  const slug = slugify(event.slug);
+  const nameSlug = slugify(event.nome);
+  return (
+    SPECIAL_EVENT_SECTIONS.find(
+      (section) => (section.slugs as readonly string[]).includes(slug) || (section.slugs as readonly string[]).includes(nameSlug)
+    )?.mode ?? null
+  );
+}
+
 function summarizeMovimentos(movimentos: MovimentoDetalhe[]) {
   return finalizeSummary(
     movimentos.reduce((summary, movimento) => {
@@ -262,6 +288,24 @@ export function ReportsClient({
       }, emptySummary())
     );
   }, [reportScope, visibleEvents]);
+  const sectionTotals = useMemo(() => {
+    const summarizeItems = (items: ReportEvent[]) =>
+      finalizeSummary(
+        items.reduce((summary, item) => {
+          if (!isEventCounted(item.event)) return summary;
+          item.movimentos.filter(isMovementCounted).forEach((movimento) => {
+            addMovimento(summary, movimento);
+          });
+          return summary;
+        }, emptySummary())
+      );
+
+    return {
+      eventos: summarizeItems(reportEvents.filter((item) => !specialSectionForEvent(item.event))),
+      patrocinios: summarizeItems(reportEvents.filter((item) => specialSectionForEvent(item.event) === "patrocinios")),
+      peditorio: summarizeItems(reportEvents.filter((item) => specialSectionForEvent(item.event) === "peditorio"))
+    };
+  }, [reportEvents]);
   const accountBalance = useMemo(() => {
     const entradas = movimentos.filter(isAccountEntry).reduce((sum, movimento) => sum + Number(movimento.montante ?? 0), 0);
     const saidas = movimentos
@@ -434,10 +478,33 @@ export function ReportsClient({
                 <strong className={totals.lucro >= 0 ? "positive" : "negative"}>{formatMoney(totals.lucro)}</strong>
               </article>
               {reportScope === "geral" ? (
-                <article>
-                  <span>Dinheiro Físico</span>
-                  <strong className={cashValue >= 0 ? "positive" : "negative"}>{formatMoney(cashValue)}</strong>
-                </article>
+                <>
+                  <article>
+                    <span>Eventos</span>
+                    <small>Saldo dos eventos</small>
+                    <strong className={sectionTotals.eventos.lucro >= 0 ? "positive" : "negative"}>
+                      {formatMoney(sectionTotals.eventos.lucro)}
+                    </strong>
+                  </article>
+                  <article>
+                    <span>Patrocínios</span>
+                    <small>Saldo de patrocínios</small>
+                    <strong className={sectionTotals.patrocinios.lucro >= 0 ? "positive" : "negative"}>
+                      {formatMoney(sectionTotals.patrocinios.lucro)}
+                    </strong>
+                  </article>
+                  <article>
+                    <span>Peditório</span>
+                    <small>Saldo do peditório</small>
+                    <strong className={sectionTotals.peditorio.lucro >= 0 ? "positive" : "negative"}>
+                      {formatMoney(sectionTotals.peditorio.lucro)}
+                    </strong>
+                  </article>
+                  <article>
+                    <span>Dinheiro Físico</span>
+                    <strong className={cashValue >= 0 ? "positive" : "negative"}>{formatMoney(cashValue)}</strong>
+                  </article>
+                </>
               ) : null}
             </section>
           </div>

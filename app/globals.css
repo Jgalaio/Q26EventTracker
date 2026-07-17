@@ -990,7 +990,7 @@ h2 {
   border-radius: 8px;
   display: grid;
   gap: 4px;
-  grid-template-columns: repeat(2, minmax(110px, 1fr));
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
   min-height: 42px;
   padding: 4px;
 }
@@ -1270,6 +1270,30 @@ h2 {
   background: #7552c7;
 }
 
+.metrics article.metric-events-card::before {
+  background: #147d9f;
+}
+
+.metrics article.metric-sponsor-card::before {
+  background: #7552c7;
+}
+
+.metrics article.metric-peditorio-card::before {
+  background: #b7791f;
+}
+
+.metrics article.metric-income-card::before {
+  background: var(--blue);
+}
+
+.metrics article.metric-expense-card::before {
+  background: var(--red);
+}
+
+.metrics article.metric-balance-card::before {
+  background: #25815c;
+}
+
 .metrics span,
 .controls label,
 .event-meta {
@@ -1307,6 +1331,26 @@ h2 {
 .metrics article:nth-child(5) strong,
 .metrics article:nth-child(6) strong {
   color: #7552c7;
+}
+
+.metrics article.metric-events-card strong {
+  color: #147d9f;
+}
+
+.metrics article.metric-sponsor-card strong {
+  color: #7552c7;
+}
+
+.metrics article.metric-peditorio-card strong {
+  color: #b7791f;
+}
+
+.metrics article.metric-income-card strong {
+  color: var(--blue);
+}
+
+.metrics article.metric-expense-card strong {
+  color: var(--red);
 }
 
 .metrics strong.metric-positive {
@@ -1379,17 +1423,21 @@ h2 {
 }
 
 .metrics article.cash-check-card {
-  align-content: start;
-  column-gap: 18px;
+  align-items: center;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(247, 250, 255, 0.9));
+  box-shadow: 0 10px 22px rgba(31, 102, 229, 0.06);
+  column-gap: 14px;
   display: grid;
-  grid-column: span 2;
-  grid-template-columns: minmax(0, 1fr) auto;
-  min-height: 132px;
-  row-gap: 6px;
+  grid-column: 1 / -1;
+  grid-template-columns: auto minmax(210px, 0.42fr) auto minmax(120px, auto);
+  min-height: 58px;
+  padding: 12px 14px;
+  row-gap: 8px;
 }
 
 .metrics article.cash-check-card.is-positive {
-  border-color: #9fd7bd;
+  border-color: #c8e5d7;
 }
 
 .metrics article.cash-check-card.is-positive::before {
@@ -1397,7 +1445,7 @@ h2 {
 }
 
 .metrics article.cash-check-card.is-negative {
-  border-color: #efb2bf;
+  border-color: #f2ccd3;
 }
 
 .metrics article.cash-check-card.is-negative::before {
@@ -1405,16 +1453,18 @@ h2 {
 }
 
 .cash-count-form {
-  align-items: end;
+  align-items: center;
   display: grid;
   gap: 8px;
-  grid-column: 1;
-  grid-template-columns: minmax(0, 1fr) auto;
-  margin-top: 10px;
+  grid-column: auto;
+  grid-template-columns: minmax(120px, 160px) auto;
+  margin-top: 0;
 }
 
 .cash-check-card > span {
-  grid-column: 1 / -1;
+  color: var(--ink);
+  grid-column: auto;
+  white-space: nowrap;
 }
 
 .cash-count-form label {
@@ -1472,20 +1522,22 @@ h2 {
 
 .metrics article.cash-check-card strong {
   align-self: center;
-  grid-column: 2;
-  grid-row: 2;
-  margin-top: 12px;
+  font-size: clamp(1.08rem, 1.35vw, 1.42rem);
+  grid-column: auto;
+  grid-row: auto;
+  margin-top: 0;
   text-align: right;
 }
 
 .cash-check-card small {
-  grid-column: 2;
-  text-align: right;
+  grid-column: auto;
+  text-align: left;
+  white-space: nowrap;
 }
 
 .cash-check-card em {
   grid-column: 1 / -1;
-  margin-top: 6px;
+  margin-top: 0;
 }
 
 .reports-shell {
@@ -2203,8 +2255,8 @@ h2 {
 .report-cover-summary article {
   border-bottom: 1px solid #c4d8ff;
   display: grid;
-  gap: 4px;
-  padding: 8px 0 11px;
+  gap: 3px;
+  padding: 6px 0 8px;
 }
 
 .report-cover-summary span {
@@ -2219,7 +2271,7 @@ h2 {
 
 .report-cover-summary strong {
   color: #25569a;
-  font-size: 1.45rem;
+  font-size: 1.22rem;
   font-weight: 500;
   overflow-wrap: anywhere;
 }
@@ -3834,6 +3886,83 @@ td {
 .modal-actions .secondary-button {
   background: var(--panel-soft);
   color: var(--ink);
+}
+
+.whats-new-backdrop {
+  background: rgba(7, 31, 75, 0.42);
+  z-index: 40;
+}
+
+.whats-new-modal {
+  gap: 16px;
+  width: min(560px, 100%);
+}
+
+.whats-new-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.whats-new-header h2 {
+  color: var(--ink);
+  font-size: clamp(1.5rem, 2vw, 2rem);
+  line-height: 1.05;
+  margin: 4px 0 0;
+}
+
+.whats-new-header span {
+  background: #eef5ff;
+  border: 1px solid #c8dbff;
+  border-radius: 999px;
+  color: var(--blue);
+  flex: 0 0 auto;
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 7px 10px;
+}
+
+.whats-new-summary {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.whats-new-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.whats-new-list li {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1.35;
+  padding: 12px 12px 12px 34px;
+  position: relative;
+}
+
+.whats-new-list li::before {
+  background: var(--blue);
+  border-radius: 999px;
+  content: "";
+  height: 9px;
+  left: 14px;
+  position: absolute;
+  top: 17px;
+  width: 9px;
+}
+
+.whats-new-actions button {
+  min-width: 118px;
 }
 
 .description-button {
@@ -5464,6 +5593,10 @@ td {
   color: #7552c7;
 }
 
+.welcome-card-value.amber {
+  color: #b7791f;
+}
+
 .welcome-card-link:hover {
   border-color: var(--blue);
   transform: translateY(-1px);
@@ -5654,6 +5787,10 @@ td {
 
 .value-purple {
   color: #6f2fb6;
+}
+
+.value-amber {
+  color: #b7791f;
 }
 
 .chart-panel,
@@ -6367,6 +6504,10 @@ td {
   .overview-pie-panel,
   .overview-archive-summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .section-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .movement-history-entry header {

@@ -28,7 +28,7 @@ type DashboardProps = {
 };
 
 type ModalMode = "create-event" | "edit-event" | "add-entry" | "add-exit" | "edit-entry" | "edit-exit" | null;
-type SectionMode = "eventos" | "contas";
+type SectionMode = "eventos" | "contas" | "peditorio" | "patrocinios";
 
 type DescriptionPopup = {
   title: string;
@@ -140,6 +140,15 @@ const ENTRY_KIND_OPTIONS: { value: EntryKind; label: string }[] = [
   { value: "patrocinio", label: "Patrocínio" },
   { value: "peditorio", label: "Peditório" },
   { value: "deposito", label: "Depósito" }
+];
+
+const SPECIAL_EVENT_SECTIONS: Array<{
+  mode: Extract<SectionMode, "peditorio" | "patrocinios">;
+  label: string;
+  slugs: string[];
+}> = [
+  { mode: "peditorio", label: "Peditório", slugs: ["peditorio"] },
+  { mode: "patrocinios", label: "Patrocínios", slugs: ["patrocinios-festa", "patrocinios"] }
 ];
 
 const emptyMovementForm: MovementForm = {
@@ -399,6 +408,21 @@ function slugify(value: string) {
   );
 }
 
+function specialSectionForSlug(slug: string | null | undefined): SectionMode | null {
+  if (!slug) return null;
+  const normalizedSlug = slugify(slug);
+  const match = SPECIAL_EVENT_SECTIONS.find((section) => section.slugs.includes(normalizedSlug));
+  return match?.mode ?? null;
+}
+
+function specialSectionForEvent(event: EventoResumo): SectionMode | null {
+  return specialSectionForSlug(event.slug) ?? specialSectionForSlug(event.nome);
+}
+
+function isSpecialTreasuryEvent(event: EventoResumo) {
+  return specialSectionForEvent(event) !== null;
+}
+
 function nextAvailableSlug(name: string, existingSlugs: string[]) {
   const base = slugify(name);
   let slug = base;
@@ -486,6 +510,23 @@ function summarizeMovimentos(movimentos: MovimentoDetalhe[]): FinancialSummary {
       dinheiro: 0
     }
   );
+}
+
+function summarizeEventGroup(events: EventoResumo[], movimentos: MovimentoDetalhe[]) {
+  const countedSlugs = new Set(events.filter(isEventCounted).map((event) => event.slug));
+  const summary = { entradas: 0, saidas: 0, aPagamento: 0, saldo: 0 };
+
+  movimentos.forEach((movimento) => {
+    if (!countedSlugs.has(movimento.evento_slug) || !isMovementCounted(movimento)) return;
+
+    const amount = Number(movimento.montante ?? 0);
+    if (movimento.tipo === "entrada") summary.entradas += amount;
+    if (movimento.tipo === "saida") summary.saidas += amount;
+    if (movimento.tipo === "a_pagamento" || isPendingPayment(movimento)) summary.aPagamento += amount;
+  });
+
+  summary.saldo = summary.entradas - summary.saidas;
+  return summary;
 }
 
 function numericAmount(value: string) {
@@ -577,11 +618,27 @@ export function Dashboard({
   }, [eventos]);
   const accountEventClosed = isEventClosed(accountEvent);
 
+  const specialEventByMode = useMemo(() => {
+    const map = new Map<SectionMode, EventoResumo>();
+    eventos.forEach((event) => {
+      const mode = specialSectionForEvent(event);
+      if (mode && !map.has(mode)) map.set(mode, event);
+    });
+    return map;
+  }, [eventos]);
+
+  const peditorioEvent = specialEventByMode.get("peditorio") ?? null;
+  const sponsorEvent = specialEventByMode.get("patrocinios") ?? null;
+
   const pendingPayments = useMemo(() => {
     return movimentos.filter(isPendingPayment);
   }, [movimentos]);
 
   const eventOnlyList = useMemo(() => {
+    return eventos.filter((event) => event.slug !== "contas" && !isSpecialTreasuryEvent(event));
+  }, [eventos]);
+
+  const treasuryEventList = useMemo(() => {
     return eventos.filter((event) => event.slug !== "contas");
   }, [eventos]);
 
@@ -591,7 +648,7 @@ export function Dashboard({
 
   const totals = useMemo(() => {
     const eventStatus = new Map(
-      eventOnlyList.map((event) => [event.slug, { counted: isEventCounted(event), isento: isEventIsento(event) }])
+      treasuryEventList.map((event) => [event.slug, { counted: isEventCounted(event), isento: isEventIsento(event) }])
     );
     const summary = { entradas: 0, saidas: 0, aPagamento: 0, movimentos: 0, isentos: 0 };
 
@@ -611,7 +668,17 @@ export function Dashboard({
     });
 
     return summary;
-  }, [eventOnlyList, movimentos]);
+  }, [treasuryEventList, movimentos]);
+
+  const regularEventTotals = useMemo(() => summarizeEventGroup(eventOnlyList, movimentos), [eventOnlyList, movimentos]);
+  const sponsorTotals = useMemo(
+    () => summarizeEventGroup(sponsorEvent ? [sponsorEvent] : [], movimentos),
+    [movimentos, sponsorEvent]
+  );
+  const peditorioTotals = useMemo(
+    () => summarizeEventGroup(peditorioEvent ? [peditorioEvent] : [], movimentos),
+    [movimentos, peditorioEvent]
+  );
 
   const orderedEventos = useMemo(() => {
     return [...eventOnlyList].sort((a, b) => {
@@ -627,8 +694,11 @@ export function Dashboard({
   }, [movimentos, targetMovementParam]);
 
   const selectedEvent = useMemo(() => {
+    if (sectionMode === "contas") return null;
+    if (sectionMode === "peditorio") return peditorioEvent;
+    if (sectionMode === "patrocinios") return sponsorEvent;
     return orderedEventos.find((event) => event.slug === selectedSlug) ?? orderedEventos[0] ?? null;
-  }, [orderedEventos, selectedSlug]);
+  }, [orderedEventos, peditorioEvent, sectionMode, selectedSlug, sponsorEvent]);
 
   const selectedEventClosed = isEventClosed(selectedEvent);
 
@@ -641,8 +711,9 @@ export function Dashboard({
 
   useEffect(() => {
     if (targetMovement) {
-      setSectionMode(targetMovement.evento_slug === "contas" ? "contas" : "eventos");
-      if (targetMovement.evento_slug !== "contas") setSelectedSlug(targetMovement.evento_slug);
+      const specialMode = specialSectionForSlug(targetMovement.evento_slug);
+      setSectionMode(targetMovement.evento_slug === "contas" ? "contas" : specialMode ?? "eventos");
+      if (targetMovement.evento_slug !== "contas" && !specialMode) setSelectedSlug(targetMovement.evento_slug);
       setActiveTab(targetMovement.tipo === "entrada" ? "entrada" : "saida");
       setPago("todos");
       setQuery("");
@@ -650,16 +721,17 @@ export function Dashboard({
     }
 
     if (targetEventParam) {
-      const targetEvent = orderedEventos.find((event) => event.id === targetEventParam || event.slug === targetEventParam);
+      const targetEvent = eventos.find((event) => event.id === targetEventParam || event.slug === targetEventParam);
       if (targetEvent) {
-        setSectionMode("eventos");
-        setSelectedSlug(targetEvent.slug);
+        const specialMode = specialSectionForEvent(targetEvent);
+        setSectionMode(specialMode ?? "eventos");
+        if (!specialMode) setSelectedSlug(targetEvent.slug);
         setActiveTab("entrada");
         setPago("todos");
         setQuery("");
       }
     }
-  }, [orderedEventos, targetEventParam, targetMovement]);
+  }, [eventos, targetEventParam, targetMovement]);
 
   const normalizedQuery = query.trim().toLowerCase();
   const tabCounts = useMemo(() => {
@@ -753,6 +825,8 @@ export function Dashboard({
   const profitWithQ25Balance = eventProfit + q25Balance;
   const cashValue = profitWithQ25Balance - accountBalance;
   const physicalCashDifference = physicalCashAmount === null ? null : physicalCashAmount - cashValue;
+  const specialSectionTotals =
+    sectionMode === "patrocinios" ? sponsorTotals : sectionMode === "peditorio" ? peditorioTotals : null;
 
   const filteredAccountMovimentos = useMemo(() => {
     const source = activeTab === "entrada" ? accountEntries : accountSaidas;
@@ -770,6 +844,10 @@ export function Dashboard({
       return matchesQuery && matchesPago;
     });
   }, [accountEntries, accountSaidas, activeTab, normalizedQuery, pago]);
+
+  const isAccountSection = sectionMode === "contas";
+  const selectedSpecialSection = SPECIAL_EVENT_SECTIONS.find((section) => section.mode === sectionMode);
+  const selectedSectionLabel = selectedSpecialSection?.label ?? "Eventos";
 
   const resetFilters = () => {
     setQuery("");
@@ -1404,13 +1482,31 @@ export function Dashboard({
             Eventos
           </button>
           <button
+            aria-selected={sectionMode === "patrocinios"}
+            className={sectionMode === "patrocinios" ? "section-tab active" : "section-tab"}
+            onClick={() => switchSection("patrocinios")}
+            role="tab"
+            type="button"
+          >
+            Patrocínios
+          </button>
+          <button
+            aria-selected={sectionMode === "peditorio"}
+            className={sectionMode === "peditorio" ? "section-tab active" : "section-tab"}
+            onClick={() => switchSection("peditorio")}
+            role="tab"
+            type="button"
+          >
+            Peditório
+          </button>
+          <button
             aria-selected={sectionMode === "contas"}
             className={sectionMode === "contas" ? "section-tab active" : "section-tab"}
             onClick={() => switchSection("contas")}
             role="tab"
             type="button"
           >
-            Contas
+            Conta
           </button>
         </div>
         <label className="menu-search">
@@ -1440,10 +1536,17 @@ export function Dashboard({
                 Novo evento
               </button>
             ) : null
-          ) : (
+          ) : sectionMode === "contas" ? (
             <div className="account-menu-summary">
               <span>Conta Q26</span>
               <strong>{formatMoney(accountBalance)}</strong>
+            </div>
+          ) : (
+            <div className="account-menu-summary">
+              <span>{selectedSectionLabel}</span>
+              <strong className={(selectedEvent?.saldo ?? 0) >= 0 ? "positive" : "negative"}>
+                {selectedEvent ? formatMoney(selectedEvent.saldo) : "Sem dados"}
+              </strong>
             </div>
           )}
           {sectionMode === "eventos" ? (
@@ -1463,38 +1566,56 @@ export function Dashboard({
       {error ? <section className="notice">Não consegui ligar ao Supabase. {error}</section> : null}
 
       <section className="metrics" aria-label="Resumo financeiro">
-        {sectionMode === "eventos" ? (
+        {isAccountSection ? (
           <>
             <article>
+              <span>Entradas na conta</span>
+              <strong>{formatMoney(accountCounts.totalEntradas)}</strong>
+            </article>
+            <article>
+              <span>Saídas Conta Q26</span>
+              <strong>{formatMoney(accountCounts.totalSaidas)}</strong>
+            </article>
+            <article>
+              <span>Saldo em conta</span>
+              <strong className={accountBalance >= 0 ? "metric-positive" : "metric-negative"}>{formatMoney(accountBalance)}</strong>
+            </article>
+            <article>
+              <span>Movimentos</span>
+              <strong>{accountCounts.entradas + accountCounts.saidas}</strong>
+            </article>
+          </>
+        ) : specialSectionTotals ? (
+          <>
+            <article className="metric-income-card">
               <span>Entradas</span>
-              <strong>{formatMoney(totals.entradas)}</strong>
+              <strong>{formatMoney(specialSectionTotals.entradas)}</strong>
             </article>
-            <article>
+            <article className="metric-expense-card">
               <span>Saídas</span>
-              <strong>{formatMoney(totals.saidas)}</strong>
+              <strong>{formatMoney(specialSectionTotals.saidas)}</strong>
             </article>
-            <article className={`payment-status-card ${totals.aPagamento > 0 ? "is-due" : "is-clear"}`}>
-              <Link className="payment-card-link" href="/a-pagar">
-                <span>Pagamentos em falta</span>
-                <strong>{formatMoney(totals.aPagamento)}</strong>
-              </Link>
-            </article>
-            <article>
-              <span>Saldo</span>
-              <strong className={eventProfit >= 0 ? "metric-positive" : "metric-negative"}>{formatMoney(eventProfit)}</strong>
-            </article>
-            {showQ25ProfitCard ? (
-              <article>
-                <span>Lucro + Montante Q25</span>
-                <strong className={profitWithQ25Balance >= 0 ? "metric-positive" : "metric-negative"}>
-                  {formatMoney(profitWithQ25Balance)}
-                </strong>
+            {specialSectionTotals.aPagamento > 0 ? (
+              <article className="payment-status-card is-due">
+                <Link className="payment-card-link" href="/a-pagar">
+                  <span>Pagamentos em falta</span>
+                  <strong>{formatMoney(specialSectionTotals.aPagamento)}</strong>
+                </Link>
               </article>
             ) : null}
-            <article>
-              <span>Valor Dinheiro</span>
-              <strong className={cashValue >= 0 ? "metric-positive" : "metric-negative"}>{formatMoney(cashValue)}</strong>
+            <article className="metric-balance-card">
+              <span>Saldo {selectedSectionLabel}</span>
+              <strong className={specialSectionTotals.saldo >= 0 ? "metric-positive" : "metric-negative"}>
+                {formatMoney(specialSectionTotals.saldo)}
+              </strong>
             </article>
+            <article>
+              <span>Movimentos</span>
+              <strong>{eventMovimentos.filter(isMovementCounted).length}</strong>
+            </article>
+          </>
+        ) : (
+          <>
             <article className={`cash-check-card ${physicalCashDifference === null || physicalCashDifference >= 0 ? "is-positive" : "is-negative"}`}>
               <span>Dif. Dinheiro Físico</span>
               <form className="cash-count-form" onSubmit={savePhysicalCashCount}>
@@ -1523,77 +1644,110 @@ export function Dashboard({
               <small>Contado - Valor Dinheiro</small>
               {physicalCashMessage ? <em>{physicalCashMessage}</em> : null}
             </article>
-          </>
-        ) : (
-          <>
-            <article>
-              <span>Entradas na conta</span>
-              <strong>{formatMoney(accountCounts.totalEntradas)}</strong>
+            <article className="metric-income-card">
+              <span>Entradas</span>
+              <strong>{formatMoney(totals.entradas)}</strong>
             </article>
-            <article>
-              <span>Saídas Conta Q26</span>
-              <strong>{formatMoney(accountCounts.totalSaidas)}</strong>
+            <article className="metric-expense-card">
+              <span>Saídas</span>
+              <strong>{formatMoney(totals.saidas)}</strong>
             </article>
-            <article>
-              <span>Saldo em conta</span>
-              <strong className={accountBalance >= 0 ? "metric-positive" : "metric-negative"}>{formatMoney(accountBalance)}</strong>
+            <article className={`payment-status-card ${totals.aPagamento > 0 ? "is-due" : "is-clear"}`}>
+              <Link className="payment-card-link" href="/a-pagar">
+                <span>Pagamentos em falta</span>
+                <strong>{formatMoney(totals.aPagamento)}</strong>
+              </Link>
             </article>
+            <article className="metric-balance-card">
+              <span>Saldo</span>
+              <strong className={eventProfit >= 0 ? "metric-positive" : "metric-negative"}>{formatMoney(eventProfit)}</strong>
+            </article>
+            <article className="metric-section-card metric-events-card">
+              <span>Eventos</span>
+              <strong className={regularEventTotals.saldo >= 0 ? "metric-positive" : "metric-negative"}>
+                {formatMoney(regularEventTotals.saldo)}
+              </strong>
+            </article>
+            <article className="metric-section-card metric-sponsor-card">
+              <span>Patrocínios</span>
+              <strong className={sponsorTotals.saldo >= 0 ? "metric-positive" : "metric-negative"}>
+                {formatMoney(sponsorTotals.saldo)}
+              </strong>
+            </article>
+            <article className="metric-section-card metric-peditorio-card">
+              <span>Peditório</span>
+              <strong className={peditorioTotals.saldo >= 0 ? "metric-positive" : "metric-negative"}>
+                {formatMoney(peditorioTotals.saldo)}
+              </strong>
+            </article>
+            {showQ25ProfitCard ? (
+              <article>
+                <span>Lucro + Montante Q25</span>
+                <strong className={profitWithQ25Balance >= 0 ? "metric-positive" : "metric-negative"}>
+                  {formatMoney(profitWithQ25Balance)}
+                </strong>
+              </article>
+            ) : null}
             <article>
-              <span>Movimentos</span>
-              <strong>{accountCounts.entradas + accountCounts.saidas}</strong>
+              <span>Valor Dinheiro</span>
+              <strong className={cashValue >= 0 ? "metric-positive" : "metric-negative"}>{formatMoney(cashValue)}</strong>
             </article>
           </>
         )}
       </section>
 
-      {sectionMode === "eventos" ? (
-      <section className="workspace">
-        <aside className="event-list" aria-label="Eventos e categorias" role="tablist">
-          {orderedEventos.map((event) => (
-            <button
-              aria-selected={selectedEvent?.slug === event.slug}
-              className={[
-                "event-card",
-                selectedEvent?.slug === event.slug ? "selected" : "",
-                event.cor && getEventColorOption(event.cor) ? "has-event-color" : "",
-                isEventClosed(event) ? "locked" : ""
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              key={event.slug}
-              role="tab"
-              style={eventCardStyle(event)}
-              type="button"
-              onClick={() => {
-                setSelectedSlug(event.slug);
-                setActiveTab("entrada");
-                setPago("todos");
-              }}
-            >
-              <span className="event-name">{event.nome}</span>
-              <span className="event-meta">
-                {event.tipo === "evento" ? formatDate(event.data_inicio) : "Categoria"}
-              </span>
-              {!isEventCounted(event) ? <span className="event-status-badge">Só registo</span> : null}
-              {isEventClosed(event) ? (
-                <span className="event-lock-badge compact">
-                  <span className="event-lock-glyph" aria-hidden="true" />
-                  Fechado
+      {!isAccountSection ? (
+      <section className={sectionMode === "eventos" ? "workspace" : "workspace single-panel"}>
+        {sectionMode === "eventos" ? (
+          <aside className="event-list" aria-label="Eventos e categorias" role="tablist">
+            {orderedEventos.map((event) => (
+              <button
+                aria-selected={selectedEvent?.slug === event.slug}
+                className={[
+                  "event-card",
+                  selectedEvent?.slug === event.slug ? "selected" : "",
+                  event.cor && getEventColorOption(event.cor) ? "has-event-color" : "",
+                  isEventClosed(event) ? "locked" : ""
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                key={event.slug}
+                role="tab"
+                style={eventCardStyle(event)}
+                type="button"
+                onClick={() => {
+                  setSelectedSlug(event.slug);
+                  setActiveTab("entrada");
+                  setPago("todos");
+                }}
+              >
+                <span className="event-name">{event.nome}</span>
+                <span className="event-meta">
+                  {event.tipo === "evento" ? formatDate(event.data_inicio) : "Categoria"}
                 </span>
-              ) : null}
-              <span className={Number(event.saldo) >= 0 ? "event-balance positive" : "event-balance negative"}>
-                {formatMoney(event.saldo)}
-              </span>
-            </button>
-          ))}
-        </aside>
+                {!isEventCounted(event) ? <span className="event-status-badge">Só registo</span> : null}
+                {isEventClosed(event) ? (
+                  <span className="event-lock-badge compact">
+                    <span className="event-lock-glyph" aria-hidden="true" />
+                    Fechado
+                  </span>
+                ) : null}
+                <span className={Number(event.saldo) >= 0 ? "event-balance positive" : "event-balance negative"}>
+                  {formatMoney(event.saldo)}
+                </span>
+              </button>
+            ))}
+          </aside>
+        ) : null}
 
         <section className="table-panel" aria-label="Movimentos do evento">
           {selectedEvent ? (
             <>
               <div className="event-detail">
                 <div>
-                  <p className="eyebrow">{selectedEvent.tipo === "evento" ? "Evento" : "Categoria"}</p>
+                  <p className="eyebrow">
+                    {selectedSpecialSection?.label ?? (selectedEvent.tipo === "evento" ? "Evento" : "Categoria")}
+                  </p>
                   <h2>{selectedEvent.nome}</h2>
                   <span className="event-meta">
                     {selectedEvent.tipo === "evento" ? formatDate(selectedEvent.data_inicio) : selectedEvent.folha_excel}
@@ -2132,7 +2286,7 @@ export function Dashboard({
             </>
           ) : (
             <div className="empty-state">
-              <p className="eyebrow">Eventos</p>
+              <p className="eyebrow">{selectedSectionLabel}</p>
               <h2>Sem dados carregados</h2>
             </div>
           )}
