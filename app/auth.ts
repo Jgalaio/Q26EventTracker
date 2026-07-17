@@ -118,7 +118,9 @@ async function verifyStoredCredentials(username: string, password: string) {
     if (!response.ok) return verifyStoredCredentialsWithAdmin(username, password);
     const rows = (await response.json()) as SupabaseLoginRow[];
     const row = rows[0];
-    if (!row?.has_override) return { hasOverride: false, session: null };
+    if (!row?.has_override) {
+      return (await verifyStoredCredentialsWithAdmin(username, password)) ?? missingStoredUserResult(username);
+    }
     if (!row.password_valid || typeof row.username !== "string" || !isRole(row.role)) {
       return (await verifyStoredCredentialsWithAdmin(username, password)) ?? { hasOverride: true, session: null };
     }
@@ -151,7 +153,7 @@ async function verifyStoredCredentialsWithAdmin(username: string, password: stri
     if (!response.ok) return null;
     const rows = (await response.json()) as SupabaseCredentialRow[];
     const row = rows[0];
-    if (!row?.username) return { hasOverride: false, session: null };
+    if (!row?.username) return missingStoredUserResult(username);
     if (typeof row.role !== "string" || !isRole(row.role) || typeof row.password_hash !== "string") {
       return { hasOverride: true, session: null };
     }
@@ -169,6 +171,12 @@ async function verifyStoredCredentialsWithAdmin(username: string, password: stri
   } catch {
     return null;
   }
+}
+
+function missingStoredUserResult(username: string) {
+  const builtInUser = AUTH_USERS.find((candidate) => candidate.username === username);
+  if (builtInUser?.role === "admin") return { hasOverride: false, session: null };
+  return { hasOverride: true, session: null };
 }
 
 export async function listAuthUsers() {

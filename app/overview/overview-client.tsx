@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import type { AppLogo } from "../app-settings";
 import { canExportOverviewExcel, type AuthSession } from "../auth-types";
@@ -76,9 +76,264 @@ function formatPercent(value: number) {
   return `${Math.round(value)}%`;
 }
 
+type ImportedArchiveView = {
+  fileName: string;
+  exportedAt: string | null;
+  generatedBy: string | null;
+  rows: OverviewRow[];
+  totals: Summary;
+  countedRows: number;
+  eventsCount: number;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function asArray(value: unknown) {
+  return Array.isArray(value) ? value : [];
+}
+
+function asString(value: unknown, fallback = "") {
+  return typeof value === "string" ? value : fallback;
+}
+
+function asNullableString(value: unknown) {
+  return typeof value === "string" ? value : null;
+}
+
+function asNumber(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const amount = Number(value.replace(/\s/g, "").replace(/\./g, "").replace(",", "."));
+    return Number.isFinite(amount) ? amount : 0;
+  }
+  return 0;
+}
+
+function asBooleanOrNull(value: unknown) {
+  if (typeof value === "boolean") return value;
+  if (value === null) return null;
+  return null;
+}
+
+function normalizeArchivePayment(value: string | null | undefined) {
+  return (
+    value
+      ?.normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\./g, "")
+      .replace(/\s+/g, " ")
+      .trim() ?? ""
+  );
+}
+
+function normalizeMovementType(value: unknown): MovimentoDetalhe["tipo"] {
+  return value === "entrada" || value === "saida" || value === "a_pagamento" ? value : "saida";
+}
+
+function normalizeEventType(value: unknown): "evento" | "categoria" {
+  return value === "categoria" ? "categoria" : "evento";
+}
+
+function emptyArchiveSummary(): Summary {
+  return {
+    entradas: 0,
+    saidas: 0,
+    aPagamento: 0,
+    lucro: 0,
+    faturado: 0,
+    naoFaturado: 0,
+    pagoQ26: 0,
+    transferencias: 0,
+    dinheiro: 0
+  };
+}
+
+function addArchiveMovement(summary: Summary, movimento: MovimentoDetalhe) {
+  const amount = Number(movimento.montante ?? 0);
+
+  if (movimento.tipo === "entrada") {
+    summary.entradas += amount;
+    return;
+  }
+
+  if (movimento.tipo === "a_pagamento" || movimento.pago === false) {
+    summary.aPagamento += amount;
+  }
+
+  if (movimento.tipo !== "a_pagamento") {
+    summary.saidas += amount;
+  }
+
+  if (movimento.fatura_com_nif === true) summary.faturado += amount;
+  if (movimento.fatura_com_nif === false) summary.naoFaturado += amount;
+
+  const payment = normalizeArchivePayment(movimento.tipo_pagamento);
+  if (payment === "c q26") summary.pagoQ26 += amount;
+  if (payment === "transferencia") summary.transferencias += amount;
+  if (payment === "dinheiro") summary.dinheiro += amount;
+}
+
+function finalizeArchiveSummary(summary: Summary) {
+  summary.lucro = summary.entradas - summary.saidas;
+  return summary;
+}
+
+function movementIsCounted(movimento: MovimentoDetalhe) {
+  return movimento.contabilizar_totais !== false;
+}
+
+function archiveRowsTotals(rows: OverviewRow[]) {
+  return finalizeArchiveSummary(
+    rows.filter((row) => row.contabilizarTotais).reduce((acc, row) => {
+      row.movimentos.filter(movementIsCounted).forEach((movimento) => addArchiveMovement(acc, movimento));
+      return acc;
+    }, emptyArchiveSummary())
+  );
+}
+
+function normalizeDetailedMovement(
+  row: Record<string, unknown>,
+  eventSlug: string,
+  eventName: string,
+  eventType: "evento" | "categoria",
+  eventDate: string | null
+): MovimentoDetalhe {
+  return {
+    id: asString(row.id, crypto.randomUUID()),
+    evento_slug: asString(row.evento_slug, eventSlug),
+    evento_nome: asString(row.evento_nome, eventName),
+    evento_tipo: normalizeEventType(row.evento_tipo ?? eventType),
+    evento_data_inicio: asNullableString(row.evento_data_inicio) ?? eventDate,
+    tipo: normalizeMovementType(row.tipo),
+    item: asString(row.item, "-"),
+    descricao: asNullableString(row.descricao),
+    data_pagamento: asNullableString(row.data_pagamento),
+    montante: asNumber(row.montante),
+    numero_fatura: asNullableString(row.numero_fatura),
+    fatura_com_nif: asBooleanOrNull(row.fatura_com_nif),
+    tipo_pagamento: asNullableString(row.tipo_pagamento),
+    pago: asBooleanOrNull(row.pago),
+    contabilizar_totais: asBooleanOrNull(row.contabilizar_totais),
+    origem_tabela: asString(row.origem_tabela, ""),
+    origem_linha: asNumber(row.origem_linha),
+    formula_montante: asNullableString(row.formula_montante),
+    raw: isRecord(row.raw) ? row.raw : {},
+    created_at: asString(row.created_at, "")
+  };
+}
+
+function normalizeOverviewRows(value: unknown) {
+  return asArray(value)
+    .filter(isRecord)
+    .map((row) => {
+      const slug = asString(row.slug, "evento");
+      const nome = asString(row.nome, slug);
+      const eventType = normalizeEventType(row.evento_tipo);
+      const eventDate = asNullableString(row.evento_data_inicio);
+      const movimentos = asArray(row.movimentos)
+        .filter(isRecord)
+        .map((movimento) => normalizeDetailedMovement(movimento, slug, nome, eventType, eventDate));
+      const computed = finalizeArchiveSummary(
+        movimentos.reduce((acc, movimento) => {
+          addArchiveMovement(acc, movimento);
+          return acc;
+        }, emptyArchiveSummary())
+      );
+
+      return {
+        slug,
+        nome,
+        contabilizarTotais: row.contabilizarTotais !== false,
+        movimentos,
+        entradas: "entradas" in row ? asNumber(row.entradas) : computed.entradas,
+        saidas: "saidas" in row ? asNumber(row.saidas) : computed.saidas,
+        aPagamento: "aPagamento" in row ? asNumber(row.aPagamento) : computed.aPagamento,
+        lucro: "lucro" in row ? asNumber(row.lucro) : computed.lucro,
+        faturado: "faturado" in row ? asNumber(row.faturado) : computed.faturado,
+        naoFaturado: "naoFaturado" in row ? asNumber(row.naoFaturado) : computed.naoFaturado,
+        pagoQ26: "pagoQ26" in row ? asNumber(row.pagoQ26) : computed.pagoQ26,
+        transferencias: "transferencias" in row ? asNumber(row.transferencias) : computed.transferencias,
+        dinheiro: "dinheiro" in row ? asNumber(row.dinheiro) : computed.dinheiro
+      } satisfies OverviewRow;
+    });
+}
+
+function rowsFromBackupTables(tables: Record<string, unknown>) {
+  const events = asArray(tables.eventos).filter(isRecord);
+  const movements = asArray(tables.movimentos).filter(isRecord);
+
+  return events
+    .filter((event) => asString(event.slug) !== "contas")
+    .sort((first, second) => asNumber(first.ordem_folha) - asNumber(second.ordem_folha))
+    .map((event) => {
+      const id = asString(event.id);
+      const slug = asString(event.slug, id || "evento");
+      const nome = asString(event.nome, slug);
+      const eventType = normalizeEventType(event.tipo);
+      const eventDate = asNullableString(event.data_inicio);
+      const eventMovements = movements
+        .filter((movimento) => asString(movimento.evento_id) === id)
+        .map((movimento) => normalizeDetailedMovement(movimento, slug, nome, eventType, eventDate));
+      const summary = finalizeArchiveSummary(
+        eventMovements.reduce((acc, movimento) => {
+          addArchiveMovement(acc, movimento);
+          return acc;
+        }, emptyArchiveSummary())
+      );
+
+      return {
+        slug,
+        nome,
+        contabilizarTotais:
+          typeof event.contabilizar_totais === "boolean" ? event.contabilizar_totais : slug !== "decoracao",
+        movimentos: eventMovements,
+        ...summary
+      } satisfies OverviewRow;
+    });
+}
+
+function importedArchiveFromJson(value: unknown, fileName: string): ImportedArchiveView | null {
+  const root = isRecord(value) ? value : null;
+  if (!root) return null;
+  const overview = isRecord(root.overview) ? root.overview : null;
+  const database = isRecord(root.database) ? root.database : root;
+  const tables = isRecord(database.tables) ? database.tables : null;
+  const rows = overview ? normalizeOverviewRows(overview.rows) : tables ? rowsFromBackupTables(tables) : [];
+  if (!rows.length) return null;
+  const overviewTotals = overview && isRecord(overview.totals) ? overview.totals : null;
+  const totals = overviewTotals
+    ? {
+        entradas: asNumber(overviewTotals.entradas),
+        saidas: asNumber(overviewTotals.saidas),
+        aPagamento: asNumber(overviewTotals.aPagamento),
+        lucro: asNumber(overviewTotals.lucro),
+        faturado: asNumber(overviewTotals.faturado),
+        naoFaturado: asNumber(overviewTotals.naoFaturado),
+        pagoQ26: asNumber(overviewTotals.pagoQ26),
+        transferencias: asNumber(overviewTotals.transferencias),
+        dinheiro: asNumber(overviewTotals.dinheiro)
+      }
+    : archiveRowsTotals(rows);
+
+  return {
+    fileName,
+    exportedAt: asNullableString(root.exported_at) ?? asNullableString(database.exported_at),
+    generatedBy: asNullableString(root.generated_by),
+    rows,
+    totals,
+    countedRows: rows.filter((row) => row.contabilizarTotais).length,
+    eventsCount: rows.length
+  };
+}
+
 export function OverviewClient({ rows, totals, cashValue, physicalCashCount, error, session, appLogo }: OverviewClientProps) {
   const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
   const [selectedSlugs, setSelectedSlugs] = useState<Set<string>>(() => new Set());
+  const [uploadedArchive, setUploadedArchive] = useState<ImportedArchiveView | null>(null);
+  const [archiveMessage, setArchiveMessage] = useState<string | null>(null);
   const canExportExcel = canExportOverviewExcel(session);
   const countedRows = rows.filter((row) => row.contabilizarTotais).length;
   const selectedRows = canExportExcel ? rows.filter((row) => selectedSlugs.has(row.slug)) : [];
@@ -118,6 +373,28 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
       }
       return new Set(rows.map((row) => row.slug));
     });
+  };
+
+  const handleArchiveUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(typeof reader.result === "string" ? reader.result : "");
+        const archive = importedArchiveFromJson(parsed, file.name);
+        if (!archive) throw new Error("O ficheiro não tem dados de encerramento ou backup válidos.");
+        setUploadedArchive(archive);
+        setArchiveMessage(`Ficheiro carregado: ${file.name}`);
+      } catch (uploadError) {
+        setUploadedArchive(null);
+        setArchiveMessage(uploadError instanceof Error ? uploadError.message : "Não foi possível ler o ficheiro.");
+      } finally {
+        event.target.value = "";
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -249,6 +526,104 @@ export function OverviewClient({ rows, totals, cashValue, physicalCashCount, err
             ))}
           </div>
         </section>
+      </section>
+
+      <section className="overview-archive-panel" aria-label="Consulta de encerramento anual">
+        <div className="table-heading">
+          <div>
+            <p className="eyebrow">Encerramentos</p>
+            <h2>Consultar ano fechado</h2>
+          </div>
+          <div className="table-heading-actions overview-archive-actions">
+            <label className="overview-upload-button">
+              Carregar JSON
+              <input accept="application/json,.json" type="file" onChange={handleArchiveUpload} />
+            </label>
+            {uploadedArchive ? (
+              <button
+                className="overview-clear-archive-button"
+                type="button"
+                onClick={() => {
+                  setUploadedArchive(null);
+                  setArchiveMessage(null);
+                }}
+              >
+                Limpar consulta
+              </button>
+            ) : null}
+          </div>
+        </div>
+        {archiveMessage ? <p className="overview-archive-message">{archiveMessage}</p> : null}
+        {uploadedArchive ? (
+          <div className="overview-archive-content">
+            <div className="overview-archive-meta">
+              <strong>{uploadedArchive.fileName}</strong>
+              <span>
+                {uploadedArchive.exportedAt ? formatDate(uploadedArchive.exportedAt.slice(0, 10)) : "Sem data"} ·{" "}
+                {uploadedArchive.generatedBy ?? "Origem desconhecida"}
+              </span>
+            </div>
+            <div className="overview-archive-summary-grid">
+              <article>
+                <span>Entradas</span>
+                <strong className="value-blue">{formatMoney(uploadedArchive.totals.entradas)}</strong>
+              </article>
+              <article>
+                <span>Saídas</span>
+                <strong className="value-red">{formatMoney(uploadedArchive.totals.saidas)}</strong>
+              </article>
+              <article>
+                <span>Lucro</span>
+                <strong className={uploadedArchive.totals.lucro >= 0 ? "value-green" : "value-red"}>
+                  {formatMoney(uploadedArchive.totals.lucro)}
+                </strong>
+              </article>
+              <article>
+                <span>Eventos</span>
+                <strong className="value-blue">
+                  {uploadedArchive.countedRows}/{uploadedArchive.eventsCount}
+                </strong>
+              </article>
+            </div>
+            <div className="table-wrap overview-table-wrap">
+              <table className="overview-table overview-archive-table">
+                <thead>
+                  <tr>
+                    <th>Evento</th>
+                    <th>Entradas</th>
+                    <th>Saídas</th>
+                    <th>A Pagamento</th>
+                    <th>Lucro</th>
+                    <th>Faturado</th>
+                    <th>Não Faturado</th>
+                    <th>Transferencias</th>
+                    <th>Dinheiro</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {uploadedArchive.rows.map((row) => (
+                    <tr className={row.contabilizarTotais ? "overview-summary-row" : "overview-summary-row not-counted"} key={row.slug}>
+                      <td className="item-cell">
+                        <strong>{row.nome}</strong>
+                        {!row.contabilizarTotais ? <span className="event-status-badge inline">Só registo</span> : null}
+                      </td>
+                      <td className="money">{formatMoney(row.entradas)}</td>
+                      <td className="money">{formatMoney(row.saidas)}</td>
+                      <td className="money">{formatMoney(row.aPagamento)}</td>
+                      <td className={row.lucro >= 0 ? "money positive" : "money negative"}>{formatMoney(row.lucro)}</td>
+                      <td className="money">{formatMoney(row.faturado)}</td>
+                      <td className="money">{formatMoney(row.naoFaturado)}</td>
+                      <td className="money">{formatMoney(row.transferencias)}</td>
+                      <td className="money">{formatMoney(row.dinheiro)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <p className="overview-archive-empty">Carrega o JSON de encerramento anual para consulta temporária.</p>
+        )}
       </section>
 
       <section className="overview-table-panel" aria-label="Resumo por evento">

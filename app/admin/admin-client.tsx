@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { AppFavicon, AppLogo, ReportLogo } from "../app-settings";
 import type { AuditLogEntry } from "../audit-log";
-import type { BackupFrequency, BackupRunSummary, BackupSettings } from "../backup-manager";
+import type { BackupFrequency, BackupRunSummary, BackupSettings, DatabaseBackupSnapshot } from "../backup-manager";
 import {
   EMPTY_ROLE_PERMISSIONS,
   getRoleLabel,
@@ -17,6 +17,8 @@ import {
   type UserRole
 } from "../auth-types";
 import type { EventoResumo } from "../supabase-data";
+import { exportOverviewEventsToExcel } from "../overview/excel-export";
+import type { OverviewRow } from "../overview/overview-client";
 
 type AdminUser = {
   username: string;
@@ -63,6 +65,32 @@ type RoleForm = {
   label: string;
   description: string;
   permissions: RolePermissions;
+};
+
+type YearCloseArchive = {
+  type: "q26-year-close";
+  version: 1;
+  exported_at: string;
+  generated_by: string;
+  database: DatabaseBackupSnapshot;
+  overview: {
+    countedRows: number;
+    eventsCount: number;
+    rows: OverviewRow[];
+    totals: {
+      entradas: number;
+      saidas: number;
+      aPagamento: number;
+      lucro: number;
+      faturado: number;
+      naoFaturado: number;
+      pagoQ26: number;
+      transferencias: number;
+      dinheiro: number;
+    };
+  };
+  users: Array<{ username: string; role: string; updated_at: string | null }>;
+  audit_logs: AuditLogEntry[];
 };
 
 type RolePermissionOption = {
@@ -515,6 +543,22 @@ function formatFileSize(value: number) {
   return `${byteFormatter.format(value / (1024 * 1024))} MB`;
 }
 
+function fileDateStamp(value = new Date().toISOString()) {
+  return value.slice(0, 19).replace(/[:T]/g, "-");
+}
+
+function downloadJsonFile(value: unknown, filename: string) {
+  const blob = new Blob([JSON.stringify(value, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 function formatDetails(details: Record<string, unknown>) {
   const justification =
     typeof details.payload === "object" && details.payload && "justification" in details.payload
@@ -596,6 +640,9 @@ export function AdminClient({
   const [closedEventsState, setClosedEventsState] = useState(closedEvents);
   const [closedEventsMessage, setClosedEventsMessage] = useState<string | null>(null);
   const [resetConfirmation, setResetConfirmation] = useState("");
+  const [yearCloseConfirmation, setYearCloseConfirmation] = useState("");
+  const [yearCloseMessage, setYearCloseMessage] = useState<string | null>(null);
+  const [yearClosePreparedAt, setYearClosePreparedAt] = useState<string | null>(null);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isSavingUser, setIsSavingUser] = useState(false);
   const [isSavingRoles, setIsSavingRoles] = useState(false);
@@ -606,6 +653,8 @@ export function AdminClient({
   const [isExportingDatabase, setIsExportingDatabase] = useState(false);
   const [isImportingDatabase, setIsImportingDatabase] = useState(false);
   const [isResettingDatabase, setIsResettingDatabase] = useState(false);
+  const [isPreparingYearClose, setIsPreparingYearClose] = useState(false);
+  const [isStartingNewYear, setIsStartingNewYear] = useState(false);
   const [isSavingBackupSettings, setIsSavingBackupSettings] = useState(false);
   const [isCreatingStoredBackup, setIsCreatingStoredBackup] = useState(false);
   const [downloadingBackupId, setDownloadingBackupId] = useState<string | null>(null);
@@ -1154,6 +1203,87 @@ export function AdminClient({
     }
   };
 
+  const prepareYearClose = async () => {
+    setIsPreparingYearClose(true);
+    setYearCloseMessage(null);
+
+    try {
+      const response = await fetch("/api/admin/year-close", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "prepare" })
+      });
+      const body = (await response.json().catch(() => null)) as {
+        message?: string;
+        archive?: YearCloseArchive;
+        settings?: BackupSettings;
+        runs?: BackupRunSummary[];
+      } | null;
+
+      if (!response.ok || !body?.archive) {
+        throw new Error(body?.message ?? "Não foi possível preparar o encerramento anual.");
+      }
+
+      const stamp = fileDateStamp(body.archive.exported_at);
+      downloadJsonFile(body.archive, `q26-encerramento-${stamp}.json`);
+      exportOverviewEventsToExcel(body.archive.overview.rows, `q26-encerramento-${stamp}.xlsx`);
+
+      if (body.settings) setBackupSettingsState(body.settings);
+      if (body.runs) setBackupRunsState(body.runs);
+      setYearClosePreparedAt(body.archive.exported_at);
+      setYearCloseMessage(body.message ?? "Encerramento preparado.");
+      router.refresh();
+    } catch (error) {
+      setYearCloseMessage(error instanceof Error ? error.message : "Não foi possível preparar o encerramento anual.");
+    } finally {
+      setIsPreparingYearClose(false);
+    }
+  };
+
+  const startNewYear = async () => {
+    if (yearCloseConfirmation !== "encerrar q26") {
+      setYearCloseMessage("Para iniciar o novo ano, escreve exatamente: encerrar q26");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Isto limpa eventos, movimentos, faturas e TODOs do ano atual, e apaga utilizadores que não sejam Admin. Queres continuar?"
+    );
+    if (!confirmed) return;
+
+    setIsStartingNewYear(true);
+    setYearCloseMessage(null);
+
+    try {
+      const response = await fetch("/api/admin/year-close", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset", confirmation: yearCloseConfirmation })
+      });
+      const body = (await response.json().catch(() => null)) as {
+        message?: string;
+        settings?: BackupSettings;
+        runs?: BackupRunSummary[];
+        users?: AdminUser[];
+      } | null;
+
+      if (!response.ok) throw new Error(body?.message ?? "Não foi possível iniciar o novo ano.");
+
+      if (body?.settings) setBackupSettingsState(body.settings);
+      if (body?.runs) setBackupRunsState(body.runs);
+      if (body?.users) setUsersState(sortAdminUsers(body.users));
+      setYearCloseConfirmation("");
+      setYearClosePreparedAt(null);
+      setClosedEventsState([]);
+      setYearCloseMessage(body?.message ?? "Ano novo iniciado.");
+      router.refresh();
+    } catch (error) {
+      setYearCloseMessage(error instanceof Error ? error.message : "Não foi possível iniciar o novo ano.");
+    } finally {
+      setIsStartingNewYear(false);
+    }
+  };
+
   const saveBackupSettings = async () => {
     setIsSavingBackupSettings(true);
     setBackupMessage(null);
@@ -1330,7 +1460,7 @@ export function AdminClient({
             <span className="eyebrow">Admin</span>
             <strong>Definições e base de dados</strong>
           </span>
-          <em>5 zonas</em>
+          <em>6 zonas</em>
         </summary>
 
         <section className="admin-settings-grid" aria-label="Definições do admin">
@@ -1564,6 +1694,50 @@ export function AdminClient({
               </div>
             </div>
           </div>
+          <section className="year-close-box" aria-label="Encerramento anual">
+            <div className="year-close-heading">
+              <div>
+                <p className="eyebrow">Encerramento anual</p>
+                <h3>Fechar Q26 e preparar novo ano</h3>
+              </div>
+              <span>{yearClosePreparedAt ? `Preparado em ${formatLogDate(yearClosePreparedAt)}` : "Por preparar"}</span>
+            </div>
+            <div className="year-close-steps">
+              <article>
+                <strong>1. Exportar e guardar</strong>
+                <span>Gera o JSON completo, o Excel por evento e cria backup manual no bucket.</span>
+                <button disabled={isPreparingYearClose || isStartingNewYear} type="button" onClick={prepareYearClose}>
+                  {isPreparingYearClose ? "A preparar..." : "Preparar encerramento"}
+                </button>
+              </article>
+              <article>
+                <strong>2. Iniciar ano novo</strong>
+                <span>Limpa dados anuais e remove utilizadores que não sejam Admin.</span>
+                <label>
+                  Confirmação
+                  <input
+                    placeholder="encerrar q26"
+                    value={yearCloseConfirmation}
+                    onChange={(event) => setYearCloseConfirmation(event.target.value)}
+                  />
+                </label>
+                <button
+                  className="danger-admin-button"
+                  disabled={
+                    isStartingNewYear ||
+                    isPreparingYearClose ||
+                    !yearClosePreparedAt ||
+                    yearCloseConfirmation !== "encerrar q26"
+                  }
+                  type="button"
+                  onClick={startNewYear}
+                >
+                  {isStartingNewYear ? "A iniciar..." : "Iniciar ano novo"}
+                </button>
+              </article>
+            </div>
+            {yearCloseMessage ? <p className="form-message">{yearCloseMessage}</p> : null}
+          </section>
           <div className="database-reset-box">
             <strong>Recomeçar de novo</strong>
             <span>Limpa eventos, movimentos, relatórios e definições. Mantém utilizadores e log.</span>
