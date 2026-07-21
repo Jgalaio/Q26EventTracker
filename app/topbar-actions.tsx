@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { canAccessAdmin, canViewTreasury, canWrite, isViewOnly, type AuthSession } from "./auth-types";
+import { canAccessAdmin, canViewSupport, canViewTreasury, canWrite, isViewOnly, type AuthSession } from "./auth-types";
 import { NotesMenu } from "./notes-menu";
 
 export type TopbarActive =
@@ -15,6 +15,7 @@ export type TopbarActive =
   | "admin"
   | "utilizador"
   | "notas"
+  | "suporte"
   | "a-pagar";
 
 type TopbarActionsProps = {
@@ -37,6 +38,7 @@ type NavigationGroup = {
 
 export function TopbarActions({ active, pendingPaymentsCount = 0, session }: TopbarActionsProps) {
   const mayViewTreasury = canViewTreasury(session);
+  const mayViewSupport = canViewSupport(session);
   const mayWrite = canWrite(session);
   const mayAccessAdmin = canAccessAdmin(session);
   const viewOnly = isViewOnly(session);
@@ -55,7 +57,8 @@ export function TopbarActions({ active, pendingPaymentsCount = 0, session }: Top
         { key: "pesquisa", href: "/pesquisa", label: "Pesquisa", show: mayViewTreasury },
         { key: "reports", href: "/reports", label: "Relatórios", show: mayViewTreasury },
         { key: "facturacao", href: "/facturacao", label: "Fat.Finanças", show: mayWrite },
-        { key: "fat-patrocinios", href: "/fat-patrocinios", label: "Fat. Patrocínios", show: mayWrite }
+        { key: "fat-patrocinios", href: "/fat-patrocinios", label: "Fat. Patrocínios", show: mayWrite },
+        { key: "suporte", href: "/suporte", label: "Suporte", show: mayViewSupport && !viewOnly }
       ]
     },
     {

@@ -15,6 +15,17 @@ export type WhatsNewSeenState = {
 
 export const WHATS_NEW_RELEASES: WhatsNewEntry[] = [
   {
+    id: "2026-07-21-suporte-tickets",
+    title: "Sistema de suporte",
+    date: "2026-07-21",
+    summary: "A aplicação passa a ter uma área própria para pedidos de suporte.",
+    items: [
+      "Os utilizadores podem abrir tickets com assunto, urgência, texto e imagens.",
+      "Cada utilizador acompanha os seus pedidos numa conversa organizada.",
+      "O Admin vê todos os tickets, responde e pode alterar o estado do pedido."
+    ]
+  },
+  {
     id: "2026-07-21-datas-nas-entradas",
     title: "Datas nas entradas",
     date: "2026-07-21",

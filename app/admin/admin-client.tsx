@@ -454,6 +454,33 @@ const rolePermissionModules: Array<{
     ]
   },
   {
+    id: "suporte",
+    title: "Suporte",
+    description: "Tickets, mensagens e acompanhamento de pedidos dos utilizadores.",
+    permissions: [
+      {
+        key: "viewSupport",
+        label: "Ver suporte",
+        hint: "Permite abrir a página de suporte."
+      },
+      {
+        key: "createSupportTickets",
+        label: "Criar tickets",
+        hint: "Permite criar tickets com texto, urgência e imagens."
+      },
+      {
+        key: "replySupportTickets",
+        label: "Responder tickets",
+        hint: "Permite responder tickets como suporte."
+      },
+      {
+        key: "manageSupportTickets",
+        label: "Gerir tickets",
+        hint: "Permite ver todos os tickets e alterar o estado."
+      }
+    ]
+  },
+  {
     id: "seguranca",
     title: "Segurança",
     description: "Regras de controlo e rastreabilidade das alterações.",

@@ -53,6 +53,10 @@ export type RolePermissions = {
   editQ25Balance: boolean;
   toggleGlobalCards: boolean;
   changeOwnPassword: boolean;
+  viewSupport: boolean;
+  createSupportTickets: boolean;
+  replySupportTickets: boolean;
+  manageSupportTickets: boolean;
   viewTodo: boolean;
   createTasks: boolean;
   editOwnTasks: boolean;
@@ -135,6 +139,10 @@ export const EMPTY_ROLE_PERMISSIONS: RolePermissions = {
   editQ25Balance: false,
   toggleGlobalCards: false,
   changeOwnPassword: false,
+  viewSupport: false,
+  createSupportTickets: false,
+  replySupportTickets: false,
+  manageSupportTickets: false,
   viewTodo: false,
   createTasks: false,
   editOwnTasks: false,
@@ -209,6 +217,10 @@ export const BUILTIN_ROLE_DEFINITIONS: RoleDefinition[] = [
       editQ25Balance: true,
       toggleGlobalCards: true,
       changeOwnPassword: true,
+      viewSupport: true,
+      createSupportTickets: true,
+      replySupportTickets: true,
+      manageSupportTickets: true,
       viewTodo: true,
       createTasks: true,
       editOwnTasks: true,
@@ -261,6 +273,8 @@ export const BUILTIN_ROLE_DEFINITIONS: RoleDefinition[] = [
       viewPersonalNotes: true,
       editPersonalNotes: true,
       changeOwnPassword: true,
+      viewSupport: true,
+      createSupportTickets: true,
       requireUnlockJustification: true,
       onlyOpenEventsActions: true
     },
@@ -398,6 +412,29 @@ export function canUnlockClosedEvents(input: UserRole | AuthSession) {
 
 export function canChangeOwnPassword(input: UserRole | AuthSession) {
   return roleFor(input) === "admin" || permissionsFor(input).changeOwnPassword;
+}
+
+export function canViewSupport(input: UserRole | AuthSession) {
+  const permissions = permissionsFor(input);
+  return (
+    roleFor(input) === "admin" ||
+    permissions.viewSupport ||
+    permissions.createSupportTickets ||
+    permissions.replySupportTickets ||
+    permissions.manageSupportTickets
+  );
+}
+
+export function canCreateSupportTickets(input: UserRole | AuthSession) {
+  return roleFor(input) === "admin" || permissionsFor(input).createSupportTickets;
+}
+
+export function canReplySupportTickets(input: UserRole | AuthSession) {
+  return roleFor(input) === "admin" || permissionsFor(input).replySupportTickets;
+}
+
+export function canManageSupportTickets(input: UserRole | AuthSession) {
+  return roleFor(input) === "admin" || permissionsFor(input).manageSupportTickets;
 }
 
 export function requiresJustification(input: UserRole | AuthSession) {
