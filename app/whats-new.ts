@@ -15,6 +15,17 @@ export type WhatsNewSeenState = {
 
 export const WHATS_NEW_RELEASES: WhatsNewEntry[] = [
   {
+    id: "2026-07-21-datas-nas-entradas",
+    title: "Datas nas entradas",
+    date: "2026-07-21",
+    summary: "As entradas da Tesouraria passam a poder ter data associada.",
+    items: [
+      "Ao adicionar uma entrada, existe agora um campo de data.",
+      "A data fica gravada no movimento e aparece na tabela de entradas.",
+      "Novas entradas começam com a data de hoje, podendo ser alterada ou limpa."
+    ]
+  },
+  {
     id: "2026-07-17-panoramas-eventos-patrocinios-peditorio",
     title: "Novos resumos por área",
     date: "2026-07-17",

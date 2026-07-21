@@ -172,6 +172,7 @@ const emptyMovementForm: MovementForm = {
 function movementFormDefaults(tab?: "entrada" | "saida"): MovementForm {
   return {
     ...emptyMovementForm,
+    data_pagamento: tab === "entrada" ? todayInputDate() : "",
     tipo_pagamento: tab === "entrada" ? "Dinheiro" : ""
   };
 }
@@ -1139,7 +1140,7 @@ export function Dashboard({
       tipo,
       item,
       descricao: description,
-      data_pagamento: isEntryMode ? null : movementForm.data_pagamento || null,
+      data_pagamento: movementForm.data_pagamento || null,
       montante: amount,
       numero_fatura: isEntryMode ? null : movementForm.numero_fatura.trim() || null,
       fatura_com_nif: isEntryMode ? null : optionalBoolean(movementForm.fatura_com_nif),
@@ -1154,6 +1155,7 @@ export function Dashboard({
         evento: movementToEdit ? movementToEdit.evento_nome : selectedEvent?.nome,
         item,
         descricao: description,
+        data_pagamento: movementForm.data_pagamento || null,
         montante: amount,
         tipo_pagamento: isEntryMode ? entryPayment || null : movementForm.tipo_pagamento.trim() || null,
         contabilizar_totais: isEntryMode ? true : movementForm.contabilizar_totais,
@@ -1222,7 +1224,7 @@ export function Dashboard({
       tipo,
       item,
       descricao: description,
-      data_pagamento: isEntryMode ? null : quickMovementForm.data_pagamento || null,
+      data_pagamento: quickMovementForm.data_pagamento || null,
       montante: amount,
       numero_fatura: isEntryMode ? null : quickMovementForm.numero_fatura.trim() || null,
       fatura_com_nif: isEntryMode ? null : optionalBoolean(quickMovementForm.fatura_com_nif),
@@ -1237,6 +1239,7 @@ export function Dashboard({
         evento: selectedEvent.nome,
         item,
         descricao: description,
+        data_pagamento: quickMovementForm.data_pagamento || null,
         montante: amount,
         tipo_pagamento: isEntryMode ? entryPayment : quickMovementForm.tipo_pagamento.trim() || null,
         contabilizar_totais: isEntryMode ? true : quickMovementForm.contabilizar_totais,
@@ -1945,6 +1948,7 @@ export function Dashboard({
                       <tr>
                         <th>Item</th>
                         <th>Descrição</th>
+                        <th>Data</th>
                         <th>Método</th>
                         <th>Tipo</th>
                         <th>Fatura emitida</th>
@@ -1992,6 +1996,16 @@ export function Dashboard({
                                 setQuickMovementForm((current) => ({ ...current, descricao: event.target.value }))
                               }
                               placeholder="Descrição"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              aria-label="Data da entrada"
+                              type="date"
+                              value={quickMovementForm.data_pagamento}
+                              onChange={(event) =>
+                                setQuickMovementForm((current) => ({ ...current, data_pagamento: event.target.value }))
+                              }
                             />
                           </td>
                           <td>
@@ -2254,6 +2268,7 @@ export function Dashboard({
                         <tr className={movementRowClass(movimento)} key={movimento.id}>
                           <td className="item-cell">{movimento.item}</td>
                           <td>{renderDescription(movimento)}</td>
+                          <td>{formatDate(movimento.data_pagamento)}</td>
                           <td>{entryPaymentLabel(movimento)}</td>
                           <td>{entryKindLabel(movementEntryKind(movimento))}</td>
                           <td>{needsEntryInvoice(movimento) ? yesNo(isInvoiceIssued(movimento)) : "—"}</td>
@@ -2619,6 +2634,18 @@ export function Dashboard({
                       value={movementForm.valor_teorico}
                       onChange={(event) => setMovementForm((current) => ({ ...current, valor_teorico: event.target.value }))}
                       placeholder="0,00"
+                    />
+                  </label>
+                ) : null}
+                {modalMode === "add-entry" || modalMode === "edit-entry" ? (
+                  <label>
+                    Data da entrada
+                    <input
+                      type="date"
+                      value={movementForm.data_pagamento}
+                      onChange={(event) =>
+                        setMovementForm((current) => ({ ...current, data_pagamento: event.target.value }))
+                      }
                     />
                   </label>
                 ) : null}
