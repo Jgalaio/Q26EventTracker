@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       resource: "support_tickets",
       resourceId: ticket.id,
       summary: `Criou ticket: ${ticket.title}`,
-      details: { urgency: ticket.urgency, attachments: ticket.messages[0]?.attachments.length ?? 0 }
+      details: { category: ticket.category, urgency: ticket.urgency, attachments: ticket.messages[0]?.attachments.length ?? 0 }
     });
 
     return NextResponse.json({ message: "Ticket criado.", ticket });

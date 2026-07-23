@@ -15,6 +15,17 @@ export type WhatsNewSeenState = {
 
 export const WHATS_NEW_RELEASES: WhatsNewEntry[] = [
   {
+    id: "2026-07-23-alertas-suporte",
+    title: "Alertas internos e suporte melhorado",
+    date: "2026-07-23",
+    summary: "O topo da aplicação passa a mostrar alertas operacionais e o suporte ganhou filtros.",
+    items: [
+      "O novo botão Alertas mostra tickets pendentes, TODO urgentes, pagamentos em falta e avisos de backup.",
+      "Os tickets de suporte passam a ter categoria: Bug, Pedido, Dúvida, Acesso ou Outro.",
+      "A página de suporte ganhou filtros por estado, urgência e categoria."
+    ]
+  },
+  {
     id: "2026-07-21-suporte-tickets",
     title: "Sistema de suporte",
     date: "2026-07-21",

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { canAccessAdmin, canViewSupport, canViewTreasury, canWrite, isViewOnly, type AuthSession } from "./auth-types";
 import { NotesMenu } from "./notes-menu";
+import { NotificationsMenu } from "./notifications-menu";
 
 export type TopbarActive =
   | "inicio"
@@ -75,6 +76,7 @@ export function TopbarActions({ active, pendingPaymentsCount = 0, session }: Top
     <div className="top-actions top-actions-organized">
       <div className="top-menu-cluster">
         {!viewOnly ? <NotesMenu active={active === "notas"} session={session} /> : null}
+        {!viewOnly ? <NotificationsMenu /> : null}
         <nav aria-label="Menu principal" className="top-nav-groups">
           {visibleGroups.map((group) => (
             <div aria-label={group.label} className="top-nav-group" key={group.label}>

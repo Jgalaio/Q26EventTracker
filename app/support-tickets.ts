@@ -10,6 +10,7 @@ import { readAppSetting, writeAppSetting } from "./app-settings";
 
 export type SupportUrgency = "baixa" | "normal" | "alta" | "urgente";
 export type SupportStatus = "aberto" | "em_analise" | "respondido" | "fechado";
+export type SupportCategory = "bug" | "pedido" | "duvida" | "acesso" | "outro";
 
 export type SupportAttachment = {
   id: string;
@@ -31,6 +32,7 @@ export type SupportMessage = {
 export type SupportTicket = {
   id: string;
   title: string;
+  category: SupportCategory;
   urgency: SupportUrgency;
   status: SupportStatus;
   createdBy: string;
@@ -47,6 +49,7 @@ export type SupportMessageInput = {
 
 export type SupportTicketInput = SupportMessageInput & {
   title?: unknown;
+  category?: unknown;
   urgency?: unknown;
 };
 
@@ -67,6 +70,7 @@ const MAX_ATTACHMENT_BYTES = 1_500_000;
 const MAX_STORED_TICKETS = 500;
 const URGENCIES: SupportUrgency[] = ["baixa", "normal", "alta", "urgente"];
 const STATUSES: SupportStatus[] = ["aberto", "em_analise", "respondido", "fechado"];
+const CATEGORIES: SupportCategory[] = ["bug", "pedido", "duvida", "acesso", "outro"];
 
 function cleanText(value: unknown, limit: number) {
   return typeof value === "string" ? value.trim().slice(0, limit) : "";
@@ -78,6 +82,10 @@ function normalizeUrgency(value: unknown): SupportUrgency {
 
 function normalizeStatus(value: unknown): SupportStatus {
   return typeof value === "string" && STATUSES.includes(value as SupportStatus) ? (value as SupportStatus) : "aberto";
+}
+
+function normalizeCategory(value: unknown): SupportCategory {
+  return typeof value === "string" && CATEGORIES.includes(value as SupportCategory) ? (value as SupportCategory) : "outro";
 }
 
 function safeDate(value: unknown, fallback: string) {
@@ -154,6 +162,7 @@ function normalizeTicket(value: unknown): SupportTicket | null {
   return {
     id: typeof source.id === "string" && source.id ? source.id : randomUUID(),
     title,
+    category: normalizeCategory(source.category),
     urgency: normalizeUrgency(source.urgency),
     status,
     createdBy: cleanText(source.createdBy, 80) || messages[0].author,
@@ -213,6 +222,7 @@ export async function createSupportTicket(session: AuthSession, input: SupportTi
   const ticket: SupportTicket = {
     id: randomUUID(),
     title,
+    category: normalizeCategory(input.category),
     urgency: normalizeUrgency(input.urgency),
     status: "aberto",
     createdBy: session.username,

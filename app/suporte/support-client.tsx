@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, type FormEvent } from "react";
 import type { AuthSession } from "../auth-types";
 import type {
   SupportAttachment,
+  SupportCategory,
   SupportStatus,
   SupportTicket,
   SupportUrgency
@@ -20,6 +21,9 @@ type TicketResponse = {
 };
 
 type AttachmentDraft = Omit<SupportAttachment, "id">;
+type SupportStatusFilter = SupportStatus | "todos";
+type SupportUrgencyFilter = SupportUrgency | "todos";
+type SupportCategoryFilter = SupportCategory | "todos";
 
 const MAX_ATTACHMENTS = 4;
 const MAX_ATTACHMENT_BYTES = 1_500_000;
@@ -29,6 +33,14 @@ const urgencyOptions: Array<{ value: SupportUrgency; label: string }> = [
   { value: "normal", label: "Normal" },
   { value: "alta", label: "Alta" },
   { value: "urgente", label: "Urgente" }
+];
+
+const categoryOptions: Array<{ value: SupportCategory; label: string }> = [
+  { value: "bug", label: "Bug" },
+  { value: "pedido", label: "Pedido" },
+  { value: "duvida", label: "Dúvida" },
+  { value: "acesso", label: "Acesso" },
+  { value: "outro", label: "Outro" }
 ];
 
 const statusOptions: Array<{ value: SupportStatus; label: string }> = [
@@ -52,6 +64,10 @@ function statusLabel(status: SupportStatus) {
 
 function urgencyLabel(urgency: SupportUrgency) {
   return urgencyOptions.find((option) => option.value === urgency)?.label ?? urgency;
+}
+
+function categoryLabel(category: SupportCategory) {
+  return categoryOptions.find((option) => option.value === category)?.label ?? category;
 }
 
 function formatDate(value: string) {
@@ -108,7 +124,11 @@ export function SupportClient({ initialTickets, session }: SupportClientProps) {
   const [tickets, setTickets] = useState(() => sortTickets(initialTickets));
   const [selectedTicketId, setSelectedTicketId] = useState(initialTickets[0]?.id ?? "");
   const [title, setTitle] = useState("");
+  const [category, setCategory] = useState<SupportCategory>("pedido");
   const [urgency, setUrgency] = useState<SupportUrgency>("normal");
+  const [statusFilter, setStatusFilter] = useState<SupportStatusFilter>("todos");
+  const [urgencyFilter, setUrgencyFilter] = useState<SupportUrgencyFilter>("todos");
+  const [categoryFilter, setCategoryFilter] = useState<SupportCategoryFilter>("todos");
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -119,11 +139,21 @@ export function SupportClient({ initialTickets, session }: SupportClientProps) {
   const canCreate = session.role === "admin" || session.permissions.createSupportTickets;
   const canManage = session.role === "admin" || session.permissions.manageSupportTickets;
   const canReply = session.role === "admin" || session.permissions.replySupportTickets || canManage;
+  const filteredTickets = useMemo(() => {
+    return tickets.filter((ticket) => {
+      if (statusFilter !== "todos" && ticket.status !== statusFilter) return false;
+      if (urgencyFilter !== "todos" && ticket.urgency !== urgencyFilter) return false;
+      if (categoryFilter !== "todos" && ticket.category !== categoryFilter) return false;
+      return true;
+    });
+  }, [categoryFilter, statusFilter, tickets, urgencyFilter]);
   const selectedTicket = useMemo(
-    () => tickets.find((ticket) => ticket.id === selectedTicketId) ?? tickets[0] ?? null,
-    [selectedTicketId, tickets]
+    () => filteredTickets.find((ticket) => ticket.id === selectedTicketId) ?? filteredTickets[0] ?? null,
+    [filteredTickets, selectedTicketId]
   );
   const openTickets = tickets.filter((ticket) => ticket.status !== "fechado").length;
+  const urgentTickets = tickets.filter((ticket) => ticket.status !== "fechado" && ticket.urgency === "urgente").length;
+  const answeredTickets = tickets.filter((ticket) => ticket.status === "respondido").length;
 
   const saveTicket = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -136,7 +166,7 @@ export function SupportClient({ initialTickets, session }: SupportClientProps) {
       const response = await fetch("/api/support/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, urgency, text: message, attachments })
+        body: JSON.stringify({ title, category, urgency, text: message, attachments })
       });
       const body = (await response.json().catch(() => ({}))) as TicketResponse;
       if (!response.ok || !body.ticket) throw new Error(body.message ?? `${response.status} ${response.statusText}`);
@@ -144,6 +174,7 @@ export function SupportClient({ initialTickets, session }: SupportClientProps) {
       setTickets((current) => replaceTicket(current, body.ticket as SupportTicket));
       setSelectedTicketId(body.ticket.id);
       setTitle("");
+      setCategory("pedido");
       setUrgency("normal");
       setMessage("");
       if (createFileInputRef.current) createFileInputRef.current.value = "";
@@ -245,6 +276,20 @@ export function SupportClient({ initialTickets, session }: SupportClientProps) {
             </select>
           </label>
           <label>
+            Categoria
+            <select
+              disabled={!canCreate || isSaving}
+              onChange={(event) => setCategory(event.target.value as SupportCategory)}
+              value={category}
+            >
+              {categoryOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
             Mensagem
             <textarea
               disabled={!canCreate || isSaving}
@@ -276,21 +321,64 @@ export function SupportClient({ initialTickets, session }: SupportClientProps) {
         <div className="section-heading compact-heading">
           <div>
             <p className="eyebrow">Tickets</p>
-            <h2>{tickets.length} pedidos</h2>
+            <h2>{filteredTickets.length} pedidos</h2>
           </div>
           <span>{openTickets} abertos</span>
         </div>
+        <div className="support-stats">
+          <span>{tickets.length} totais</span>
+          <span>{urgentTickets} urgentes</span>
+          <span>{answeredTickets} respondidos</span>
+        </div>
+        <div className="support-filters" aria-label="Filtros de suporte">
+          <label>
+            Estado
+            <select onChange={(event) => setStatusFilter(event.target.value as SupportStatusFilter)} value={statusFilter}>
+              <option value="todos">Todos</option>
+              {statusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Urgência
+            <select onChange={(event) => setUrgencyFilter(event.target.value as SupportUrgencyFilter)} value={urgencyFilter}>
+              <option value="todos">Todas</option>
+              {urgencyOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Categoria
+            <select onChange={(event) => setCategoryFilter(event.target.value as SupportCategoryFilter)} value={categoryFilter}>
+              <option value="todos">Todas</option>
+              {categoryOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
 
         <div className="support-ticket-list">
-          {tickets.length ? (
-            tickets.map((ticket) => (
+          {filteredTickets.length ? (
+            filteredTickets.map((ticket) => (
               <button
                 className={ticket.id === selectedTicket?.id ? "support-ticket-card active" : "support-ticket-card"}
                 key={ticket.id}
                 onClick={() => setSelectedTicketId(ticket.id)}
                 type="button"
               >
-                <span className={`support-urgency ${ticket.urgency}`}>{urgencyLabel(ticket.urgency)}</span>
+                <span className="support-ticket-badges">
+                  <i className={`support-urgency ${ticket.urgency}`}>{urgencyLabel(ticket.urgency)}</i>
+                  <i className={`support-category ${ticket.category}`}>{categoryLabel(ticket.category)}</i>
+                </span>
                 <strong>{ticket.title}</strong>
                 <small>
                   {statusLabel(ticket.status)} · {formatDate(ticket.updatedAt)}
@@ -299,7 +387,7 @@ export function SupportClient({ initialTickets, session }: SupportClientProps) {
               </button>
             ))
           ) : (
-            <div className="support-empty">Sem tickets.</div>
+            <div className="support-empty">{tickets.length ? "Sem tickets para estes filtros." : "Sem tickets."}</div>
           )}
         </div>
       </aside>
@@ -316,6 +404,9 @@ export function SupportClient({ initialTickets, session }: SupportClientProps) {
                 </span>
               </div>
               <div className="support-ticket-controls">
+                <span className={`support-category ${selectedTicket.category}`}>
+                  {categoryLabel(selectedTicket.category)}
+                </span>
                 <span className={`support-urgency ${selectedTicket.urgency}`}>{urgencyLabel(selectedTicket.urgency)}</span>
                 {canManage ? (
                   <select
