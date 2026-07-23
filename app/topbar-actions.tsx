@@ -58,8 +58,7 @@ export function TopbarActions({ active, pendingPaymentsCount = 0, session }: Top
         { key: "pesquisa", href: "/pesquisa", label: "Pesquisa", show: mayViewTreasury },
         { key: "reports", href: "/reports", label: "Relatórios", show: mayViewTreasury },
         { key: "facturacao", href: "/facturacao", label: "Fat.Finanças", show: mayWrite },
-        { key: "fat-patrocinios", href: "/fat-patrocinios", label: "Fat. Patrocínios", show: mayWrite },
-        { key: "suporte", href: "/suporte", label: "Suporte", show: mayViewSupport && !viewOnly }
+        { key: "fat-patrocinios", href: "/fat-patrocinios", label: "Fat. Patrocínios", show: mayWrite }
       ]
     },
     {
@@ -75,8 +74,6 @@ export function TopbarActions({ active, pendingPaymentsCount = 0, session }: Top
   return (
     <div className="top-actions top-actions-organized">
       <div className="top-menu-cluster">
-        {!viewOnly ? <NotesMenu active={active === "notas"} session={session} /> : null}
-        {!viewOnly ? <NotificationsMenu /> : null}
         <nav aria-label="Menu principal" className="top-nav-groups">
           {visibleGroups.map((group) => (
             <div aria-label={group.label} className="top-nav-group" key={group.label}>
@@ -97,32 +94,46 @@ export function TopbarActions({ active, pendingPaymentsCount = 0, session }: Top
           ))}
         </nav>
       </div>
-      {pendingPaymentsCount > 0 && mayViewTreasury ? (
-        <Link className="warning-nav-button top-warning-link" href="/a-pagar">
-          Pagamentos em falta: {pendingPaymentsCount}
-        </Link>
-      ) : null}
-      <div className="top-session">
-        {viewOnly ? (
-          <span className="user-chip">
-            <span>{session.username}</span>
-            <strong>{session.roleLabel}</strong>
-          </span>
-        ) : (
+
+      <div aria-label="Menu rápido" className="top-utility-menu">
+        {!viewOnly ? <NotesMenu active={active === "notas"} session={session} /> : null}
+        {!viewOnly ? <NotificationsMenu /> : null}
+        {mayViewSupport && !viewOnly ? (
           <Link
-            aria-current={active === "utilizador" ? "page" : undefined}
-            className={active === "utilizador" ? "user-chip active" : "user-chip"}
-            href="/utilizador"
+            aria-current={active === "suporte" ? "page" : undefined}
+            className={active === "suporte" ? "top-utility-link active" : "top-utility-link"}
+            href="/suporte"
           >
-            <span>{session.username}</span>
-            <strong>{session.roleLabel}</strong>
+            Suporte
           </Link>
-        )}
-        <form action="/api/logout" method="post">
-          <button className="logout-button" type="submit">
-            Sair
-          </button>
-        </form>
+        ) : null}
+        {pendingPaymentsCount > 0 && mayViewTreasury ? (
+          <Link className="warning-nav-button top-warning-link" href="/a-pagar">
+            Pagamentos em falta: {pendingPaymentsCount}
+          </Link>
+        ) : null}
+        <div className="top-session">
+          {viewOnly ? (
+            <span className="user-chip">
+              <span>{session.username}</span>
+              <strong>{session.roleLabel}</strong>
+            </span>
+          ) : (
+            <Link
+              aria-current={active === "utilizador" ? "page" : undefined}
+              className={active === "utilizador" ? "user-chip active" : "user-chip"}
+              href="/utilizador"
+            >
+              <span>{session.username}</span>
+              <strong>{session.roleLabel}</strong>
+            </Link>
+          )}
+          <form action="/api/logout" method="post">
+            <button className="logout-button" type="submit">
+              Sair
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
