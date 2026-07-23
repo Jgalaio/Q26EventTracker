@@ -57,6 +57,10 @@ export type RolePermissions = {
   createSupportTickets: boolean;
   replySupportTickets: boolean;
   manageSupportTickets: boolean;
+  viewDocuments: boolean;
+  uploadDocuments: boolean;
+  downloadDocuments: boolean;
+  deleteDocuments: boolean;
   viewTodo: boolean;
   createTasks: boolean;
   editOwnTasks: boolean;
@@ -143,6 +147,10 @@ export const EMPTY_ROLE_PERMISSIONS: RolePermissions = {
   createSupportTickets: false,
   replySupportTickets: false,
   manageSupportTickets: false,
+  viewDocuments: false,
+  uploadDocuments: false,
+  downloadDocuments: false,
+  deleteDocuments: false,
   viewTodo: false,
   createTasks: false,
   editOwnTasks: false,
@@ -221,6 +229,10 @@ export const BUILTIN_ROLE_DEFINITIONS: RoleDefinition[] = [
       createSupportTickets: true,
       replySupportTickets: true,
       manageSupportTickets: true,
+      viewDocuments: true,
+      uploadDocuments: true,
+      downloadDocuments: true,
+      deleteDocuments: true,
       viewTodo: true,
       createTasks: true,
       editOwnTasks: true,
@@ -275,6 +287,9 @@ export const BUILTIN_ROLE_DEFINITIONS: RoleDefinition[] = [
       changeOwnPassword: true,
       viewSupport: true,
       createSupportTickets: true,
+      viewDocuments: true,
+      uploadDocuments: true,
+      downloadDocuments: true,
       requireUnlockJustification: true,
       onlyOpenEventsActions: true
     },
@@ -435,6 +450,29 @@ export function canReplySupportTickets(input: UserRole | AuthSession) {
 
 export function canManageSupportTickets(input: UserRole | AuthSession) {
   return roleFor(input) === "admin" || permissionsFor(input).manageSupportTickets;
+}
+
+export function canViewDocuments(input: UserRole | AuthSession) {
+  const permissions = permissionsFor(input);
+  return (
+    roleFor(input) === "admin" ||
+    permissions.viewDocuments ||
+    permissions.uploadDocuments ||
+    permissions.downloadDocuments ||
+    permissions.deleteDocuments
+  );
+}
+
+export function canUploadDocuments(input: UserRole | AuthSession) {
+  return roleFor(input) === "admin" || permissionsFor(input).uploadDocuments;
+}
+
+export function canDownloadDocuments(input: UserRole | AuthSession) {
+  return roleFor(input) === "admin" || permissionsFor(input).downloadDocuments;
+}
+
+export function canDeleteDocuments(input: UserRole | AuthSession) {
+  return roleFor(input) === "admin" || permissionsFor(input).deleteDocuments;
 }
 
 export function requiresJustification(input: UserRole | AuthSession) {

@@ -4,17 +4,19 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { AppLogo } from "../app-settings";
 import type { AuthSession } from "../auth-types";
+import type { ArchivedDocumentSummary } from "../document-archive";
 import type { EventoResumo, MovimentoDetalhe, Nota } from "../supabase-data";
 import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
 
-type SearchKind = "evento" | "movimento" | "todo";
+type SearchKind = "evento" | "movimento" | "todo" | "documento";
 type SearchFilter = "todos" | SearchKind;
 
 type GlobalSearchClientProps = {
   eventos: EventoResumo[];
   movimentos: MovimentoDetalhe[];
   notas: Nota[];
+  documents: ArchivedDocumentSummary[];
   error: string | null;
   session: AuthSession;
   appLogo: AppLogo | null;
@@ -29,6 +31,7 @@ type SearchResult = {
   detail: string;
   date: string;
   amount: number | null;
+  amountText?: string;
   href: string;
   haystack: string;
 };
@@ -85,6 +88,22 @@ function notePriorityLabel(value: Nota["prioridade"]) {
   if (value === "alta") return "Alta";
   if (value === "urgente") return "Urgente";
   return "Normal";
+}
+
+function documentCategoryLabel(value: ArchivedDocumentSummary["category"]) {
+  if (value === "atas") return "Atas";
+  if (value === "faturas") return "Faturas";
+  if (value === "contratos") return "Contratos";
+  if (value === "recibos") return "Recibos";
+  if (value === "licencas") return "Licenças";
+  if (value === "imagens") return "Imagens";
+  return "Outro";
+}
+
+function formatBytes(value: number) {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(".", ",")} MB`;
+  if (value >= 1_000) return `${Math.round(value / 1_000)} KB`;
+  return `${value} B`;
 }
 
 function normalizeText(value: unknown) {
@@ -224,13 +243,47 @@ function noteSearchResult(note: Nota): SearchResult {
   };
 }
 
+function documentSearchResult(document: ArchivedDocumentSummary): SearchResult {
+  const category = documentCategoryLabel(document.category);
+  const detail = cleanDetail([
+    document.description || "Sem descrição",
+    `Categoria: ${category}`,
+    `Ficheiro: ${document.fileName}`,
+    document.tags.length ? `Etiquetas: ${document.tags.join(", ")}` : null
+  ]);
+  const searchable = [
+    document.id,
+    document.title,
+    document.description,
+    document.fileName,
+    document.category,
+    category,
+    document.createdBy,
+    document.tags.join(" ")
+  ].join(" ");
+
+  return {
+    id: document.id,
+    kind: "documento",
+    badge: "Documento",
+    title: document.title,
+    source: category,
+    detail,
+    date: formatDateTime(document.createdAt),
+    amount: null,
+    amountText: formatBytes(document.size),
+    href: `/documentos?documento=${encodeURIComponent(document.id)}`,
+    haystack: normalizeText(searchable)
+  };
+}
+
 function countByKind(results: SearchResult[]) {
   return results.reduce(
     (acc, result) => {
       acc[result.kind] += 1;
       return acc;
     },
-    { evento: 0, movimento: 0, todo: 0 }
+    { evento: 0, movimento: 0, todo: 0, documento: 0 }
   );
 }
 
@@ -242,6 +295,7 @@ export function GlobalSearchClient({
   eventos,
   movimentos,
   notas,
+  documents,
   error,
   session,
   appLogo
@@ -252,9 +306,10 @@ export function GlobalSearchClient({
     () => [
       ...eventos.filter((event) => event.slug !== "contas").map(eventSearchResult),
       ...movimentos.map(movementSearchResult),
-      ...notas.map(noteSearchResult)
+      ...notas.map(noteSearchResult),
+      ...documents.map(documentSearchResult)
     ],
-    [eventos, movimentos, notas]
+    [documents, eventos, movimentos, notas]
   );
   const tokens = normalizeText(query).split(" ").filter(Boolean);
   const resultsByQuery = useMemo(() => {
@@ -282,11 +337,11 @@ export function GlobalSearchClient({
         <div className="search-heading">
           <div>
             <p className="eyebrow">Pesquisa global</p>
-            <h2>Encontrar eventos, movimentos e TODO</h2>
+            <h2>Encontrar eventos, movimentos, TODO e documentos</h2>
           </div>
           <span>
             {index.length} registos indexados · {totalCounts.evento} eventos · {totalCounts.movimento} movimentos ·{" "}
-            {totalCounts.todo} tarefas
+            {totalCounts.todo} tarefas · {totalCounts.documento} documentos
           </span>
         </div>
 
@@ -320,6 +375,14 @@ export function GlobalSearchClient({
           <button aria-selected={filter === "todo"} onClick={() => setFilter("todo")} role="tab" type="button">
             TODO <span>{counts.todo}</span>
           </button>
+          <button
+            aria-selected={filter === "documento"}
+            onClick={() => setFilter("documento")}
+            role="tab"
+            type="button"
+          >
+            Documentos <span>{counts.documento}</span>
+          </button>
         </div>
       </section>
 
@@ -339,6 +402,10 @@ export function GlobalSearchClient({
         <article>
           <span>TODO</span>
           <strong>{counts.todo}</strong>
+        </article>
+        <article>
+          <span>Documentos</span>
+          <strong>{counts.documento}</strong>
         </article>
       </section>
 
@@ -376,7 +443,7 @@ export function GlobalSearchClient({
                     </td>
                     <td>{result.source}</td>
                     <td>{result.date}</td>
-                    <td>{result.amount === null ? "-" : formatMoney(result.amount)}</td>
+                    <td>{result.amountText ?? (result.amount === null ? "-" : formatMoney(result.amount))}</td>
                     <td>
                       <Link className="search-open-link" href={result.href}>
                         Abrir

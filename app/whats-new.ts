@@ -15,6 +15,17 @@ export type WhatsNewSeenState = {
 
 export const WHATS_NEW_RELEASES: WhatsNewEntry[] = [
   {
+    id: "2026-07-23-arquivo-documentos",
+    title: "Arquivo de documentos",
+    date: "2026-07-23",
+    summary: "Foi adicionada uma área própria para guardar documentos importantes.",
+    items: [
+      "A nova página Documentos permite arquivar PDFs, imagens, Word, Excel, PowerPoint, texto e CSV.",
+      "Cada documento pode ter categoria, descrição e etiquetas para facilitar a consulta.",
+      "A pesquisa global também passa a encontrar documentos arquivados."
+    ]
+  },
+  {
     id: "2026-07-23-alertas-suporte",
     title: "Alertas internos e suporte melhorado",
     date: "2026-07-23",

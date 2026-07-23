@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { canAccessAdmin, canViewSupport, canViewTreasury, canWrite, isViewOnly, type AuthSession } from "./auth-types";
+import {
+  canAccessAdmin,
+  canViewDocuments,
+  canViewSupport,
+  canViewTreasury,
+  canWrite,
+  isViewOnly,
+  type AuthSession
+} from "./auth-types";
 import { NotesMenu } from "./notes-menu";
 import { NotificationsMenu } from "./notifications-menu";
 
@@ -17,6 +25,7 @@ export type TopbarActive =
   | "utilizador"
   | "notas"
   | "suporte"
+  | "documentos"
   | "a-pagar";
 
 type TopbarActionsProps = {
@@ -40,6 +49,7 @@ type NavigationGroup = {
 export function TopbarActions({ active, pendingPaymentsCount = 0, session }: TopbarActionsProps) {
   const mayViewTreasury = canViewTreasury(session);
   const mayViewSupport = canViewSupport(session);
+  const mayViewDocuments = canViewDocuments(session);
   const mayWrite = canWrite(session);
   const mayAccessAdmin = canAccessAdmin(session);
   const viewOnly = isViewOnly(session);
@@ -105,6 +115,15 @@ export function TopbarActions({ active, pendingPaymentsCount = 0, session }: Top
             href="/suporte"
           >
             Suporte
+          </Link>
+        ) : null}
+        {mayViewDocuments && !viewOnly ? (
+          <Link
+            aria-current={active === "documentos" ? "page" : undefined}
+            className={active === "documentos" ? "top-utility-link active" : "top-utility-link"}
+            href="/documentos"
+          >
+            Documentos
           </Link>
         ) : null}
         {pendingPaymentsCount > 0 && mayViewTreasury ? (

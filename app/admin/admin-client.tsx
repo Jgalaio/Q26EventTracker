@@ -481,6 +481,33 @@ const rolePermissionModules: Array<{
     ]
   },
   {
+    id: "documentos",
+    title: "Arquivo de documentos",
+    description: "Consulta, upload e manutenção de documentos internos.",
+    permissions: [
+      {
+        key: "viewDocuments",
+        label: "Ver arquivo de documentos",
+        hint: "Permite abrir a página do arquivo."
+      },
+      {
+        key: "uploadDocuments",
+        label: "Carregar documentos",
+        hint: "Permite adicionar ficheiros ao arquivo."
+      },
+      {
+        key: "downloadDocuments",
+        label: "Descarregar documentos",
+        hint: "Permite fazer download dos ficheiros arquivados."
+      },
+      {
+        key: "deleteDocuments",
+        label: "Apagar documentos",
+        hint: "Permite remover documentos do arquivo."
+      }
+    ]
+  },
+  {
     id: "seguranca",
     title: "Segurança",
     description: "Regras de controlo e rastreabilidade das alterações.",

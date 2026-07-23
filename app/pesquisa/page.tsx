@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { getAppLogo } from "../app-settings";
 import { getSession } from "../auth";
-import { canViewTreasury } from "../auth-types";
+import { canViewDocuments, canViewTreasury } from "../auth-types";
+import { getArchivedDocumentSummaries } from "../document-archive";
 import { getNotas, getTesourariaData } from "../supabase-data";
 import { GlobalSearchClient } from "./global-search-client";
 
@@ -10,10 +11,12 @@ export default async function GlobalSearchPage() {
   if (!session) redirect("/login?next=/pesquisa");
   if (!canViewTreasury(session)) redirect("/overview");
 
-  const [{ eventos, movimentos, error }, notes, appLogo] = await Promise.all([
+  const mayViewDocuments = canViewDocuments(session);
+  const [{ eventos, movimentos, error }, notes, appLogo, documents] = await Promise.all([
     getTesourariaData(),
     getNotas(300),
-    getAppLogo()
+    getAppLogo(),
+    mayViewDocuments ? getArchivedDocumentSummaries(session) : Promise.resolve([])
   ]);
 
   return (
@@ -23,6 +26,7 @@ export default async function GlobalSearchPage() {
       eventos={eventos}
       movimentos={movimentos}
       notas={notes.data}
+      documents={documents}
       session={session}
     />
   );
