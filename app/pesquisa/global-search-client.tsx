@@ -248,6 +248,7 @@ function documentSearchResult(document: ArchivedDocumentSummary): SearchResult {
   const detail = cleanDetail([
     document.description || "Sem descrição",
     `Categoria: ${category}`,
+    document.eventName ? `Evento: ${document.eventName}` : null,
     `Ficheiro: ${document.fileName}`,
     document.tags.length ? `Etiquetas: ${document.tags.join(", ")}` : null
   ]);
@@ -258,6 +259,8 @@ function documentSearchResult(document: ArchivedDocumentSummary): SearchResult {
     document.fileName,
     document.category,
     category,
+    document.eventSlug,
+    document.eventName,
     document.createdBy,
     document.tags.join(" ")
   ].join(" ");
@@ -267,7 +270,7 @@ function documentSearchResult(document: ArchivedDocumentSummary): SearchResult {
     kind: "documento",
     badge: "Documento",
     title: document.title,
-    source: category,
+    source: document.eventName ? `${category} · ${document.eventName}` : category,
     detail,
     date: formatDateTime(document.createdAt),
     amount: null,

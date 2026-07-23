@@ -18,6 +18,9 @@ export type ArchivedDocument = {
   category: DocumentCategory;
   description: string;
   tags: string[];
+  eventId: string | null;
+  eventSlug: string | null;
+  eventName: string | null;
   fileName: string;
   mimeType: string;
   size: number;
@@ -34,6 +37,9 @@ export type ArchivedDocumentInput = {
   category?: unknown;
   description?: unknown;
   tags?: unknown;
+  eventId?: unknown;
+  eventSlug?: unknown;
+  eventName?: unknown;
   fileName?: unknown;
   mimeType?: unknown;
   size?: unknown;
@@ -139,14 +145,18 @@ function normalizeDocument(value: unknown): ArchivedDocument | null {
   const now = new Date().toISOString();
   const mimeType = cleanText(source.mimeType, 120) || mimeFromDataUrl(dataUrl) || "application/octet-stream";
   const title = cleanText(source.title, 96) || fileName;
+  const category = normalizeCategory(source.category);
   const size = typeof source.size === "number" && Number.isFinite(source.size) ? source.size : dataUrlByteSize(dataUrl);
 
   return {
     id: typeof source.id === "string" && source.id ? source.id : randomUUID(),
     title,
-    category: normalizeCategory(source.category),
+    category,
     description: cleanText(source.description, 800),
     tags: normalizeTags(source.tags),
+    eventId: category === "faturas" ? cleanText(source.eventId, 80) || null : null,
+    eventSlug: category === "faturas" ? cleanText(source.eventSlug, 96) || null : null,
+    eventName: category === "faturas" ? cleanText(source.eventName, 140) || null : null,
     fileName,
     mimeType,
     size,
@@ -197,6 +207,7 @@ export async function createArchivedDocument(session: AuthSession, input: Archiv
   const mimeType = cleanText(input.mimeType, 120) || mimeFromDataUrl(dataUrl) || "application/octet-stream";
   const size = typeof input.size === "number" && Number.isFinite(input.size) ? input.size : dataUrlByteSize(dataUrl);
   const title = cleanText(input.title, 96) || fileName;
+  const category = normalizeCategory(input.category);
 
   if (!title) throw new DocumentArchiveError("Indica o nome do documento.", 400);
   if (!fileName || !dataUrl.startsWith("data:")) throw new DocumentArchiveError("Escolhe um ficheiro válido.", 400);
@@ -208,9 +219,12 @@ export async function createArchivedDocument(session: AuthSession, input: Archiv
   const document: ArchivedDocument = {
     id: randomUUID(),
     title,
-    category: normalizeCategory(input.category),
+    category,
     description: cleanText(input.description, 800),
     tags: normalizeTags(input.tags),
+    eventId: category === "faturas" ? cleanText(input.eventId, 80) || null : null,
+    eventSlug: category === "faturas" ? cleanText(input.eventSlug, 96) || null : null,
+    eventName: category === "faturas" ? cleanText(input.eventName, 140) || null : null,
     fileName,
     mimeType,
     size,

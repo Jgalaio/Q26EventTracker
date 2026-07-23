@@ -23,6 +23,8 @@ export async function DELETE(_request: Request, context: RouteContext) {
       summary: `Apagou documento: ${document.title}`,
       details: {
         category: document.category,
+        eventSlug: document.eventSlug,
+        eventName: document.eventName,
         fileName: document.fileName,
         size: document.size
       }

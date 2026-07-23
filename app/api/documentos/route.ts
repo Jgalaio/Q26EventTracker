@@ -42,6 +42,8 @@ export async function POST(request: NextRequest) {
       summary: `Arquivou documento: ${document.title}`,
       details: {
         category: document.category,
+        eventSlug: document.eventSlug,
+        eventName: document.eventName,
         fileName: document.fileName,
         size: document.size
       }

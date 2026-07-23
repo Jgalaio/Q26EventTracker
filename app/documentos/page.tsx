@@ -3,6 +3,7 @@ import { getAppLogo } from "../app-settings";
 import { getSession } from "../auth";
 import { canViewDocuments, isViewOnly } from "../auth-types";
 import { getArchivedDocumentSummaries } from "../document-archive";
+import { getTesourariaData } from "../supabase-data";
 import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
 import { DocumentArchiveClient } from "./document-archive-client";
@@ -13,7 +14,12 @@ export default async function DocumentArchivePage() {
   if (isViewOnly(session)) redirect("/overview");
   if (!canViewDocuments(session)) redirect("/");
 
-  const [appLogo, documents] = await Promise.all([getAppLogo(), getArchivedDocumentSummaries(session)]);
+  const [appLogo, documents, tesourariaData] = await Promise.all([
+    getAppLogo(),
+    getArchivedDocumentSummaries(session),
+    getTesourariaData()
+  ]);
+  const events = tesourariaData.eventos.filter((event) => event.slug !== "contas");
 
   return (
     <main className="shell document-shell">
@@ -22,7 +28,7 @@ export default async function DocumentArchivePage() {
         <TopbarActions active="documentos" session={session} />
       </section>
 
-      <DocumentArchiveClient initialDocuments={documents} session={session} />
+      <DocumentArchiveClient events={events} initialDocuments={documents} session={session} />
     </main>
   );
 }

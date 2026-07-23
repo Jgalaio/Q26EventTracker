@@ -3,8 +3,10 @@
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import { canDeleteDocuments, canDownloadDocuments, canUploadDocuments, type AuthSession } from "../auth-types";
 import type { ArchivedDocumentSummary, DocumentCategory } from "../document-archive";
+import type { EventoResumo } from "../supabase-data";
 
 type DocumentArchiveClientProps = {
+  events: EventoResumo[];
   initialDocuments: ArchivedDocumentSummary[];
   session: AuthSession;
 };
@@ -70,6 +72,8 @@ function documentHaystack(document: ArchivedDocumentSummary) {
       document.fileName,
       document.category,
       categoryLabel(document.category),
+      document.eventSlug,
+      document.eventName,
       document.createdBy,
       document.tags.join(" ")
     ].join(" ")
@@ -90,11 +94,20 @@ function replaceDocument(documents: ArchivedDocumentSummary[], document: Archive
   return [document, ...next].sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
 }
 
-export function DocumentArchiveClient({ initialDocuments, session }: DocumentArchiveClientProps) {
+function sortEventsByDate(events: EventoResumo[]) {
+  return [...events].sort((left, right) => {
+    const leftTime = left.data_inicio ? new Date(`${left.data_inicio}T00:00:00`).getTime() : Number.POSITIVE_INFINITY;
+    const rightTime = right.data_inicio ? new Date(`${right.data_inicio}T00:00:00`).getTime() : Number.POSITIVE_INFINITY;
+    return leftTime - rightTime || left.nome.localeCompare(right.nome);
+  });
+}
+
+export function DocumentArchiveClient({ events, initialDocuments, session }: DocumentArchiveClientProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [documents, setDocuments] = useState(initialDocuments);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<DocumentCategory>("outro");
+  const [selectedEventSlug, setSelectedEventSlug] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
   const [query, setQuery] = useState("");
@@ -109,6 +122,8 @@ export function DocumentArchiveClient({ initialDocuments, session }: DocumentArc
   const mayUpload = canUploadDocuments(session);
   const mayDownload = canDownloadDocuments(session);
   const mayDelete = canDeleteDocuments(session);
+  const eventOptions = useMemo(() => sortEventsByDate(events), [events]);
+  const selectedEvent = eventOptions.find((event) => event.slug === selectedEventSlug) ?? null;
   const totalSize = documents.reduce((total, document) => total + document.size, 0);
   const filteredDocuments = useMemo(() => {
     const tokens = normalizeText(query).split(" ").filter(Boolean);
@@ -144,6 +159,9 @@ export function DocumentArchiveClient({ initialDocuments, session }: DocumentArc
           category,
           description,
           tags,
+          eventId: category === "faturas" ? selectedEvent?.id ?? null : null,
+          eventSlug: category === "faturas" ? selectedEvent?.slug ?? null : null,
+          eventName: category === "faturas" ? selectedEvent?.nome ?? null : null,
           fileName: file.name,
           mimeType: file.type,
           size: file.size,
@@ -156,6 +174,7 @@ export function DocumentArchiveClient({ initialDocuments, session }: DocumentArc
       setDocuments((current) => replaceDocument(current, body.document as ArchivedDocumentSummary));
       setTitle("");
       setCategory("outro");
+      setSelectedEventSlug("");
       setDescription("");
       setTags("");
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -210,7 +229,11 @@ export function DocumentArchiveClient({ initialDocuments, session }: DocumentArc
             Categoria
             <select
               disabled={!mayUpload || isSaving}
-              onChange={(event) => setCategory(event.target.value as DocumentCategory)}
+              onChange={(event) => {
+                const nextCategory = event.target.value as DocumentCategory;
+                setCategory(nextCategory);
+                if (nextCategory !== "faturas") setSelectedEventSlug("");
+              }}
               value={category}
             >
               {categoryOptions.map((option) => (
@@ -220,6 +243,23 @@ export function DocumentArchiveClient({ initialDocuments, session }: DocumentArc
               ))}
             </select>
           </label>
+          {category === "faturas" ? (
+            <label>
+              Evento associado
+              <select
+                disabled={!mayUpload || isSaving || eventOptions.length === 0}
+                onChange={(event) => setSelectedEventSlug(event.target.value)}
+                value={selectedEventSlug}
+              >
+                <option value="">Sem evento associado</option>
+                {eventOptions.map((event) => (
+                  <option key={event.id} value={event.slug}>
+                    {event.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <label>
             Descrição
             <textarea
@@ -308,6 +348,12 @@ export function DocumentArchiveClient({ initialDocuments, session }: DocumentArc
                     <dt>Arquivado por</dt>
                     <dd>{document.createdBy}</dd>
                   </div>
+                  {document.category === "faturas" ? (
+                    <div>
+                      <dt>Evento</dt>
+                      <dd>{document.eventName || "Sem evento associado"}</dd>
+                    </div>
+                  ) : null}
                   <div>
                     <dt>Data</dt>
                     <dd>{formatDate(document.createdAt)}</dd>
