@@ -69,6 +69,7 @@ Opcionalmente, também podes adicionar as mesmas variáveis em Vercel > Project 
 NEXT_PUBLIC_SUPABASE_URL=https://ushhacwtmpmwmvpaitdx.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB
 Q26_AUTH_SECRET=troca-este-valor-por-um-segredo-longo
+Q26_INSTALLER_SECRET=troca-este-valor-por-um-segredo-so-do-instalador
 SUPABASE_SERVICE_ROLE_KEY=chave-service-role-do-supabase
 SUPABASE_BACKUP_BUCKET=q26-backups
 ```
@@ -86,6 +87,19 @@ Para uma instalação nova, define também `Q26_INSTALLER_SECRET` no Vercel. Dep
 O instalador confirma as variáveis de ambiente, dá o SQL limpo para criar a base de dados sem utilizadores pré-definidos e, depois do SQL estar corrido no Supabase, cria o primeiro utilizador `Admin`. A app cria ainda as áreas técnicas mínimas `Conta Q26`, `Patrocínios` e `Peditório`, para o painel arrancar do zero sem dados antigos.
 
 Por segurança, o site não cria um projeto Supabase novo sozinho. Primeiro crias o projeto Supabase e colocas `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SERVICE_ROLE_KEY` no Vercel; o instalador trata da ligação e do primeiro arranque da aplicação.
+
+### Tutorial rápido de instalação
+
+1. Cria um projeto novo no Supabase.
+2. No Vercel, adiciona as variáveis `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `Q26_AUTH_SECRET`, `Q26_INSTALLER_SECRET` e, se usares backups, `SUPABASE_BACKUP_BUCKET`.
+3. Faz deploy do site no Vercel e abre `https://teu-site.vercel.app/instalar`.
+4. Confirma se o bloco `Ambiente` aparece todo com `OK`.
+5. No bloco `Base de dados`, copia ou descarrega o SQL e corre-o no Supabase SQL Editor do projeto novo.
+6. Volta ao `/instalar` e clica em `Verificar`.
+7. Quando o schema estiver pronto, escreve a `Chave do instalador`, cria o primeiro utilizador Admin e entra no painel.
+8. Depois de entrares, cria logo um backup manual na zona Admin para ficares com um ponto inicial limpo.
+
+Não corras o SQL do instalador numa base de dados que já esteja em produção com dados importantes. Para instalações existentes, faz apenas deploy do código mantendo as mesmas variáveis do Supabase.
 
 ## 3. Correr localmente
 
