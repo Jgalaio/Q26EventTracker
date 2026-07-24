@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getAppLogo, getReportLogo } from "../app-settings";
 import { getSession } from "../auth";
 import { isViewOnly } from "../auth-types";
+import { getInstallerStatus } from "../installer";
 
 type LoginPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -22,7 +23,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   if (session) redirect(isViewOnly(session) ? "/overview" : "/");
 
   const params: Record<string, string | string[] | undefined> = searchParams ? await searchParams : {};
-  const [appLogo, reportLogo] = await Promise.all([getAppLogo(), getReportLogo()]);
+  const [appLogo, reportLogo, installerStatus] = await Promise.all([
+    getAppLogo(),
+    getReportLogo(),
+    getInstallerStatus()
+  ]);
   const loginLogo = appLogo ?? reportLogo;
   const next = safeNextPath(getSearchValue(params, "next"));
   const hasError = getSearchValue(params, "error") === "1";
@@ -60,6 +65,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </label>
           <button type="submit">Entrar</button>
         </form>
+        {!installerStatus.installed ? (
+          <a className="installer-login-link" href="/instalar">
+            Instalar / configurar primeiro arranque
+          </a>
+        ) : null}
       </section>
 
       <section className="login-creator-panel" aria-label="Criadores">

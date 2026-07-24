@@ -79,6 +79,14 @@ SUPABASE_BACKUP_BUCKET=q26-backups
 
 Os backups automáticos mantêm apenas os últimos 30 dias. Os backups manuais ficam guardados sem limite de tempo e só são removidos quando um Admin os apaga na zona de backups.
 
+## First run / instalador
+
+Para uma instalação nova, define também `Q26_INSTALLER_SECRET` no Vercel. Depois abre `/instalar`.
+
+O instalador confirma as variáveis de ambiente, dá o SQL limpo para criar a base de dados sem utilizadores pré-definidos e, depois do SQL estar corrido no Supabase, cria o primeiro utilizador `Admin`. A app cria ainda as áreas técnicas mínimas `Conta Q26`, `Patrocínios` e `Peditório`, para o painel arrancar do zero sem dados antigos.
+
+Por segurança, o site não cria um projeto Supabase novo sozinho. Primeiro crias o projeto Supabase e colocas `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SERVICE_ROLE_KEY` no Vercel; o instalador trata da ligação e do primeiro arranque da aplicação.
+
 ## 3. Correr localmente
 
 ```bash
