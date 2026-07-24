@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getAppLogo, getPhysicalCashSettings, getQ25Balance } from "./app-settings";
 import { getSession } from "./auth";
 import { canViewTreasury, isViewOnly } from "./auth-types";
+import { BANK_ACCOUNT_LABEL, isBankAccountPayment } from "./payment-labels";
 import { getNotas, getTesourariaData, type EventoResumo, type MovimentoDetalhe, type Nota } from "./supabase-data";
 import { getUserQuickNotes } from "./user-quick-notes";
 import { WelcomeClient } from "./welcome-client";
@@ -51,7 +52,7 @@ function normalizePayment(value: string | null | undefined) {
 
 function isContaPayment(value: string | null) {
   const normalized = normalizePayment(value);
-  return normalized === "transferencia" || normalized === "c q26";
+  return normalized === "transferencia" || isBankAccountPayment(value);
 }
 
 function isBankEntryPayment(value: string | null | undefined) {
@@ -104,7 +105,7 @@ function addMovimento(summary: Summary, movimento: MovimentoDetalhe) {
   if (movimento.fatura_com_nif === false) summary.naoFaturado += amount;
 
   const payment = normalizePayment(movimento.tipo_pagamento);
-  if (payment === "c q26") summary.pagoQ26 += amount;
+  if (isBankAccountPayment(movimento.tipo_pagamento)) summary.pagoQ26 += amount;
   if (payment === "transferencia") summary.transferencias += amount;
   if (payment === "dinheiro") summary.dinheiro += amount;
 }
@@ -279,7 +280,7 @@ export default async function WelcomePage({ searchParams }: WelcomePageProps) {
     {
       label: "Saldo em conta",
       value: formatMoney(accountBalance),
-      detail: "Conta Q26",
+      detail: BANK_ACCOUNT_LABEL,
       tone: accountBalance < 0 ? ("red" as const) : ("green" as const)
     },
     { label: "Valor Dinheiro", value: formatMoney(cashValue), detail: "Lucro + Q25 - Saldo Conta", tone: "blue" as const },

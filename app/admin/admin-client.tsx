@@ -213,13 +213,13 @@ const rolePermissionModules: Array<{
   },
   {
     id: "conta-q26",
-    title: "Conta Q26",
+    title: "Conta Bancaria",
     description: "Consulta e gestão dos movimentos da conta.",
     permissions: [
       {
         key: "viewAccountQ26",
-        label: "Ver Conta Q26",
-        hint: "Permite abrir a aba da Conta Q26."
+        label: "Ver Conta Bancaria",
+        hint: "Permite abrir a aba da Conta Bancaria."
       },
       {
         key: "addManualAccountEntries",
@@ -229,17 +229,17 @@ const rolePermissionModules: Array<{
       {
         key: "editAccountEntries",
         label: "Editar entradas da conta",
-        hint: "Permite alterar entradas registadas na Conta Q26."
+        hint: "Permite alterar entradas registadas na Conta Bancaria."
       },
       {
         key: "deleteAccountEntries",
         label: "Apagar entradas da conta",
-        hint: "Permite apagar entradas da Conta Q26."
+        hint: "Permite apagar entradas da Conta Bancaria."
       },
       {
         key: "viewAccountBalance",
         label: "Ver saldo em conta",
-        hint: "Permite consultar o saldo da Conta Q26."
+        hint: "Permite consultar o saldo da Conta Bancaria."
       }
     ]
   },

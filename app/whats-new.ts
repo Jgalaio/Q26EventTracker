@@ -75,7 +75,7 @@ export const WHATS_NEW_RELEASES: WhatsNewEntry[] = [
     date: "2026-07-17",
     summary: "A Tesouraria ficou mais organizada para separar melhor os eventos, os patrocínios e o peditório.",
     items: [
-      "Peditório e Patrocínios Festa passam a ter abas próprias, tal como a Conta Q26.",
+      "Peditório e Patrocínios Festa passam a ter abas próprias, tal como a Conta Bancaria.",
       "Os eventos normais deixam de misturar esses movimentos na lista principal de eventos.",
       "Foram adicionados cartões de resumo para Eventos, Patrocínios e Peditório.",
       "Os totais gerais continuam a considerar todos os movimentos contabilizáveis."

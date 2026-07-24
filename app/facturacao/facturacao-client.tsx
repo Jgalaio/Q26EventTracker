@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { AppLogo } from "../app-settings";
 import { canAccessAdmin, type AuthSession } from "../auth-types";
+import { paymentDisplayLabel } from "../payment-labels";
 import type { EventoResumo, FaturacaoReport, FaturacaoReportItem, MovimentoDetalhe } from "../supabase-data";
 import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
@@ -214,7 +215,7 @@ function PrintableInvoiceReport({ report }: { report: FaturacaoReport }) {
           <td>{item.evento_nome}</td>
           <td>{item.item}</td>
           <td>{item.numero_fatura ?? "-"}</td>
-          <td>{item.tipo_pagamento ?? "-"}</td>
+          <td>{paymentDisplayLabel(item.tipo_pagamento)}</td>
           <td className="money">{formatMoney(item.montante)}</td>
         </tr>
       ))
@@ -705,7 +706,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
                       <td>{movimento.item}</td>
                       <td>{renderDescription(movimento)}</td>
                       <td>{formatDate(movimento.data_pagamento)}</td>
-                      <td>{movimento.tipo_pagamento ?? "-"}</td>
+                      <td>{paymentDisplayLabel(movimento.tipo_pagamento)}</td>
                       <td>{formatMoney(movimento.montante)}</td>
                     </tr>
                   ))
@@ -743,7 +744,7 @@ export function FacturacaoClient({ eventos, movimentos, reports, reportsError, e
                       <td>{movimento.item}</td>
                       <td>{renderDescription(movimento)}</td>
                       <td>{formatDate(movimento.data_pagamento)}</td>
-                      <td>{movimento.tipo_pagamento ?? "-"}</td>
+                      <td>{paymentDisplayLabel(movimento.tipo_pagamento)}</td>
                       <td>{formatMoney(movimento.montante)}</td>
                     </tr>
                   ))

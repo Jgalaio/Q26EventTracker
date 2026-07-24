@@ -169,7 +169,7 @@ function summaryRows(rows: ExcelRow[], row: OverviewRow) {
     { value: row.faturado, style: CURRENCY_STYLE },
     { value: "Não faturado", style: LABEL_STYLE },
     { value: row.naoFaturado, style: CURRENCY_STYLE },
-    { value: "Pago C.Q26", style: LABEL_STYLE },
+    { value: "Pago Conta Bancaria", style: LABEL_STYLE },
     { value: row.pagoQ26, style: CURRENCY_STYLE },
     { value: "Transferências", style: LABEL_STYLE },
     { value: row.transferencias, style: CURRENCY_STYLE }

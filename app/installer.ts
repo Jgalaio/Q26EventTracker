@@ -1,6 +1,7 @@
 import { readFile } from "fs/promises";
 import path from "path";
 import { hashCredential, supabaseAdminHeaders, supabaseEndpoint } from "./auth";
+import { BANK_ACCOUNT_LABEL } from "./payment-labels";
 
 type InstallerCheck = {
   detail: string;
@@ -43,8 +44,8 @@ const REQUIRED_DATABASE_OBJECTS = [
 const BASE_EVENTS = [
   {
     slug: "contas",
-    nome: "Conta Q26",
-    folha_excel: "Conta Q26",
+    nome: BANK_ACCOUNT_LABEL,
+    folha_excel: BANK_ACCOUNT_LABEL,
     ordem_folha: 1,
     data_texto: null,
     data_inicio: null,

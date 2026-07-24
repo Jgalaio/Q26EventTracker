@@ -9,7 +9,7 @@ Este projeto converte o ficheiro Excel `Tesouraria Q26.xlsm` para:
 - `data/*.csv`: exportações auditáveis, incluindo histórico Excel e utilizadores sem passwords.
 - App Next.js pronta para Vercel.
 
-A interface tem duas áreas principais: `Eventos`, onde escolhes cada evento e geres entradas/saídas, e `Contas`, onde entram os movimentos da folha Contas e as saídas são somadas automaticamente a partir das despesas dos eventos pagas por Transferencia ou C. Q26.
+A interface tem duas áreas principais: `Eventos`, onde escolhes cada evento e geres entradas/saídas, e `Contas`, onde entram os movimentos da folha Contas e as saídas são somadas automaticamente a partir das despesas dos eventos pagas por Transferencia ou Conta Bancaria.
 
 A página `/overview` mostra o panorama geral da tesouraria, com cartões de totais, gráfico de barras e resumo por evento. Clicar num evento abre os movimentos desse evento em cascata.
 
@@ -84,7 +84,7 @@ Os backups automáticos mantêm apenas os últimos 30 dias. Os backups manuais f
 
 Para uma instalação nova, define também `Q26_INSTALLER_SECRET` no Vercel. Depois abre `/instalar`.
 
-O instalador confirma as variáveis de ambiente, dá o SQL limpo para criar a base de dados sem utilizadores pré-definidos e, depois do SQL estar corrido no Supabase, cria o primeiro utilizador `Admin`. A app cria ainda as áreas técnicas mínimas `Conta Q26`, `Patrocínios` e `Peditório`, para o painel arrancar do zero sem dados antigos.
+O instalador confirma as variáveis de ambiente, dá o SQL limpo para criar a base de dados sem utilizadores pré-definidos e, depois do SQL estar corrido no Supabase, cria o primeiro utilizador `Admin`. A app cria ainda as áreas técnicas mínimas `Conta Bancaria`, `Patrocínios` e `Peditório`, para o painel arrancar do zero sem dados antigos.
 
 Por segurança, o site não cria um projeto Supabase novo sozinho. Primeiro crias o projeto Supabase e colocas `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SERVICE_ROLE_KEY` no Vercel; o instalador trata da ligação e do primeiro arranque da aplicação.
 

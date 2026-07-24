@@ -8,6 +8,7 @@ import {
 } from "../../../backup-manager";
 import { getSession, supabaseAdminHeaders } from "../../../auth";
 import type { AuthSession } from "../../../auth-types";
+import { isBankAccountPayment } from "../../../payment-labels";
 import { getTesourariaData, type EventoResumo, type MovimentoDetalhe } from "../../../supabase-data";
 import { missingAdminKeyResponse, supabaseAdminRequest } from "../users/user-utils";
 
@@ -94,7 +95,7 @@ function addMovimento(summary: Summary, movimento: MovimentoDetalhe) {
   if (movimento.fatura_com_nif === false) summary.naoFaturado += amount;
 
   const payment = normalizePayment(movimento.tipo_pagamento);
-  if (payment === "c q26") summary.pagoQ26 += amount;
+  if (isBankAccountPayment(movimento.tipo_pagamento)) summary.pagoQ26 += amount;
   if (payment === "transferencia") summary.transferencias += amount;
   if (payment === "dinheiro") summary.dinheiro += amount;
 }

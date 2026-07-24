@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { AppLogo } from "../app-settings";
 import { requiresJustification, type AuthSession } from "../auth-types";
+import { paymentDisplayLabel } from "../payment-labels";
 import type { MovimentoDetalhe } from "../supabase-data";
 import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
@@ -331,7 +332,7 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
                 <tr key={movimento.id}>
                   <td>{movimento.evento_nome}</td>
                   <td className="item-cell">{movimento.item}</td>
-                  <td>{movimento.tipo_pagamento ?? "-"}</td>
+                  <td>{paymentDisplayLabel(movimento.tipo_pagamento)}</td>
                   <td>{entryKindLabel(movimento)}</td>
                   <td className="money">{formatMoney(movimento.montante)}</td>
                   <td>

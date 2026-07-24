@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeAuditLog } from "../../../../audit-log";
+import { BANK_ACCOUNT_DEPOSIT_PAYMENT } from "../../../../payment-labels";
 import { readJsonBody, requireDeleteAccess, requireWriteAccess } from "../../../q26-write";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ushhacwtmpmwmvpaitdx.supabase.co";
@@ -222,7 +223,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       const accountMovementPayload = {
         item: accountMovementItem(report.evento_nome),
         montante: montanteDepositar,
-        tipo_pagamento: "Conta Q26",
+        tipo_pagamento: BANK_ACCOUNT_DEPOSIT_PAYMENT,
         raw: {
           ...(isRecord(accountMovement.raw) ? accountMovement.raw : {}),
           origem: "faturacao",
@@ -232,7 +233,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
           item: accountMovementItem(report.evento_nome),
           montante: montanteDepositar,
           montante_depositar: montanteDepositar,
-          tipo_pagamento: "Conta Q26",
+          tipo_pagamento: BANK_ACCOUNT_DEPOSIT_PAYMENT,
           tipo_entrada: "Depósito",
           ultima_alteracao: {
             data: new Date().toISOString(),

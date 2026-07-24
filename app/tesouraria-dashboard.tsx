@@ -12,6 +12,13 @@ import {
   requiresJustification,
   type AuthSession
 } from "./auth-types";
+import {
+  BANK_ACCOUNT_DEPOSIT_PAYMENT,
+  BANK_ACCOUNT_LABEL,
+  eventDisplayName,
+  isBankAccountPayment,
+  paymentDisplayLabel
+} from "./payment-labels";
 import type { EventoResumo, MovimentoDetalhe } from "./supabase-data";
 import { TopbarActions } from "./topbar-actions";
 import { TopbarBrand } from "./topbar-brand";
@@ -189,7 +196,7 @@ function accountDepositFormDefaults(): MovementForm {
     item: "Depósito",
     data_pagamento: todayInputDate(),
     tipo_entrada: "deposito",
-    tipo_pagamento: "Conta Q26"
+    tipo_pagamento: BANK_ACCOUNT_DEPOSIT_PAYMENT
   };
 }
 
@@ -459,7 +466,7 @@ function normalizePayment(value: string | null | undefined) {
 
 function isContaPayment(value: string | null) {
   const normalized = normalizePayment(value);
-  return normalized === "transferencia" || normalized === "c q26";
+  return normalized === "transferencia" || isBankAccountPayment(value);
 }
 
 function isBankEntryPayment(value: string | null | undefined) {
@@ -475,7 +482,7 @@ function entryPaymentLabel(movimento: MovimentoDetalhe) {
 }
 
 function accountEntryLabel(movimento: MovimentoDetalhe) {
-  return movimento.evento_slug === "contas" ? "Conta Q26" : entryPaymentLabel(movimento);
+  return movimento.evento_slug === "contas" ? BANK_ACCOUNT_LABEL : entryPaymentLabel(movimento);
 }
 
 function isAccountEntry(movimento: MovimentoDetalhe) {
@@ -496,7 +503,7 @@ function summarizeMovimentos(movimentos: MovimentoDetalhe[]): FinancialSummary {
       if (movimento.fatura_com_nif === false) acc.naoFaturado += amount;
 
       const payment = normalizePayment(movimento.tipo_pagamento);
-      if (payment === "c q26") acc.pagoQ26 += amount;
+      if (isBankAccountPayment(movimento.tipo_pagamento)) acc.pagoQ26 += amount;
       if (payment === "transferencia") acc.transferencia += amount;
       if (payment === "dinheiro") acc.dinheiro += amount;
       return acc;
@@ -938,11 +945,11 @@ export function Dashboard({
   const openAccountDepositAdd = () => {
     if (!mayWrite) return;
     if (!accountEvent) {
-      setSaveMessage("Não encontrei a categoria Conta Q26 para registar o depósito.");
+      setSaveMessage(`Não encontrei a categoria ${BANK_ACCOUNT_LABEL} para registar o depósito.`);
       return;
     }
     if (accountEventClosed) {
-      setSaveMessage("A Conta Q26 está fechada. Desbloqueia no Admin para adicionar depósitos.");
+      setSaveMessage(`A ${BANK_ACCOUNT_LABEL} está fechada. Desbloqueia no Admin para adicionar depósitos.`);
       return;
     }
     setSaveMessage(null);
@@ -1276,7 +1283,7 @@ export function Dashboard({
   const saveAccountDeposit = async () => {
     if (!mayWrite || !accountEvent) return;
     if (accountEventClosed) {
-      setSaveMessage("A Conta Q26 está fechada. Desbloqueia no Admin para adicionar depósitos.");
+      setSaveMessage(`A ${BANK_ACCOUNT_LABEL} está fechada. Desbloqueia no Admin para adicionar depósitos.`);
       return;
     }
 
@@ -1306,7 +1313,7 @@ export function Dashboard({
           montante: amount,
           numero_fatura: null,
           fatura_com_nif: null,
-          tipo_pagamento: "Conta Q26",
+          tipo_pagamento: BANK_ACCOUNT_DEPOSIT_PAYMENT,
           pago: null,
           contabilizar_totais: true,
           origem_tabela: manualOrigin("conta_entrada"),
@@ -1319,7 +1326,7 @@ export function Dashboard({
             descricao: description,
             data_pagamento: accountMovementForm.data_pagamento || null,
             montante: amount,
-            tipo_pagamento: "Conta Q26",
+            tipo_pagamento: BANK_ACCOUNT_DEPOSIT_PAYMENT,
             tipo_entrada: "Depósito",
             fatura_emitida: false,
             contabilizar_totais: true
@@ -1328,7 +1335,7 @@ export function Dashboard({
       });
       setAccountQuickAddOpen(false);
       setAccountMovementForm(accountDepositFormDefaults());
-      setSaveMessage("Depósito registado na Conta Q26.");
+      setSaveMessage(`Depósito registado na ${BANK_ACCOUNT_LABEL}.`);
       router.refresh();
     } catch (caught) {
       setSaveMessage(caught instanceof Error ? caught.message : "Não foi possível registar o depósito.");
@@ -1541,7 +1548,7 @@ export function Dashboard({
             ) : null
           ) : sectionMode === "contas" ? (
             <div className="account-menu-summary">
-              <span>Conta Q26</span>
+              <span>{BANK_ACCOUNT_LABEL}</span>
               <strong>{formatMoney(accountBalance)}</strong>
             </div>
           ) : (
@@ -1576,7 +1583,7 @@ export function Dashboard({
               <strong>{formatMoney(accountCounts.totalEntradas)}</strong>
             </article>
             <article>
-              <span>Saídas Conta Q26</span>
+              <span>Saídas da conta</span>
               <strong>{formatMoney(accountCounts.totalSaidas)}</strong>
             </article>
             <article>
@@ -1834,9 +1841,9 @@ export function Dashboard({
                   <small>Fatura C/NIF: Não</small>
                 </article>
                 <article>
-                  <span>Pago C.Q26</span>
+                  <span>Pago Conta Bancaria</span>
                   <strong>{formatMoney(eventFinancialSummary.pagoQ26)}</strong>
-                  <small>Pagamento C. Q26</small>
+                  <small>Pagamento pela conta</small>
                 </article>
                 <article>
                   <span>Transferencia</span>
@@ -2175,7 +2182,7 @@ export function Dashboard({
                             >
                               <option value="">—</option>
                               <option value="Dinheiro">Dinheiro</option>
-                              <option value="C. Q26">C. Q26</option>
+                              <option value="C. Q26">{BANK_ACCOUNT_LABEL}</option>
                               <option value="Transferencia">Transferencia</option>
                             </select>
                           </td>
@@ -2308,14 +2315,14 @@ export function Dashboard({
         </section>
       </section>
       ) : (
-        <section className="account-panel" aria-label="Contas Q26">
+        <section className="account-panel" aria-label="Conta Bancaria">
           <div className="event-detail">
             <div>
               <p className="eyebrow">Contas</p>
-              <h2>Conta Q26</h2>
+              <h2>{BANK_ACCOUNT_LABEL}</h2>
               <span className="event-meta">
                 {accountEvent
-                  ? "Movimentos da folha Contas, entradas por Multibanco ou Transferencia e despesas por Transferência ou C. Q26"
+                  ? "Movimentos da folha Contas, entradas por Multibanco ou Transferencia e despesas pagas pela conta"
                   : "Sem folha Contas carregada"}
               </span>
             </div>
@@ -2355,7 +2362,7 @@ export function Dashboard({
 
           <div className="table-heading">
             <div>
-              <p className="eyebrow">{activeTab === "entrada" ? "Entradas na conta" : "Saídas Conta Q26"}</p>
+              <p className="eyebrow">{activeTab === "entrada" ? "Entradas na conta" : "Saídas da conta"}</p>
               <h2>{filteredAccountMovimentos.length} registos</h2>
             </div>
             <div className="table-heading-actions">
@@ -2406,7 +2413,7 @@ export function Dashboard({
               <tbody>
                 {mayWrite && activeTab === "entrada" && accountQuickAddOpen ? (
                   <tr className="inline-add-row account-inline-add-row">
-                    <td>Conta Q26</td>
+                    <td>{BANK_ACCOUNT_LABEL}</td>
                     <td className="item-cell">
                       <input
                         aria-label="Item do depósito"
@@ -2438,7 +2445,7 @@ export function Dashboard({
                         }
                       />
                     </td>
-                    <td>Conta Q26</td>
+                    <td>{BANK_ACCOUNT_LABEL}</td>
                     <td>Depósito</td>
                     <td>—</td>
                     <td>
@@ -2467,7 +2474,7 @@ export function Dashboard({
                 {filteredAccountMovimentos.map((movimento) => (
                   activeTab === "entrada" ? (
                     <tr className={movementRowClass(movimento)} key={movimento.id}>
-                      <td>{movimento.evento_nome}</td>
+                      <td>{eventDisplayName({ nome: movimento.evento_nome, slug: movimento.evento_slug })}</td>
                       <td className="item-cell">{movimento.item}</td>
                       <td>{renderDescription(movimento)}</td>
                       <td>{formatDate(movimento.data_pagamento)}</td>
@@ -2479,12 +2486,12 @@ export function Dashboard({
                     </tr>
                   ) : (
                     <tr className={movementRowClass(movimento)} key={movimento.id}>
-                      <td>{movimento.evento_nome}</td>
+                      <td>{eventDisplayName({ nome: movimento.evento_nome, slug: movimento.evento_slug })}</td>
                       <td className="item-cell">{movimento.item}</td>
                       <td>{renderDescription(movimento)}</td>
                       <td>{formatDate(movimento.data_pagamento)}</td>
                       <td className="money">{formatMoney(movimento.montante)}</td>
-                      <td>{movimento.tipo_pagamento ?? "—"}</td>
+                      <td>{paymentDisplayLabel(movimento.tipo_pagamento, "—")}</td>
                       <td>{movimento.fatura_com_nif === null ? "—" : movimento.fatura_com_nif ? "Sim" : "Não"}</td>
                       <td>{movimento.pago === null ? "—" : movimento.pago ? "Sim" : "Não"}</td>
                     </tr>
@@ -2766,7 +2773,7 @@ export function Dashboard({
                       >
                         <option value="">—</option>
                         <option value="Dinheiro">Dinheiro</option>
-                        <option value="C. Q26">C. Q26</option>
+                        <option value="C. Q26">{BANK_ACCOUNT_LABEL}</option>
                         <option value="Transferencia">Transferencia</option>
                       </select>
                     </label>

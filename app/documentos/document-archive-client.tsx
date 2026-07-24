@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import { canDeleteDocuments, canDownloadDocuments, canUploadDocuments, type AuthSession } from "../auth-types";
 import type { ArchivedDocumentSummary, DocumentCategory } from "../document-archive";
+import { eventDisplayName } from "../payment-labels";
 import type { EventoResumo } from "../supabase-data";
 
 type DocumentArchiveClientProps = {
@@ -254,7 +255,7 @@ export function DocumentArchiveClient({ events, initialDocuments, session }: Doc
                 <option value="">Sem evento associado</option>
                 {eventOptions.map((event) => (
                   <option key={event.id} value={event.slug}>
-                    {event.nome}
+                    {eventDisplayName(event)}
                   </option>
                 ))}
               </select>

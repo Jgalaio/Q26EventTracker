@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { requiresJustification, type AuthSession } from "../auth-types";
+import { paymentDisplayLabel } from "../payment-labels";
 import type { MovimentoDetalhe } from "../supabase-data";
 
 type PendingPaymentsClientProps = {
@@ -138,7 +139,7 @@ export function PendingPaymentsClient({ initialMovimentos, session }: PendingPay
                     <td>{movimento.descricao ?? "-"}</td>
                     <td>{formatDate(movimento.data_pagamento)}</td>
                     <td className="money">{formatMoney(movimento.montante)}</td>
-                    <td>{movimento.tipo_pagamento ?? "-"}</td>
+                    <td>{paymentDisplayLabel(movimento.tipo_pagamento)}</td>
                     <td>{movimento.numero_fatura ?? "-"}</td>
                     <td>{movimento.fatura_com_nif === null ? "-" : movimento.fatura_com_nif ? "Sim" : "Não"}</td>
                     <td>

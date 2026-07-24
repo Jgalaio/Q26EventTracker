@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import type { AppLogo } from "../app-settings";
 import type { AuthSession } from "../auth-types";
 import type { ArchivedDocumentSummary } from "../document-archive";
+import { paymentDisplayLabel } from "../payment-labels";
 import type { EventoResumo, MovimentoDetalhe, Nota } from "../supabase-data";
 import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
@@ -165,7 +166,7 @@ function eventSearchResult(event: EventoResumo): SearchResult {
 
 function movementSearchResult(movimento: MovimentoDetalhe): SearchResult {
   const amount = Number(movimento.montante ?? 0);
-  const payment = movimento.tipo_pagamento?.trim() || "-";
+  const payment = paymentDisplayLabel(movimento.tipo_pagamento);
   const detail = cleanDetail([
     movimento.descricao,
     `Pagamento: ${payment}`,

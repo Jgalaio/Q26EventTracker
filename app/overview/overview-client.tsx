@@ -4,6 +4,7 @@ import { Fragment, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import type { AppLogo } from "../app-settings";
 import { canExportOverviewExcel, type AuthSession } from "../auth-types";
+import { isBankAccountPayment, paymentDisplayLabel } from "../payment-labels";
 import type { MovimentoDetalhe } from "../supabase-data";
 import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
@@ -176,7 +177,7 @@ function addArchiveMovement(summary: Summary, movimento: MovimentoDetalhe) {
   if (movimento.fatura_com_nif === false) summary.naoFaturado += amount;
 
   const payment = normalizeArchivePayment(movimento.tipo_pagamento);
-  if (payment === "c q26") summary.pagoQ26 += amount;
+  if (isBankAccountPayment(movimento.tipo_pagamento)) summary.pagoQ26 += amount;
   if (payment === "transferencia") summary.transferencias += amount;
   if (payment === "dinheiro") summary.dinheiro += amount;
 }
@@ -450,8 +451,8 @@ export function OverviewClient({
             </Link>
           </article>
           <article>
-            <span>Pago Conta Q26</span>
-            <small>C. Q26</small>
+            <span>Pago Conta Bancaria</span>
+            <small>Conta Bancaria</small>
             <strong className="value-purple">{formatMoney(totals.pagoQ26)}</strong>
           </article>
           <article>
@@ -487,7 +488,7 @@ export function OverviewClient({
           </article>
           <article className="overview-money-card">
             <span>Valor Dinheiro</span>
-            <small>Lucro + Montante Q25 - Saldo Conta Q26</small>
+            <small>Lucro + Montante Q25 - Saldo Conta Bancaria</small>
             <strong className={cashValue >= 0 ? "value-green" : "value-red"}>{formatMoney(cashValue)}</strong>
           </article>
           <article className="overview-money-card">
@@ -712,7 +713,7 @@ export function OverviewClient({
                 <th>Lucro</th>
                 <th>Faturado</th>
                 <th>Não Faturado</th>
-                <th>Pag. C.Q26</th>
+                <th>Pag. Conta Bancaria</th>
                 <th>Transferencias</th>
                 <th>Dinheiro</th>
                 {canExportExcel ? <th>Excel</th> : null}
@@ -808,7 +809,7 @@ export function OverviewClient({
                                       <td className="item-cell">{movimento.item}</td>
                                       <td>{formatDate(movimento.data_pagamento)}</td>
                                       <td className="money">{formatMoney(movimento.montante)}</td>
-                                      <td>{movimento.tipo_pagamento ?? "-"}</td>
+                                      <td>{paymentDisplayLabel(movimento.tipo_pagamento)}</td>
                                       <td>{movimento.numero_fatura ?? "-"}</td>
                                       <td>
                                         {movimento.fatura_com_nif === null
