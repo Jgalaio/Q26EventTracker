@@ -6,6 +6,7 @@ import { canDelete, canWrite, requiresJustification, type AuthSession } from "..
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ushhacwtmpmwmvpaitdx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB";
+const MIN_JUSTIFICATION_LENGTH = 10;
 
 type JsonBody = Record<string, unknown>;
 
@@ -184,6 +185,16 @@ export function prepareWritePayload(
     return {
       payload: null,
       error: NextResponse.json({ message: "Indica a justificação da alteração." }, { status: 400 })
+    };
+  }
+
+  if (mustJustify && isEditing && justificationText.length < MIN_JUSTIFICATION_LENGTH) {
+    return {
+      payload: null,
+      error: NextResponse.json(
+        { message: `A justificação deve ter pelo menos ${MIN_JUSTIFICATION_LENGTH} caracteres.` },
+        { status: 400 }
+      )
     };
   }
 

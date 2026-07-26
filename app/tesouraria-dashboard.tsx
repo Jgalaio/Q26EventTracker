@@ -135,6 +135,19 @@ const MOVEMENT_SORT_OPTIONS: Array<{ value: MovementSortMode; label: string }> =
   { value: "oldest", label: "Mais antigo" }
 ];
 
+const MIN_JUSTIFICATION_LENGTH = 10;
+
+const JUSTIFICATION_REASON_OPTIONS = [
+  "Correção de valor",
+  "Correção de data",
+  "Correção de item ou descrição",
+  "Correção de pagamento",
+  "Correção de fatura ou NIF",
+  "Correção de totais ou evento",
+  "Erro de lançamento",
+  "Outro motivo"
+];
+
 const emptyEventForm: EventForm = {
   nome: "",
   data_inicio: "",
@@ -650,6 +663,7 @@ export function Dashboard({
   const [quickMovementForm, setQuickMovementForm] = useState<MovementForm>(emptyMovementForm);
   const [accountQuickAddOpen, setAccountQuickAddOpen] = useState(false);
   const [accountMovementForm, setAccountMovementForm] = useState<MovementForm>(accountDepositFormDefaults);
+  const [justificationReason, setJustificationReason] = useState("");
   const [justification, setJustification] = useState("");
   const [selectedMovement, setSelectedMovement] = useState<MovimentoDetalhe | null>(null);
   const [descriptionPopup, setDescriptionPopup] = useState<DescriptionPopup | null>(null);
@@ -659,6 +673,21 @@ export function Dashboard({
   const [physicalCashInput, setPhysicalCashInput] = useState(formatAmountInput(physicalCashCount));
   const [physicalCashMessage, setPhysicalCashMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const resetJustification = () => {
+    setJustificationReason("");
+    setJustification("");
+  };
+
+  const validatedJustification = () => {
+    const reason = justificationReason.trim();
+    const description = justification.trim();
+    if (!reason) throw new Error("Escolhe o motivo da alteração.");
+    if (description.length < MIN_JUSTIFICATION_LENGTH) {
+      throw new Error(`A descrição da justificação deve ter pelo menos ${MIN_JUSTIFICATION_LENGTH} caracteres.`);
+    }
+    return `${reason}: ${description}`;
+  };
   const [isSavingPhysicalCash, setIsSavingPhysicalCash] = useState(false);
 
   useEffect(() => {
@@ -954,7 +983,7 @@ export function Dashboard({
     setSaveMessage(null);
     setSelectedMovement(null);
     setEventForm(emptyEventForm);
-    setJustification("");
+    resetJustification();
     setModalMode("create-event");
   };
 
@@ -975,7 +1004,7 @@ export function Dashboard({
       cor: selectedEvent.cor ?? "",
       tipo: selectedEvent.tipo
     });
-    setJustification("");
+    resetJustification();
     setModalMode("edit-event");
   };
 
@@ -1049,7 +1078,7 @@ export function Dashboard({
       pago: booleanToForm(movimento.pago),
       contabilizar_totais: isMovementCounted(movimento)
     });
-    setJustification("");
+    resetJustification();
     setActiveTab(movimento.tipo === "entrada" ? "entrada" : "saida");
     setModalMode(movimento.tipo === "entrada" ? "edit-entry" : "edit-exit");
   };
@@ -1058,7 +1087,7 @@ export function Dashboard({
     if (isSaving) return;
     setModalMode(null);
     setSelectedMovement(null);
-    setJustification("");
+    resetJustification();
   };
 
   const saveEvent = async () => {
@@ -1093,7 +1122,7 @@ export function Dashboard({
 
     if (!selectedEvent) throw new Error("Escolhe um evento para editar.");
     if (selectedEventClosed) throw new Error("Este evento está fechado. Desbloqueia no Admin para voltar a editar.");
-    if (mustJustify && !justification.trim()) throw new Error("Indica a justificação da alteração.");
+    const justificationText = mustJustify ? validatedJustification() : "";
     await appWrite(`eventos/${selectedEvent.id}`, {
       method: "PATCH",
       body: JSON.stringify({
@@ -1106,7 +1135,7 @@ export function Dashboard({
         contabilizar_totais: payload.contabilizar_totais,
         cor: payload.cor,
         tipo: payload.tipo,
-        justification
+        justification: justificationText
       })
     });
   };
@@ -1180,9 +1209,7 @@ export function Dashboard({
     if (isEntryMode && movementForm.valor_teorico.trim() && theoreticalAmount === null) {
       throw new Error("Indica um valor teórico válido.");
     }
-    if (mustJustify && isEditing && !justification.trim()) {
-      throw new Error("Indica a justificação da alteração.");
-    }
+    const justificationText = mustJustify && isEditing ? validatedJustification() : "";
 
     const tipo = movementToEdit ? movementToEdit.tipo : isEntryMode ? "entrada" : "saida";
     const isAccountSheetEntry = isEntryMode && movementToEdit?.evento_slug === "contas";
@@ -1233,7 +1260,7 @@ export function Dashboard({
         method: "PATCH",
         body: JSON.stringify({
           ...payload,
-          justification
+          justification: justificationText
         })
       });
       return;
@@ -1547,7 +1574,7 @@ export function Dashboard({
       }
       setModalMode(null);
       setSelectedMovement(null);
-      setJustification("");
+      resetJustification();
       setSaveMessage("Guardado com sucesso.");
       router.refresh();
     } catch (caught) {
@@ -2907,15 +2934,37 @@ export function Dashboard({
 
             {mustJustify &&
             (modalMode === "edit-event" || modalMode === "edit-entry" || modalMode === "edit-exit") ? (
-              <label className="justification-field">
-                Justificação da alteração
-                <textarea
-                  required
-                  value={justification}
-                  onChange={(event) => setJustification(event.target.value)}
-                  placeholder="Indica o motivo antes de gravar"
-                />
-              </label>
+              <fieldset className="justification-field">
+                <legend>Justificação da alteração</legend>
+                <label>
+                  Motivo
+                  <select
+                    required
+                    value={justificationReason}
+                    onChange={(event) => setJustificationReason(event.target.value)}
+                  >
+                    <option value="">Escolher motivo</option>
+                    {JUSTIFICATION_REASON_OPTIONS.map((reason) => (
+                      <option key={reason} value={reason}>
+                        {reason}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Descrição
+                  <textarea
+                    minLength={MIN_JUSTIFICATION_LENGTH}
+                    required
+                    value={justification}
+                    onChange={(event) => setJustification(event.target.value)}
+                    placeholder="Descreve a alteração efetuada"
+                  />
+                </label>
+                <small>
+                  Mínimo {MIN_JUSTIFICATION_LENGTH} caracteres. Esta descrição fica guardada no histórico.
+                </small>
+              </fieldset>
             ) : null}
 
             {saveMessage ? <p className="form-message">{saveMessage}</p> : null}

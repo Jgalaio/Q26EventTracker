@@ -1456,6 +1456,7 @@ h2 {
 .form-grid input,
 .form-grid select,
 .form-grid textarea,
+.justification-field select,
 .justification-field textarea {
   background: #f8fbff;
   border: 1px solid var(--line);
@@ -1549,16 +1550,37 @@ h2 {
 }
 
 .justification-field {
+  border: 1px solid var(--line);
+  border-radius: 8px;
   color: var(--muted);
   display: grid;
   font-size: 0.84rem;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+}
+
+.justification-field legend {
+  color: var(--ink);
+  font-weight: 800;
+  padding: 0 6px;
+}
+
+.justification-field label {
+  color: var(--muted);
+  display: grid;
   gap: 7px;
 }
 
 .justification-field textarea {
-  min-height: 92px;
+  min-height: 82px;
   padding: 11px;
   resize: vertical;
+}
+
+.justification-field small {
+  color: var(--muted);
+  font-weight: 700;
 }
 
 .menu-actions {
