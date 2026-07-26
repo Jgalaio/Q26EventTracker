@@ -1410,7 +1410,7 @@ h2 {
   border-radius: 8px;
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(420px, auto) minmax(180px, 280px) minmax(112px, 150px) minmax(145px, 180px) auto;
+  grid-template-columns: minmax(420px, 1fr) auto;
   margin-bottom: 16px;
   padding: 14px;
 }
@@ -1449,16 +1449,6 @@ h2 {
   display: grid;
   font-size: 0.84rem;
   gap: 7px;
-}
-
-.menu-search,
-.menu-paid,
-.menu-sort {
-  min-width: 0;
-}
-
-.menu-search input {
-  width: 100%;
 }
 
 .management-menu select,
@@ -1656,6 +1646,56 @@ h2 {
 .modal-actions button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+.movement-filter-strip {
+  align-items: end;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(180px, 1fr) minmax(96px, 120px) minmax(128px, 150px) auto;
+  margin: -4px 18px 0;
+  padding-top: 10px;
+}
+
+.movement-filter {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.74rem;
+  font-weight: 700;
+  gap: 4px;
+  min-width: 0;
+}
+
+.movement-filter input,
+.movement-filter select {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  font-size: 0.84rem;
+  min-height: 34px;
+  min-width: 0;
+  padding: 7px 9px;
+  width: 100%;
+}
+
+.movement-filter select:disabled {
+  color: var(--muted);
+  opacity: 0.62;
+}
+
+.movement-filter-clear {
+  align-self: end;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 700;
+  min-height: 34px;
+  padding: 0 12px;
 }
 
 .metrics {
@@ -7520,6 +7560,10 @@ td {
     justify-content: flex-start;
   }
 
+  .movement-filter-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .account-menu-summary {
     grid-column: auto;
   }
@@ -7641,6 +7685,10 @@ td {
 
   .section-tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .movement-filter-strip {
+    grid-template-columns: 1fr;
   }
 
   .movement-history-entry header {

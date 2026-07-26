@@ -1499,6 +1499,40 @@ export function Dashboard({
     );
   };
 
+  const renderMovementFilters = (ariaLabel: string) => (
+    <div className="movement-filter-strip" aria-label={ariaLabel} role="group">
+      <label className="movement-filter movement-filter-search">
+        Pesquisa
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Item ou fatura" />
+      </label>
+      <label className="movement-filter movement-filter-paid">
+        Pago
+        <select
+          disabled={activeTab === "entrada"}
+          value={pago}
+          onChange={(event) => setPago(event.target.value as typeof pago)}
+        >
+          <option value="todos">Todos</option>
+          <option value="sim">Sim</option>
+          <option value="nao">Não</option>
+        </select>
+      </label>
+      <label className="movement-filter movement-filter-sort">
+        Ordenar por
+        <select value={sortMode} onChange={(event) => setSortMode(event.target.value as MovementSortMode)}>
+          {MOVEMENT_SORT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button className="movement-filter-clear" type="button" onClick={resetFilters}>
+        Limpar
+      </button>
+    </div>
+  );
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!modalMode) return;
@@ -1530,7 +1564,7 @@ export function Dashboard({
         <TopbarActions active="tesouraria" pendingPaymentsCount={pendingPayments.length} session={session} />
       </section>
 
-      <section className="management-menu" aria-label="Gestão e filtros">
+      <section className="management-menu" aria-label="Gestão principal">
         <div className="section-tabs" role="tablist" aria-label="Área principal">
           <button
             aria-selected={sectionMode === "eventos"}
@@ -1569,36 +1603,6 @@ export function Dashboard({
             Conta
           </button>
         </div>
-        <label className="menu-search">
-          Pesquisa
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Item ou fatura"
-          />
-        </label>
-        <label className="menu-paid">
-          Pago
-          <select
-            disabled={activeTab === "entrada"}
-            value={pago}
-            onChange={(event) => setPago(event.target.value as typeof pago)}
-          >
-            <option value="todos">Todos</option>
-            <option value="sim">Sim</option>
-            <option value="nao">Não</option>
-          </select>
-        </label>
-        <label className="menu-sort">
-          Ordenar por
-          <select value={sortMode} onChange={(event) => setSortMode(event.target.value as MovementSortMode)}>
-            {MOVEMENT_SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
         <div className="menu-actions">
           {sectionMode === "eventos" ? (
             mayWrite ? (
@@ -1625,9 +1629,6 @@ export function Dashboard({
               <strong>{totals.isentos}</strong>
             </div>
           ) : null}
-          <button className="secondary-menu-button" type="button" onClick={resetFilters}>
-            Limpar
-          </button>
         </div>
       </section>
 
@@ -1965,6 +1966,8 @@ export function Dashboard({
                   <strong>{tabCounts.saidas}</strong>
                 </button>
               </div>
+
+              {renderMovementFilters("Filtros dos movimentos do evento")}
 
               <div className="table-heading">
                 <div>
@@ -2419,6 +2422,8 @@ export function Dashboard({
               <strong>{accountCounts.saidas}</strong>
             </button>
           </div>
+
+          {renderMovementFilters("Filtros dos movimentos da conta")}
 
           <div className="table-heading">
             <div>
