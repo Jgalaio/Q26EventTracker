@@ -36,6 +36,7 @@ type DashboardProps = {
 
 type ModalMode = "create-event" | "edit-event" | "add-entry" | "add-exit" | "edit-entry" | "edit-exit" | null;
 type SectionMode = "eventos" | "contas" | "peditorio" | "patrocinios";
+type MovementSortMode = "recent" | "amount-desc" | "amount-asc" | "name" | "oldest";
 
 type DescriptionPopup = {
   title: string;
@@ -120,6 +121,19 @@ const dateTimeFormatter = new Intl.DateTimeFormat("pt-PT", {
   hour: "2-digit",
   minute: "2-digit"
 });
+
+const movementNameCollator = new Intl.Collator("pt-PT", {
+  numeric: true,
+  sensitivity: "base"
+});
+
+const MOVEMENT_SORT_OPTIONS: Array<{ value: MovementSortMode; label: string }> = [
+  { value: "recent", label: "Último registo" },
+  { value: "amount-desc", label: "Maior valor" },
+  { value: "amount-asc", label: "Menor valor" },
+  { value: "name", label: "Nome A-Z" },
+  { value: "oldest", label: "Mais antigo" }
+];
 
 const emptyEventForm: EventForm = {
   nome: "",
@@ -225,6 +239,37 @@ function movementLabel(tipo: MovimentoDetalhe["tipo"]) {
   if (tipo === "entrada") return "Entrada";
   if (tipo === "saida") return "Saída";
   return "A pagamento";
+}
+
+function movementCreatedTime(movimento: MovimentoDetalhe) {
+  const createdAtTime = Date.parse(movimento.created_at);
+  if (Number.isFinite(createdAtTime)) return createdAtTime;
+
+  const paymentTime = movimento.data_pagamento ? Date.parse(`${movimento.data_pagamento}T00:00:00`) : NaN;
+  return Number.isFinite(paymentTime) ? paymentTime : 0;
+}
+
+function compareMovementNames(first: MovimentoDetalhe, second: MovimentoDetalhe) {
+  return movementNameCollator.compare(first.item, second.item);
+}
+
+function compareMovements(first: MovimentoDetalhe, second: MovimentoDetalhe, sortMode: MovementSortMode) {
+  const firstAmount = Number(first.montante ?? 0);
+  const secondAmount = Number(second.montante ?? 0);
+  const firstTime = movementCreatedTime(first);
+  const secondTime = movementCreatedTime(second);
+  const recentFirst = secondTime - firstTime;
+  const oldestFirst = firstTime - secondTime;
+
+  if (sortMode === "amount-desc") return secondAmount - firstAmount || recentFirst || compareMovementNames(first, second);
+  if (sortMode === "amount-asc") return firstAmount - secondAmount || recentFirst || compareMovementNames(first, second);
+  if (sortMode === "name") return compareMovementNames(first, second) || recentFirst;
+  if (sortMode === "oldest") return oldestFirst || compareMovementNames(first, second);
+  return recentFirst || compareMovementNames(first, second);
+}
+
+function sortMovements(movimentos: MovimentoDetalhe[], sortMode: MovementSortMode) {
+  return [...movimentos].sort((first, second) => compareMovements(first, second, sortMode));
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -596,6 +641,7 @@ export function Dashboard({
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"entrada" | "saida">("entrada");
   const [pago, setPago] = useState<"todos" | "sim" | "nao">("todos");
+  const [sortMode, setSortMode] = useState<MovementSortMode>("recent");
   const [selectedSlug, setSelectedSlug] = useState<string>("");
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [eventForm, setEventForm] = useState<EventForm>(emptyEventForm);
@@ -789,7 +835,7 @@ export function Dashboard({
   }, [eventFinancialSummary]);
 
   const filteredMovimentos = useMemo(() => {
-    return eventMovimentos.filter((movimento) => {
+    const filtered = eventMovimentos.filter((movimento) => {
       const matchesTab = activeTab === "entrada" ? movimento.tipo === "entrada" : movimento.tipo !== "entrada";
       const matchesQuery =
         !normalizedQuery ||
@@ -803,7 +849,8 @@ export function Dashboard({
         (pago === "nao" && movimento.pago === false);
       return matchesTab && matchesQuery && matchesPago;
     });
-  }, [activeTab, eventMovimentos, normalizedQuery, pago]);
+    return sortMovements(filtered, sortMode);
+  }, [activeTab, eventMovimentos, normalizedQuery, pago, sortMode]);
 
   const accountEntries = useMemo(() => {
     return movimentos.filter(isAccountEntry);
@@ -838,7 +885,7 @@ export function Dashboard({
 
   const filteredAccountMovimentos = useMemo(() => {
     const source = activeTab === "entrada" ? accountEntries : accountSaidas;
-    return source.filter((movimento) => {
+    const filtered = source.filter((movimento) => {
       const matchesQuery =
         !normalizedQuery ||
         movimento.item.toLowerCase().includes(normalizedQuery) ||
@@ -851,7 +898,8 @@ export function Dashboard({
         (pago === "nao" && movimento.pago === false);
       return matchesQuery && matchesPago;
     });
-  }, [accountEntries, accountSaidas, activeTab, normalizedQuery, pago]);
+    return sortMovements(filtered, sortMode);
+  }, [accountEntries, accountSaidas, activeTab, normalizedQuery, pago, sortMode]);
 
   const isAccountSection = sectionMode === "contas";
   const selectedSpecialSection = SPECIAL_EVENT_SECTIONS.find((section) => section.mode === sectionMode);
@@ -860,6 +908,7 @@ export function Dashboard({
   const resetFilters = () => {
     setQuery("");
     setPago("todos");
+    setSortMode("recent");
   };
 
   const switchSection = (mode: SectionMode) => {
@@ -867,6 +916,7 @@ export function Dashboard({
     setActiveTab("entrada");
     setPago("todos");
     setQuery("");
+    setSortMode("recent");
     setQuickAddTab(null);
     setAccountQuickAddOpen(false);
   };
@@ -1537,6 +1587,16 @@ export function Dashboard({
             <option value="todos">Todos</option>
             <option value="sim">Sim</option>
             <option value="nao">Não</option>
+          </select>
+        </label>
+        <label className="menu-sort">
+          Ordenar por
+          <select value={sortMode} onChange={(event) => setSortMode(event.target.value as MovementSortMode)}>
+            {MOVEMENT_SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </label>
         <div className="menu-actions">

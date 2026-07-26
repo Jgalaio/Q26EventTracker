@@ -1410,7 +1410,7 @@ h2 {
   border-radius: 8px;
   display: grid;
   gap: 12px;
-  grid-template-columns: auto minmax(180px, 280px) minmax(112px, 150px) auto;
+  grid-template-columns: minmax(420px, auto) minmax(180px, 280px) minmax(112px, 150px) minmax(145px, 180px) auto;
   margin-bottom: 16px;
   padding: 14px;
 }
@@ -1452,7 +1452,8 @@ h2 {
 }
 
 .menu-search,
-.menu-paid {
+.menu-paid,
+.menu-sort {
   min-width: 0;
 }
 
