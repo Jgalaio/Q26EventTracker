@@ -1653,7 +1653,7 @@ h2 {
   display: grid;
   gap: 8px;
   grid-template-columns: minmax(180px, 1fr) minmax(96px, 120px) minmax(128px, 150px) auto;
-  margin: 10px 18px 0;
+  margin: 10px 18px 14px;
 }
 
 .movement-filter {
