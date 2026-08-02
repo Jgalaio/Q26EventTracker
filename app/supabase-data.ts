@@ -140,8 +140,39 @@ type EventoBaseRow = {
   tipo: "evento" | "categoria";
 };
 
+type RawValue = Record<string, unknown>;
+
 const FALLBACK_SUPABASE_URL = "https://ushhacwtmpmwmvpaitdx.supabase.co";
 const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB";
+const CLIENT_RAW_KEYS = [
+  "faturar_mais_tarde",
+  "tipo_entrada",
+  "patrocinio",
+  "precisa_fatura",
+  "necessita_fatura",
+  "fatura_emitida",
+  "valor_teorico",
+  "ultima_alteracao",
+  "fatura_patrocinio",
+  "ficheiro_fatura_patrocinio"
+] as const;
+
+function compactMovementRaw(raw: Record<string, unknown> | null | undefined) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  return CLIENT_RAW_KEYS.reduce<RawValue>((acc, key) => {
+    if (Object.prototype.hasOwnProperty.call(raw, key)) {
+      acc[key] = raw[key];
+    }
+    return acc;
+  }, {});
+}
+
+function compactMovement(movimento: MovimentoDetalhe): MovimentoDetalhe {
+  return {
+    ...movimento,
+    raw: compactMovementRaw(movimento.raw)
+  };
+}
 
 async function fetchSupabase<T>(resource: string, query: string): Promise<FetchResult<T>> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || FALLBACK_SUPABASE_URL;
@@ -181,8 +212,48 @@ export async function getTesourariaData() {
       ...event,
       fechado: lockedById.get(event.id) ?? event.fechado ?? false
     })),
-    movimentos: movimentos.data,
+    movimentos: movimentos.data.map(compactMovement),
     error: eventos.error ?? movimentos.error ?? eventLocks.error
+  };
+}
+
+export async function getEventSummaries() {
+  const [eventos, eventLocks] = await Promise.all([
+    fetchSupabase<EventoResumo>("eventos_resumo", "select=*&order=ordem_folha.asc"),
+    fetchSupabase<EventoLockRow>("eventos", "select=id,fechado")
+  ]);
+  const lockedById = new Map(eventLocks.data.map((event) => [event.id, event.fechado === true]));
+
+  return {
+    data: eventos.data.map((event) => ({
+      ...event,
+      fechado: lockedById.get(event.id) ?? event.fechado ?? false
+    })),
+    error: eventos.error ?? eventLocks.error
+  };
+}
+
+export async function getPendingPayments() {
+  const movimentos = await fetchSupabase<MovimentoDetalhe>(
+    "movimentos_detalhe",
+    "select=*&tipo=neq.entrada&pago=eq.false&order=data_pagamento.asc.nullslast,evento_nome.asc,item.asc&limit=1000"
+  );
+
+  return {
+    data: movimentos.data.map(compactMovement),
+    error: movimentos.error
+  };
+}
+
+export async function getPendingPaymentCount() {
+  const movimentos = await fetchSupabase<{ id: string }>(
+    "movimentos_detalhe",
+    "select=id&tipo=neq.entrada&pago=eq.false&limit=1000"
+  );
+
+  return {
+    count: movimentos.data.length,
+    error: movimentos.error
   };
 }
 

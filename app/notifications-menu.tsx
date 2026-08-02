@@ -42,7 +42,7 @@ export function NotificationsMenu() {
 
   useEffect(() => {
     void loadNotifications();
-    const interval = window.setInterval(() => void loadNotifications(), 60_000);
+    const interval = window.setInterval(() => void loadNotifications(), 3 * 60_000);
     return () => window.clearInterval(interval);
   }, []);
 

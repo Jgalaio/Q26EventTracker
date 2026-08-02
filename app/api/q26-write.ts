@@ -250,6 +250,10 @@ function auditSummary(action: string, body: JsonBody | undefined, response: unkn
   return typeof name === "string" && name.trim() ? `${action}: ${name}` : action;
 }
 
+function isJsonRecord(value: unknown): value is JsonRecord {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
 export async function supabaseWrite(
   resource: string,
   method: string,
@@ -268,6 +272,16 @@ export async function supabaseWrite(
     if (!beforeResult.error) {
       beforeSnapshot = beforeResult.data?.[0] ?? null;
     }
+  }
+
+  if (resourceName === "movimentos" && method === "PATCH" && body && isJsonRecord(body.raw) && isJsonRecord(beforeSnapshot?.raw)) {
+    body = {
+      ...body,
+      raw: {
+        ...beforeSnapshot.raw,
+        ...body.raw
+      }
+    };
   }
 
   const response = await fetch(`${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${resource}`, {

@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 const IDLE_TIMEOUT_MS = 15 * 60 * 1000;
-const TOUCH_THROTTLE_MS = 60 * 1000;
+const TOUCH_THROTTLE_MS = 5 * 60 * 1000;
 const ACTIVITY_EVENTS = ["click", "keydown", "mousemove", "scroll", "touchstart", "pointerdown"] as const;
 
 export function SessionTimeout() {

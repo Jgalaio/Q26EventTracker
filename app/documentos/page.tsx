@@ -3,7 +3,7 @@ import { getAppLogo } from "../app-settings";
 import { getSession } from "../auth";
 import { canViewDocuments, isViewOnly } from "../auth-types";
 import { getArchivedDocumentSummaries } from "../document-archive";
-import { getTesourariaData } from "../supabase-data";
+import { getEventSummaries } from "../supabase-data";
 import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
 import { DocumentArchiveClient } from "./document-archive-client";
@@ -17,9 +17,9 @@ export default async function DocumentArchivePage() {
   const [appLogo, documents, tesourariaData] = await Promise.all([
     getAppLogo(),
     getArchivedDocumentSummaries(session),
-    getTesourariaData()
+    getEventSummaries()
   ]);
-  const events = tesourariaData.eventos.filter((event) => event.slug !== "contas");
+  const events = tesourariaData.data.filter((event) => event.slug !== "contas");
 
   return (
     <main className="shell document-shell">

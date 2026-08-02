@@ -92,6 +92,20 @@ async function supabaseRequest<T>(resource: string, method: string, body?: JsonR
   return (responseText ? JSON.parse(responseText) : null) as T;
 }
 
+async function updateMovementRaw(movementId: string, rawPatch: JsonRecord) {
+  const currentRows = await supabaseRequest<Array<{ raw: JsonRecord | null }>>(
+    `movimentos?id=eq.${encodeURIComponent(movementId)}&select=raw&limit=1`,
+    "GET"
+  );
+  const currentRaw = isRecord(currentRows[0]?.raw) ? currentRows[0].raw : {};
+  return supabaseRequest(`movimentos?id=eq.${encodeURIComponent(movementId)}`, "PATCH", {
+    raw: {
+      ...currentRaw,
+      ...rawPatch
+    }
+  });
+}
+
 function accountMovementOrigin(reportId: string) {
   return `faturacao_${reportId}`;
 }
@@ -236,17 +250,15 @@ export async function POST(request: NextRequest) {
 
     await Promise.all(
       itensAcrescentados.map((item) =>
-        supabaseRequest(`movimentos?id=eq.${encodeURIComponent(item.id)}`, "PATCH", {
-          raw: {
-            ...(item.raw ?? {}),
-            faturar_mais_tarde: false,
-            faturacao: {
-              relatorio_id: report.id,
-              finalizado_em: now,
-              evento_slug: eventoSlug,
-              evento_nome: eventoNome,
-              valor_fatura: valorFatura
-            }
+        updateMovementRaw(item.id, {
+          ...(item.raw ?? {}),
+          faturar_mais_tarde: false,
+          faturacao: {
+            relatorio_id: report.id,
+            finalizado_em: now,
+            evento_slug: eventoSlug,
+            evento_nome: eventoNome,
+            valor_fatura: valorFatura
           }
         })
       )

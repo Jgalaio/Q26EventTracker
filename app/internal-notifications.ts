@@ -7,7 +7,7 @@ import {
   type AuthSession
 } from "./auth-types";
 import { getSupportTickets, getVisibleSupportTickets, type SupportTicket } from "./support-tickets";
-import { getNotas, getTesourariaData, type MovimentoDetalhe, type Nota } from "./supabase-data";
+import { getNotas, getPendingPaymentCount, type Nota } from "./supabase-data";
 
 export type InternalNotificationTone = "info" | "warning" | "danger" | "success";
 
@@ -24,10 +24,6 @@ export type InternalNotificationsPayload = {
   total: number;
   items: InternalNotification[];
 };
-
-function isPendingPayment(movimento: MovimentoDetalhe) {
-  return movimento.tipo !== "entrada" && movimento.pago === false;
-}
 
 function activeTicket(ticket: SupportTicket) {
   return ticket.status !== "fechado";
@@ -124,18 +120,16 @@ async function todoNotifications(session: AuthSession): Promise<InternalNotifica
 async function paymentNotifications(session: AuthSession): Promise<InternalNotification[]> {
   if (!canViewTreasury(session)) return [];
 
-  const data = await getTesourariaData();
-  if (data.error) return [];
-  const pendingPayments = data.movimentos.filter(isPendingPayment);
-  if (!pendingPayments.length) return [];
+  const pendingPayments = await getPendingPaymentCount();
+  if (pendingPayments.error || !pendingPayments.count) return [];
 
   return [
     {
       id: "pending-payments",
       title: "Pagamentos em falta",
-      detail: `${pendingPayments.length} pagamento${pendingPayments.length === 1 ? "" : "s"} por regularizar.`,
+      detail: `${pendingPayments.count} pagamento${pendingPayments.count === 1 ? "" : "s"} por regularizar.`,
       href: "/a-pagar",
-      count: pendingPayments.length,
+      count: pendingPayments.count,
       tone: "danger"
     }
   ];
