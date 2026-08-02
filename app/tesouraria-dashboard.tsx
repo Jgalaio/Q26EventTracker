@@ -529,13 +529,14 @@ function isContaPayment(value: string | null) {
 
 function isBankEntryPayment(value: string | null | undefined) {
   const payment = normalizePayment(value);
-  return payment === "multibanco" || payment === "transferencia";
+  return payment === "multibanco" || payment === "transferencia" || payment === "deposito";
 }
 
 function entryPaymentLabel(movimento: MovimentoDetalhe) {
   const payment = normalizePayment(movimento.tipo_pagamento);
   if (payment === "multibanco") return "Multibanco";
   if (payment === "transferencia") return "Transferencia";
+  if (payment === "deposito") return "Depósito";
   return "Dinheiro";
 }
 
@@ -828,7 +829,7 @@ export function Dashboard({
           acc.totalValorTeorico += theoreticalEntryAmount(movimento);
           if (payment === "multibanco") {
             acc.totalEntradasMultibanco += amount;
-          } else if (payment === "transferencia") {
+          } else if (payment === "transferencia" || payment === "deposito") {
             acc.totalEntradasTransferencia += amount;
           } else if (payment === "dinheiro" || !payment) {
             acc.totalEntradasDinheiro += amount;
@@ -2013,7 +2014,7 @@ export function Dashboard({
                         <strong>{formatMoney(tabCounts.totalEntradasMultibanco)}</strong>
                       </span>
                       <span>
-                        <small>Valor Transferências</small>
+                        <small>Valor Transf./Depósitos</small>
                         <strong>{formatMoney(tabCounts.totalEntradasTransferencia)}</strong>
                       </span>
                       <span>
@@ -2119,6 +2120,7 @@ export function Dashboard({
                               <option value="Dinheiro">Dinheiro</option>
                               <option value="Multibanco">Multibanco</option>
                               <option value="Transferencia">Transferencia</option>
+                              <option value="Depósito">Depósito</option>
                             </select>
                           </td>
                           <td>
@@ -2412,7 +2414,7 @@ export function Dashboard({
               <h2>{BANK_ACCOUNT_LABEL}</h2>
               <span className="event-meta">
                 {accountEvent
-                  ? "Movimentos da folha Contas, entradas por Multibanco ou Transferencia e despesas pagas pela conta"
+                  ? "Movimentos da folha Contas, entradas por Multibanco, Transferencia ou Depósito e despesas pagas pela conta"
                   : "Sem folha Contas carregada"}
               </span>
             </div>
@@ -2763,6 +2765,7 @@ export function Dashboard({
                       <option value="Dinheiro">Dinheiro</option>
                       <option value="Multibanco">Multibanco</option>
                       <option value="Transferencia">Transferencia</option>
+                      <option value="Depósito">Depósito</option>
                     </select>
                   </label>
                 ) : null}

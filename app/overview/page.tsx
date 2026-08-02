@@ -29,7 +29,7 @@ function isContaPayment(value: string | null) {
 
 function isBankEntryPayment(value: string | null | undefined) {
   const payment = normalizePayment(value);
-  return payment === "multibanco" || payment === "transferencia";
+  return payment === "multibanco" || payment === "transferencia" || payment === "deposito";
 }
 
 function isAccountEntry(movimento: MovimentoDetalhe) {
