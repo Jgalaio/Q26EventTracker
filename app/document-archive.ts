@@ -6,7 +6,7 @@ import {
   canViewDocuments,
   type AuthSession
 } from "./auth-types";
-import { readAppSetting, writeAppSetting } from "./app-settings";
+import { deleteAppSetting, readAppSetting, writeAppSetting } from "./app-settings";
 
 export const DOCUMENT_CATEGORIES = ["atas", "faturas", "contratos", "recibos", "licencas", "imagens", "outro"] as const;
 
@@ -56,6 +56,8 @@ export class DocumentArchiveError extends Error {
 }
 
 const DOCUMENT_ARCHIVE_KEY = "document_archive";
+const DOCUMENT_ARCHIVE_INDEX_KEY = "document_archive_index";
+const DOCUMENT_FILE_KEY_PREFIX = "document_archive_file:";
 const MAX_DOCUMENTS = 220;
 export const MAX_DOCUMENT_BYTES = 4_000_000;
 const MAX_DATA_URL_LENGTH = Math.ceil(MAX_DOCUMENT_BYTES * 1.45);
@@ -167,8 +169,8 @@ function normalizeDocument(value: unknown): ArchivedDocument | null {
   };
 }
 
-function sortDocuments(documents: ArchivedDocument[]) {
-  return documents.sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
+function sortByUpdatedAt<T extends { updatedAt: string }>(documents: T[]) {
+  return [...documents].sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
 }
 
 function toSummary(document: ArchivedDocument): ArchivedDocumentSummary {
@@ -176,14 +178,91 @@ function toSummary(document: ArchivedDocument): ArchivedDocumentSummary {
   return summary;
 }
 
-async function writeDocuments(documents: ArchivedDocument[]) {
-  await writeAppSetting(DOCUMENT_ARCHIVE_KEY, sortDocuments(documents).slice(0, MAX_DOCUMENTS));
+function normalizeDocumentSummary(value: unknown): ArchivedDocumentSummary | null {
+  if (!value || typeof value !== "object") return null;
+  const source = value as Partial<ArchivedDocumentSummary>;
+  const id = cleanText(source.id, 80);
+  const fileName = cleanText(source.fileName, 160);
+  if (!id || !fileName) return null;
+
+  const now = new Date().toISOString();
+  const category = normalizeCategory(source.category);
+
+  return {
+    id,
+    title: cleanText(source.title, 96) || fileName,
+    category,
+    description: cleanText(source.description, 800),
+    tags: normalizeTags(source.tags),
+    eventId: category === "faturas" ? cleanText(source.eventId, 80) || null : null,
+    eventSlug: category === "faturas" ? cleanText(source.eventSlug, 96) || null : null,
+    eventName: category === "faturas" ? cleanText(source.eventName, 140) || null : null,
+    fileName,
+    mimeType: cleanText(source.mimeType, 120) || "application/octet-stream",
+    size: typeof source.size === "number" && Number.isFinite(source.size) ? source.size : 0,
+    createdAt: safeDate(source.createdAt, now),
+    createdBy: cleanText(source.createdBy, 80) || "Sistema",
+    updatedAt: safeDate(source.updatedAt, now)
+  };
+}
+
+function documentFileKey(id: string) {
+  return `${DOCUMENT_FILE_KEY_PREFIX}${id}`;
+}
+
+async function readLegacyDocuments() {
+  const setting = await readAppSetting<unknown>(DOCUMENT_ARCHIVE_KEY);
+  if (!Array.isArray(setting)) return [];
+  return sortByUpdatedAt(setting.map(normalizeDocument).filter((document): document is ArchivedDocument => Boolean(document)));
+}
+
+async function readDocumentIndex() {
+  const setting = await readAppSetting<unknown>(DOCUMENT_ARCHIVE_INDEX_KEY);
+  if (!Array.isArray(setting)) return null;
+  return sortByUpdatedAt(
+    setting.map(normalizeDocumentSummary).filter((document): document is ArchivedDocumentSummary => Boolean(document))
+  );
+}
+
+async function writeDocumentIndex(documents: ArchivedDocumentSummary[]) {
+  await writeAppSetting(DOCUMENT_ARCHIVE_INDEX_KEY, sortByUpdatedAt(documents).slice(0, MAX_DOCUMENTS));
+}
+
+async function writeDocumentFile(document: ArchivedDocument) {
+  await writeAppSetting(documentFileKey(document.id), document);
+}
+
+async function readDocumentFile(id: string) {
+  const setting = await readAppSetting<unknown>(documentFileKey(id));
+  return normalizeDocument(setting);
+}
+
+async function getDocumentSummaries() {
+  const indexedDocuments = await readDocumentIndex();
+  if (indexedDocuments) return indexedDocuments;
+
+  const legacyDocuments = await readLegacyDocuments();
+  const summaries = legacyDocuments.map(toSummary);
+  if (summaries.length) {
+    await writeDocumentIndex(summaries);
+  }
+
+  return summaries;
 }
 
 export async function getArchivedDocuments() {
-  const setting = await readAppSetting<unknown>(DOCUMENT_ARCHIVE_KEY);
-  if (!Array.isArray(setting)) return [];
-  return sortDocuments(setting.map(normalizeDocument).filter((document): document is ArchivedDocument => Boolean(document)));
+  const summaries = await getDocumentSummaries();
+  if (!summaries.length) return [];
+
+  const storedDocuments = await Promise.all(summaries.map((document) => readDocumentFile(document.id)));
+  const legacyDocuments = storedDocuments.some((document) => !document) ? await readLegacyDocuments() : [];
+  const legacyById = new Map(legacyDocuments.map((document) => [document.id, document]));
+
+  return sortByUpdatedAt(
+    summaries
+      .map((summary, index) => storedDocuments[index] ?? legacyById.get(summary.id) ?? null)
+      .filter((document): document is ArchivedDocument => Boolean(document))
+  );
 }
 
 export async function getArchivedDocumentSummaries(session: AuthSession) {
@@ -191,8 +270,7 @@ export async function getArchivedDocumentSummaries(session: AuthSession) {
     throw new DocumentArchiveError("Sem permissão para consultar o arquivo de documentos.", 403);
   }
 
-  const documents = await getArchivedDocuments();
-  return documents.map(toSummary);
+  return getDocumentSummaries();
 }
 
 export async function createArchivedDocument(session: AuthSession, input: ArchivedDocumentInput) {
@@ -234,8 +312,15 @@ export async function createArchivedDocument(session: AuthSession, input: Archiv
     updatedAt: now
   };
 
-  const documents = await getArchivedDocuments();
-  await writeDocuments([document, ...documents]);
+  const currentDocuments = await getDocumentSummaries();
+  const nextDocuments = sortByUpdatedAt([toSummary(document), ...currentDocuments]).slice(0, MAX_DOCUMENTS);
+  const activeIds = new Set(nextDocuments.map((candidate) => candidate.id));
+  const removedDocuments = currentDocuments.filter((candidate) => !activeIds.has(candidate.id));
+
+  await writeDocumentFile(document);
+  await writeDocumentIndex(nextDocuments);
+  await Promise.all(removedDocuments.map((candidate) => deleteAppSetting(documentFileKey(candidate.id)).catch(() => undefined)));
+
   return toSummary(document);
 }
 
@@ -244,12 +329,13 @@ export async function deleteArchivedDocument(session: AuthSession, id: string) {
     throw new DocumentArchiveError("Sem permissão para apagar documentos.", 403);
   }
 
-  const documents = await getArchivedDocuments();
+  const documents = await getDocumentSummaries();
   const document = documents.find((candidate) => candidate.id === id);
   if (!document) throw new DocumentArchiveError("Documento não encontrado.", 404);
 
-  await writeDocuments(documents.filter((candidate) => candidate.id !== id));
-  return toSummary(document);
+  await writeDocumentIndex(documents.filter((candidate) => candidate.id !== id));
+  await deleteAppSetting(documentFileKey(id)).catch(() => undefined);
+  return document;
 }
 
 export async function getArchivedDocumentFile(session: AuthSession, id: string) {
@@ -257,8 +343,17 @@ export async function getArchivedDocumentFile(session: AuthSession, id: string) 
     throw new DocumentArchiveError("Sem permissão para descarregar documentos.", 403);
   }
 
-  const documents = await getArchivedDocuments();
-  const document = documents.find((candidate) => candidate.id === id);
-  if (!document) throw new DocumentArchiveError("Documento não encontrado.", 404);
-  return document;
+  const documents = await getDocumentSummaries();
+  if (!documents.some((candidate) => candidate.id === id)) {
+    throw new DocumentArchiveError("Documento não encontrado.", 404);
+  }
+
+  const storedDocument = await readDocumentFile(id);
+  if (storedDocument) return storedDocument;
+
+  const legacyDocument = (await readLegacyDocuments()).find((candidate) => candidate.id === id);
+  if (!legacyDocument) throw new DocumentArchiveError("Documento não encontrado.", 404);
+
+  await writeDocumentFile(legacyDocument).catch(() => undefined);
+  return legacyDocument;
 }

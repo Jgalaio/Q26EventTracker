@@ -24,6 +24,16 @@ type InvoiceFile = {
   uploadedBy?: string;
 };
 
+type InvoiceAttachment = {
+  fileName: string;
+  dataUrl?: string;
+  contentType?: string;
+  size?: number;
+  uploadedAt?: string;
+  uploadedBy?: string;
+  hasAttachment?: boolean;
+};
+
 type SelectedFile = {
   fileName: string;
   dataUrl: string;
@@ -95,7 +105,16 @@ function isInvoiceIssued(movimento: MovimentoDetalhe) {
   return isRawFlagEnabled(movimento.raw?.fatura_emitida);
 }
 
-function isInvoiceFile(value: unknown): value is InvoiceFile {
+function isInvoiceAttachment(value: unknown): value is InvoiceAttachment {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    typeof (value as InvoiceAttachment).fileName === "string"
+  );
+}
+
+function isFullInvoiceFile(value: unknown): value is InvoiceFile {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -107,10 +126,28 @@ function isInvoiceFile(value: unknown): value is InvoiceFile {
 
 function invoiceFile(movimento: MovimentoDetalhe) {
   const direct = movimento.raw?.fatura_patrocinio;
-  if (isInvoiceFile(direct)) return direct;
+  if (isFullInvoiceFile(direct)) return direct;
 
   const legacy = movimento.raw?.ficheiro_fatura_patrocinio;
-  return isInvoiceFile(legacy) ? legacy : null;
+  return isFullInvoiceFile(legacy) ? legacy : null;
+}
+
+function invoiceAttachment(movimento: MovimentoDetalhe) {
+  const direct = movimento.raw?.fatura_patrocinio;
+  if (isInvoiceAttachment(direct)) return direct;
+
+  const directMeta = movimento.raw?.fatura_patrocinio_meta;
+  if (isInvoiceAttachment(directMeta)) return directMeta;
+
+  const legacy = movimento.raw?.ficheiro_fatura_patrocinio;
+  if (isInvoiceAttachment(legacy)) return legacy;
+
+  const legacyMeta = movimento.raw?.ficheiro_fatura_patrocinio_meta;
+  return isInvoiceAttachment(legacyMeta) ? legacyMeta : null;
+}
+
+function invoiceDownloadHref(movimento: MovimentoDetalhe, attachment: InvoiceAttachment) {
+  return attachment.dataUrl || `/api/fat-patrocinios/faturas/${encodeURIComponent(movimento.id)}/download`;
 }
 
 function readFileAsDataUrl(file: File) {
@@ -273,16 +310,28 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
     setMessage(null);
     try {
       const now = new Date().toISOString();
+      const invoiceFilePayload = selectedFile
+        ? {
+            ...selectedFile,
+            uploadedAt: now,
+            uploadedBy: session.username
+          }
+        : existingFile;
+      const invoiceFileMeta = invoiceFilePayload
+        ? {
+            fileName: invoiceFilePayload.fileName,
+            contentType: invoiceFilePayload.contentType,
+            size: invoiceFilePayload.size,
+            uploadedAt: invoiceFilePayload.uploadedAt,
+            uploadedBy: invoiceFilePayload.uploadedBy,
+            hasAttachment: true
+          }
+        : null;
       const updated = await updateMovement(
         movimento,
         invoiceTrackingRaw(movimento, true, {
-          fatura_patrocinio: selectedFile
-            ? {
-                ...selectedFile,
-                uploadedAt: now,
-                uploadedBy: session.username
-              }
-            : existingFile,
+          fatura_patrocinio: invoiceFilePayload,
+          fatura_patrocinio_meta: invoiceFileMeta,
           fatura_patrocinio_atualizada_em: now
         }),
         justification
@@ -323,7 +372,7 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
             items.map((movimento) => {
               const issued = isInvoiceIssued(movimento);
               const draftStatus = statusDrafts[movimento.id] ?? (issued ? "sim" : "nao");
-              const attachment = invoiceFile(movimento);
+              const attachment = invoiceAttachment(movimento);
               const selectedFile = selectedFiles[movimento.id];
               const showUpload = draftStatus === "sim" && (!attachment || selectedFile);
               const shouldShowSave = draftStatus === "sim" && (!issued || !attachment || Boolean(selectedFile));
@@ -349,7 +398,7 @@ export function FatPatrociniosClient({ initialMovimentos, error, session, appLog
                   <td>
                     <div className="invoice-file-cell">
                       {attachment ? (
-                        <a download={attachment.fileName} href={attachment.dataUrl} target="_blank" rel="noreferrer">
+                        <a download={attachment.fileName} href={invoiceDownloadHref(movimento, attachment)} target="_blank" rel="noreferrer">
                           {attachment.fileName}
                         </a>
                       ) : (

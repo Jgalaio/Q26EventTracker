@@ -31,11 +31,22 @@ type AppSettingRow = {
   value: unknown;
 };
 
+type CacheOptions = {
+  cacheMs?: number;
+};
+
+const APP_ASSET_CACHE_MS = 5 * 60 * 1000;
+const appSettingCache = new Map<string, { expiresAt: number; value: unknown }>();
+
 function endpoint(resource: string) {
   return `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${resource}`;
 }
 
-export async function readAppSetting<T>(key: string): Promise<T | null> {
+export async function readAppSetting<T>(key: string, options: CacheOptions = {}): Promise<T | null> {
+  const cacheMs = options.cacheMs ?? 0;
+  const cached = cacheMs > 0 ? appSettingCache.get(key) : null;
+  if (cached && cached.expiresAt > Date.now()) return cached.value as T;
+
   try {
     const response = await fetch(`${endpoint("app_settings")}?key=eq.${encodeURIComponent(key)}&select=key,value`, {
       headers: {
@@ -47,19 +58,24 @@ export async function readAppSetting<T>(key: string): Promise<T | null> {
 
     if (!response.ok) return null;
     const rows = (await response.json()) as AppSettingRow[];
-    return (rows[0]?.value as T | undefined) ?? null;
+    const value = (rows[0]?.value as T | undefined) ?? null;
+    if (cacheMs > 0) {
+      appSettingCache.set(key, { expiresAt: Date.now() + cacheMs, value });
+    }
+    return value;
   } catch {
     return null;
   }
 }
 
 export async function writeAppSetting(key: string, value: unknown) {
+  appSettingCache.delete(key);
   const response = await fetch(`${endpoint("app_settings")}?on_conflict=key`, {
     method: "POST",
     headers: {
       apikey: SUPABASE_PUBLISHABLE_KEY,
       "Content-Type": "application/json",
-      Prefer: "resolution=merge-duplicates,return=representation"
+      Prefer: "resolution=merge-duplicates,return=minimal"
     },
     body: JSON.stringify({ key, value })
   });
@@ -70,11 +86,13 @@ export async function writeAppSetting(key: string, value: unknown) {
 }
 
 export async function deleteAppSetting(key: string) {
+  appSettingCache.delete(key);
   const response = await fetch(`${endpoint("app_settings")}?key=eq.${encodeURIComponent(key)}`, {
     method: "DELETE",
     headers: {
       apikey: SUPABASE_PUBLISHABLE_KEY,
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      Prefer: "return=minimal"
     }
   });
 
@@ -84,17 +102,17 @@ export async function deleteAppSetting(key: string) {
 }
 
 export async function getReportLogo() {
-  const logo = await readAppSetting<ReportLogo>("report_logo");
+  const logo = await readAppSetting<ReportLogo>("report_logo", { cacheMs: APP_ASSET_CACHE_MS });
   return logo?.dataUrl ? logo : null;
 }
 
 export async function getAppLogo() {
-  const logo = await readAppSetting<AppLogo>("app_logo");
+  const logo = await readAppSetting<AppLogo>("app_logo", { cacheMs: APP_ASSET_CACHE_MS });
   return logo?.dataUrl ? logo : null;
 }
 
 export async function getAppFavicon() {
-  const favicon = await readAppSetting<AppFavicon>("app_favicon");
+  const favicon = await readAppSetting<AppFavicon>("app_favicon", { cacheMs: APP_ASSET_CACHE_MS });
   return favicon?.dataUrl ? favicon : null;
 }
 

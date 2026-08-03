@@ -7,7 +7,7 @@ import {
   type AuthSession
 } from "./auth-types";
 import { getSupportTickets, getVisibleSupportTickets, type SupportTicket } from "./support-tickets";
-import { getNotas, getPendingPaymentCount, type Nota } from "./supabase-data";
+import { getNotificationNotas, getPendingPaymentCount, type Nota } from "./supabase-data";
 
 export type InternalNotificationTone = "info" | "warning" | "danger" | "success";
 
@@ -29,11 +29,13 @@ function activeTicket(ticket: SupportTicket) {
   return ticket.status !== "fechado";
 }
 
-function activeTask(note: Nota) {
+type NotificationNote = Pick<Nota, "estado" | "prioridade" | "responsavel">;
+
+function activeTask(note: NotificationNote) {
   return note.estado !== "concluido" && note.estado !== "cancelado";
 }
 
-function relevantTaskForUser(note: Nota, session: AuthSession) {
+function relevantTaskForUser(note: NotificationNote, session: AuthSession) {
   if (session.role === "admin") return true;
   if (!note.responsavel) return true;
   return note.responsavel.trim().toLowerCase() === session.username.trim().toLowerCase();
@@ -98,7 +100,7 @@ async function todoNotifications(session: AuthSession): Promise<InternalNotifica
   const mayViewTodo = session.role === "admin" || session.permissions.viewTodo;
   if (!mayViewTodo) return [];
 
-  const notes = await getNotas(150);
+  const notes = await getNotificationNotas(150);
   if (notes.error) return [];
   const urgentNotes = notes.data.filter(
     (note) => activeTask(note) && relevantTaskForUser(note, session) && (note.prioridade === "urgente" || note.prioridade === "alta")
