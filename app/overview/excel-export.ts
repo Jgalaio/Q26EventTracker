@@ -91,6 +91,7 @@ function entryTypeLabel(movimento: MovimentoDetalhe) {
 
 function invoiceIssuedLabel(movimento: MovimentoDetalhe) {
   if (!rawFlag(movimento.raw?.patrocinio) && !rawFlag(movimento.raw?.precisa_fatura)) return "-";
+  if (movimento.raw?.fatura_emitida === "nao_precisa") return "N. Precisa";
   return rawFlag(movimento.raw?.fatura_emitida) ? "Sim" : "Não";
 }
 

@@ -86,7 +86,7 @@ type MovementForm = {
   tipo_entrada: EntryKind;
   precisa_fatura: boolean;
   patrocinio: boolean;
-  fatura_emitida: "sim" | "nao";
+  fatura_emitida: "sim" | "nao" | "nao_precisa";
   tipo_pagamento: string;
   pago: "" | "sim" | "nao";
   contabilizar_totais: boolean;
@@ -447,6 +447,16 @@ function entryKindLabel(kind: EntryKind) {
 
 function isInvoiceIssued(movimento: MovimentoDetalhe) {
   return isRawFlagEnabled(movimento.raw?.fatura_emitida);
+}
+
+function isInvoiceNotRequired(movimento: MovimentoDetalhe) {
+  return movimento.raw?.fatura_emitida === "nao_precisa";
+}
+
+function invoiceIssuedLabel(movimento: MovimentoDetalhe) {
+  if (!needsEntryInvoice(movimento)) return "—";
+  if (isInvoiceNotRequired(movimento)) return "N. Precisa";
+  return yesNo(isInvoiceIssued(movimento));
 }
 
 function rawNumericAmount(value: unknown) {
@@ -1073,7 +1083,13 @@ export function Dashboard({
       tipo_entrada: entryKind,
       precisa_fatura: entryKind === "faturacao" && invoiceNeeded,
       patrocinio: entryKind === "patrocinio",
-      fatura_emitida: invoiceNeeded && isInvoiceIssued(movimento) ? "sim" : "nao",
+      fatura_emitida: invoiceNeeded
+        ? isInvoiceNotRequired(movimento)
+          ? "nao_precisa"
+          : isInvoiceIssued(movimento)
+            ? "sim"
+            : "nao"
+        : "nao",
       tipo_pagamento:
         movimento.tipo === "entrada" && movimento.evento_slug !== "contas" ? entryPaymentLabel(movimento) : movimento.tipo_pagamento ?? "",
       pago: booleanToForm(movimento.pago),
@@ -1218,7 +1234,13 @@ export function Dashboard({
     const entryKind = isEntryMode ? movementForm.tipo_entrada : "faturacao";
     const entrySponsorship = isEntryMode ? entryKind === "patrocinio" : false;
     const entryNeedsInvoice = isEntryMode ? entrySponsorship || (entryKind === "faturacao" && movementForm.precisa_fatura) : false;
-    const entryInvoiceIssued = entryNeedsInvoice ? movementForm.fatura_emitida === "sim" : false;
+    const entryInvoiceStatus = entryNeedsInvoice
+      ? movementForm.fatura_emitida === "sim"
+        ? true
+        : movementForm.fatura_emitida === "nao_precisa"
+          ? "nao_precisa"
+          : false
+      : false;
     const description = movementForm.descricao.trim() || null;
     const payload = {
       evento_id: isEditing ? undefined : selectedEvent?.id,
@@ -1249,7 +1271,7 @@ export function Dashboard({
               patrocinio: entrySponsorship,
               precisa_fatura: entryKind === "faturacao" ? movementForm.precisa_fatura : false,
               tipo_entrada: entryKindLabel(entryKind),
-              fatura_emitida: entryInvoiceIssued,
+              fatura_emitida: entryInvoiceStatus,
               valor_teorico: theoreticalAmount ?? null
             }
           : { faturar_mais_tarde: movementForm.faturar_mais_tarde })
@@ -1302,7 +1324,13 @@ export function Dashboard({
     const entryKind = isEntryMode ? quickMovementForm.tipo_entrada : "faturacao";
     const entrySponsorship = isEntryMode ? entryKind === "patrocinio" : false;
     const entryNeedsInvoice = isEntryMode ? entrySponsorship || (entryKind === "faturacao" && quickMovementForm.precisa_fatura) : false;
-    const entryInvoiceIssued = entryNeedsInvoice ? quickMovementForm.fatura_emitida === "sim" : false;
+    const entryInvoiceStatus = entryNeedsInvoice
+      ? quickMovementForm.fatura_emitida === "sim"
+        ? true
+        : quickMovementForm.fatura_emitida === "nao_precisa"
+          ? "nao_precisa"
+          : false
+      : false;
     const description = quickMovementForm.descricao.trim() || null;
     const payload = {
       evento_id: selectedEvent.id,
@@ -1333,7 +1361,7 @@ export function Dashboard({
               patrocinio: entrySponsorship,
               precisa_fatura: entryKind === "faturacao" ? quickMovementForm.precisa_fatura : false,
               tipo_entrada: entryKindLabel(entryKind),
-              fatura_emitida: entryInvoiceIssued,
+              fatura_emitida: entryInvoiceStatus,
               valor_teorico: theoreticalAmount ?? null
             }
           : { faturar_mais_tarde: quickMovementForm.faturar_mais_tarde })
@@ -2178,6 +2206,9 @@ export function Dashboard({
                                 >
                                   <option value="nao">Não</option>
                                   <option value="sim">Sim</option>
+                                  {quickMovementForm.tipo_entrada === "patrocinio" ? (
+                                    <option value="nao_precisa">N. Precisa</option>
+                                  ) : null}
                                 </select>
                               ) : (
                                 "—"
@@ -2370,7 +2401,7 @@ export function Dashboard({
                           <td>{formatDate(movimento.data_pagamento)}</td>
                           <td>{entryPaymentLabel(movimento)}</td>
                           <td>{entryKindLabel(movementEntryKind(movimento))}</td>
-                          <td>{needsEntryInvoice(movimento) ? yesNo(isInvoiceIssued(movimento)) : "—"}</td>
+                          <td>{invoiceIssuedLabel(movimento)}</td>
                           <td className="money">{formatMoney(movimento.montante)}</td>
                           <td className="money">{formatMoney(theoreticalEntryAmount(movimento))}</td>
                           <td>{renderMovementActions(movimento)}</td>
@@ -2574,7 +2605,7 @@ export function Dashboard({
                       <td>{formatDate(movimento.data_pagamento)}</td>
                       <td>{accountEntryLabel(movimento)}</td>
                       <td>{entryKindLabel(movementEntryKind(movimento))}</td>
-                      <td>{needsEntryInvoice(movimento) ? yesNo(isInvoiceIssued(movimento)) : "—"}</td>
+                      <td>{invoiceIssuedLabel(movimento)}</td>
                       <td className="money">{formatMoney(movimento.montante)}</td>
                       <td>{renderMovementActions(movimento)}</td>
                     </tr>
@@ -2825,6 +2856,9 @@ export function Dashboard({
                         >
                           <option value="nao">Não</option>
                           <option value="sim">Sim</option>
+                          {movementForm.tipo_entrada === "patrocinio" ? (
+                            <option value="nao_precisa">N. Precisa</option>
+                          ) : null}
                         </select>
                       </label>
                     ) : null}

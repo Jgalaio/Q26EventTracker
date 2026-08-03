@@ -34,7 +34,7 @@ function isFinanceInvoiceEntry(movimento: MovimentoDetalhe) {
 }
 
 function isInvoiceEntry(movimento: MovimentoDetalhe) {
-  return isSponsorEntry(movimento) || isFinanceInvoiceEntry(movimento);
+  return movimento.raw?.fatura_emitida !== "nao_precisa" && (isSponsorEntry(movimento) || isFinanceInvoiceEntry(movimento));
 }
 
 export default async function FatPatrociniosPage() {
