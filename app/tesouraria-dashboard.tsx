@@ -36,7 +36,7 @@ type DashboardProps = {
 
 type ModalMode = "create-event" | "edit-event" | "add-entry" | "add-exit" | "edit-entry" | "edit-exit" | null;
 type SectionMode = "eventos" | "contas" | "peditorio" | "patrocinios";
-type MovementSortMode = "recent" | "amount-desc" | "amount-asc" | "name" | "oldest";
+type MovementSortMode = "recent" | "amount-desc" | "amount-asc" | "name" | "method" | "oldest";
 
 type DescriptionPopup = {
   title: string;
@@ -132,6 +132,7 @@ const MOVEMENT_SORT_OPTIONS: Array<{ value: MovementSortMode; label: string }> =
   { value: "amount-desc", label: "Maior valor" },
   { value: "amount-asc", label: "Menor valor" },
   { value: "name", label: "Nome A-Z" },
+  { value: "method", label: "Método" },
   { value: "oldest", label: "Mais antigo" }
 ];
 
@@ -266,6 +267,13 @@ function compareMovementNames(first: MovimentoDetalhe, second: MovimentoDetalhe)
   return movementNameCollator.compare(first.item, second.item);
 }
 
+function movementMethodLabel(movimento: MovimentoDetalhe) {
+  if (movimento.tipo === "entrada") {
+    return movimento.evento_slug === "contas" ? BANK_ACCOUNT_LABEL : entryPaymentLabel(movimento);
+  }
+  return paymentDisplayLabel(movimento.tipo_pagamento, "Sem método");
+}
+
 function compareMovements(first: MovimentoDetalhe, second: MovimentoDetalhe, sortMode: MovementSortMode) {
   const firstAmount = Number(first.montante ?? 0);
   const secondAmount = Number(second.montante ?? 0);
@@ -277,6 +285,9 @@ function compareMovements(first: MovimentoDetalhe, second: MovimentoDetalhe, sor
   if (sortMode === "amount-desc") return secondAmount - firstAmount || recentFirst || compareMovementNames(first, second);
   if (sortMode === "amount-asc") return firstAmount - secondAmount || recentFirst || compareMovementNames(first, second);
   if (sortMode === "name") return compareMovementNames(first, second) || recentFirst;
+  if (sortMode === "method") {
+    return movementNameCollator.compare(movementMethodLabel(first), movementMethodLabel(second)) || recentFirst || compareMovementNames(first, second);
+  }
   if (sortMode === "oldest") return oldestFirst || compareMovementNames(first, second);
   return recentFirst || compareMovementNames(first, second);
 }
