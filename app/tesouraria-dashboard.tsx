@@ -37,7 +37,7 @@ type DashboardProps = {
 
 type ModalMode = "create-event" | "edit-event" | "add-entry" | "add-exit" | "edit-entry" | "edit-exit" | null;
 type SectionMode = "eventos" | "contas" | "peditorio" | "patrocinios";
-type MovementSortMode = "recent" | "amount-desc" | "amount-asc" | "name" | "method" | "oldest";
+type MovementSortMode = "recent" | "amount-desc" | "amount-asc" | "name" | "method" | "invoice" | "oldest";
 
 type DescriptionPopup = {
   title: string;
@@ -134,6 +134,7 @@ const MOVEMENT_SORT_OPTIONS: Array<{ value: MovementSortMode; label: string }> =
   { value: "amount-asc", label: "Menor valor" },
   { value: "name", label: "Nome A-Z" },
   { value: "method", label: "Método" },
+  { value: "invoice", label: "Fatura emitida" },
   { value: "oldest", label: "Mais antigo" }
 ];
 
@@ -275,6 +276,12 @@ function movementMethodLabel(movimento: MovimentoDetalhe) {
   return paymentDisplayLabel(movimento.tipo_pagamento, "Sem método");
 }
 
+function movementInvoiceRank(movimento: MovimentoDetalhe) {
+  if (!needsEntryInvoice(movimento)) return 3;
+  if (isInvoiceNotRequired(movimento)) return 2;
+  return isInvoiceIssued(movimento) ? 1 : 0;
+}
+
 function compareMovements(first: MovimentoDetalhe, second: MovimentoDetalhe, sortMode: MovementSortMode) {
   const firstAmount = Number(first.montante ?? 0);
   const secondAmount = Number(second.montante ?? 0);
@@ -288,6 +295,9 @@ function compareMovements(first: MovimentoDetalhe, second: MovimentoDetalhe, sor
   if (sortMode === "name") return compareMovementNames(first, second) || recentFirst;
   if (sortMode === "method") {
     return movementNameCollator.compare(movementMethodLabel(first), movementMethodLabel(second)) || recentFirst || compareMovementNames(first, second);
+  }
+  if (sortMode === "invoice") {
+    return movementInvoiceRank(first) - movementInvoiceRank(second) || recentFirst || compareMovementNames(first, second);
   }
   if (sortMode === "oldest") return oldestFirst || compareMovementNames(first, second);
   return recentFirst || compareMovementNames(first, second);
