@@ -1,5 +1,6 @@
 "use client";
 
+import { isSponsorAwaitingPayment } from "../sponsor-payment";
 import type { MovimentoDetalhe } from "../supabase-data";
 import type { OverviewRow } from "./overview-client";
 
@@ -195,15 +196,18 @@ function buildEntradaRows(rows: ExcelRow[], movimentos: MovimentoDetalhe[], tota
   }
 
   movimentos.forEach((movimento) => {
+    const awaitingPayment = isSponsorAwaitingPayment(movimento);
+    const textStyle = awaitingPayment ? WARNING_STYLE : TEXT_STYLE;
+    const currencyStyle = awaitingPayment ? WARNING_STYLE : CURRENCY_STYLE;
     pushRow(rows, [
-      { value: movimento.item, style: TEXT_STYLE },
-      { value: movimento.descricao || "-", style: TEXT_STYLE },
-      { value: formatDate(movimento.data_pagamento), style: TEXT_STYLE },
-      { value: movimento.tipo_pagamento || "-", style: TEXT_STYLE },
-      { value: entryTypeLabel(movimento), style: TEXT_STYLE },
-      { value: invoiceIssuedLabel(movimento), style: TEXT_STYLE },
-      { value: movementAmount(movimento), style: CURRENCY_STYLE },
-      { value: rawNumber(movimento.raw?.valor_teorico), style: CURRENCY_STYLE }
+      { value: movimento.item, style: textStyle },
+      { value: movimento.descricao || "-", style: textStyle },
+      { value: formatDate(movimento.data_pagamento), style: textStyle },
+      { value: movimento.tipo_pagamento || "-", style: textStyle },
+      { value: entryTypeLabel(movimento), style: textStyle },
+      { value: invoiceIssuedLabel(movimento), style: textStyle },
+      { value: movementAmount(movimento), style: currencyStyle },
+      { value: rawNumber(movimento.raw?.valor_teorico), style: currencyStyle }
     ]);
   });
 

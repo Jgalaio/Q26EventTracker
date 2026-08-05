@@ -804,7 +804,10 @@ export function OverviewClient({
                               <tbody>
                                 {row.movimentos.length ? (
                                   row.movimentos.map((movimento) => (
-                                    <tr key={movimento.id}>
+                                    <tr
+                                      className={isSponsorAwaitingPayment(movimento) ? "overview-sponsor-unpaid-row" : undefined}
+                                      key={movimento.id}
+                                    >
                                       <td>
                                         <span className={`pill ${movimento.tipo}`}>{movementLabel(movimento.tipo)}</span>
                                       </td>

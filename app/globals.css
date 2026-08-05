@@ -7148,6 +7148,16 @@ td {
   min-width: 1040px;
 }
 
+.overview-detail-table tbody tr.overview-sponsor-unpaid-row td {
+  background: #fff0f2;
+  color: #b4233d;
+}
+
+.overview-detail-table tbody tr.overview-sponsor-unpaid-row .pill {
+  border-color: #e9a5b2;
+  color: #b4233d;
+}
+
 .empty-movement-row {
   color: var(--muted);
   font-weight: 700;
