@@ -3,6 +3,7 @@ import { getAppLogo, getPhysicalCashSettings, getQ25Balance } from "./app-settin
 import { getSession } from "./auth";
 import { canViewTreasury, isViewOnly } from "./auth-types";
 import { BANK_ACCOUNT_LABEL, isBankAccountPayment } from "./payment-labels";
+import { isMovementIncludedInTotals, isSponsorAwaitingPayment } from "./sponsor-payment";
 import { getNotas, getTesourariaData, type EventoResumo, type MovimentoDetalhe, type Nota } from "./supabase-data";
 import { getUserQuickNotes } from "./user-quick-notes";
 import { WelcomeClient } from "./welcome-client";
@@ -61,7 +62,11 @@ function isBankEntryPayment(value: string | null | undefined) {
 }
 
 function isAccountEntry(movimento: MovimentoDetalhe) {
-  return movimento.tipo === "entrada" && (movimento.evento_slug === "contas" || isBankEntryPayment(movimento.tipo_pagamento));
+  return (
+    movimento.tipo === "entrada" &&
+    !isSponsorAwaitingPayment(movimento) &&
+    (movimento.evento_slug === "contas" || isBankEntryPayment(movimento.tipo_pagamento))
+  );
 }
 
 function isPendingPayment(movimento: MovimentoDetalhe) {
@@ -74,7 +79,7 @@ function isEventCounted(event: EventoResumo) {
 }
 
 function isMovementCounted(movimento: MovimentoDetalhe) {
-  return movimento.contabilizar_totais !== false;
+  return isMovementIncludedInTotals(movimento);
 }
 
 function emptySummary(): Summary {
@@ -92,6 +97,7 @@ function emptySummary(): Summary {
 }
 
 function addMovimento(summary: Summary, movimento: MovimentoDetalhe) {
+  if (isSponsorAwaitingPayment(movimento)) return;
   const amount = Number(movimento.montante ?? 0);
 
   if (movimento.tipo === "entrada") {

@@ -9,6 +9,7 @@ import {
 import { getSession, supabaseAdminHeaders } from "../../../auth";
 import type { AuthSession } from "../../../auth-types";
 import { isBankAccountPayment } from "../../../payment-labels";
+import { isMovementIncludedInTotals, isSponsorAwaitingPayment } from "../../../sponsor-payment";
 import { getTesourariaData, type EventoResumo, type MovimentoDetalhe } from "../../../supabase-data";
 import { missingAdminKeyResponse, supabaseAdminRequest } from "../users/user-utils";
 
@@ -76,6 +77,7 @@ function isPendingPayment(movimento: MovimentoDetalhe) {
 }
 
 function addMovimento(summary: Summary, movimento: MovimentoDetalhe) {
+  if (isSponsorAwaitingPayment(movimento)) return;
   const amount = Number(movimento.montante ?? 0);
 
   if (movimento.tipo === "entrada") {
@@ -111,7 +113,7 @@ function isEventCounted(event: EventoResumo) {
 }
 
 function isMovementCounted(movimento: MovimentoDetalhe) {
-  return movimento.contabilizar_totais !== false;
+  return isMovementIncludedInTotals(movimento);
 }
 
 function summarizeEvent(event: EventoResumo, movimentos: MovimentoDetalhe[]): OverviewArchiveRow {

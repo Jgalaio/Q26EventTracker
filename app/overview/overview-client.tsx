@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { AppLogo } from "../app-settings";
 import { canExportOverviewExcel, type AuthSession } from "../auth-types";
 import { isBankAccountPayment, paymentDisplayLabel } from "../payment-labels";
+import { isMovementIncludedInTotals, isSponsorAwaitingPayment } from "../sponsor-payment";
 import type { MovimentoDetalhe } from "../supabase-data";
 import { TopbarActions } from "../topbar-actions";
 import { TopbarBrand } from "../topbar-brand";
@@ -158,6 +159,7 @@ function emptyArchiveSummary(): Summary {
 }
 
 function addArchiveMovement(summary: Summary, movimento: MovimentoDetalhe) {
+  if (isSponsorAwaitingPayment(movimento)) return;
   const amount = Number(movimento.montante ?? 0);
 
   if (movimento.tipo === "entrada") {
@@ -188,7 +190,7 @@ function finalizeArchiveSummary(summary: Summary) {
 }
 
 function movementIsCounted(movimento: MovimentoDetalhe) {
-  return movimento.contabilizar_totais !== false;
+  return isMovementIncludedInTotals(movimento);
 }
 
 function archiveRowsTotals(rows: OverviewRow[]) {

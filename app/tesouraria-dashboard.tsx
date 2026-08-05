@@ -19,6 +19,7 @@ import {
   isBankAccountPayment,
   paymentDisplayLabel
 } from "./payment-labels";
+import { isMovementIncludedInTotals, isSponsorAwaitingPayment } from "./sponsor-payment";
 import type { EventoResumo, MovimentoDetalhe } from "./supabase-data";
 import { TopbarActions } from "./topbar-actions";
 import { TopbarBrand } from "./topbar-brand";
@@ -369,7 +370,7 @@ function isEventClosed(event: EventoResumo | null | undefined) {
 }
 
 function isMovementCounted(movimento: MovimentoDetalhe) {
-  return movimento.contabilizar_totais !== false;
+  return isMovementIncludedInTotals(movimento);
 }
 
 function getEventColorOption(value: string | null | undefined) {
@@ -566,7 +567,11 @@ function accountEntryLabel(movimento: MovimentoDetalhe) {
 }
 
 function isAccountEntry(movimento: MovimentoDetalhe) {
-  return movimento.tipo === "entrada" && (movimento.evento_slug === "contas" || isBankEntryPayment(movimento.tipo_pagamento));
+  return (
+    movimento.tipo === "entrada" &&
+    !isSponsorAwaitingPayment(movimento) &&
+    (movimento.evento_slug === "contas" || isBankEntryPayment(movimento.tipo_pagamento))
+  );
 }
 
 function summarizeMovimentos(movimentos: MovimentoDetalhe[]): FinancialSummary {
@@ -574,6 +579,7 @@ function summarizeMovimentos(movimentos: MovimentoDetalhe[]): FinancialSummary {
     (acc, movimento) => {
       const amount = Number(movimento.montante ?? 0);
       if (movimento.tipo === "entrada") {
+        if (isSponsorAwaitingPayment(movimento)) return acc;
         acc.entradas += amount;
         return acc;
       }
@@ -846,6 +852,10 @@ export function Dashboard({
           const amount = Number(movimento.montante ?? 0);
           const payment = normalizePayment(movimento.tipo_pagamento);
           acc.entradas += 1;
+          if (isSponsorAwaitingPayment(movimento)) {
+            acc.totalEmEspera += amount;
+            return acc;
+          }
           acc.totalEntradas += amount;
           acc.totalValorTeorico += theoreticalEntryAmount(movimento);
           if (payment === "multibanco") {
@@ -865,6 +875,7 @@ export function Dashboard({
         entradas: 0,
         saidas: 0,
         totalEntradas: 0,
+        totalEmEspera: 0,
         totalEntradasDinheiro: 0,
         totalEntradasMultibanco: 0,
         totalEntradasTransferencia: 0,
@@ -1103,8 +1114,8 @@ export function Dashboard({
         : "nao",
       tipo_pagamento:
         movimento.tipo === "entrada" && movimento.evento_slug !== "contas" ? entryPaymentLabel(movimento) : movimento.tipo_pagamento ?? "",
-      pago: booleanToForm(movimento.pago),
-      contabilizar_totais: isMovementCounted(movimento)
+      pago: entryKind === "patrocinio" ? (movimento.pago === false ? "nao" : "sim") : booleanToForm(movimento.pago),
+      contabilizar_totais: movimento.contabilizar_totais !== false
     });
     resetJustification();
     setActiveTab(movimento.tipo === "entrada" ? "entrada" : "saida");
@@ -1263,7 +1274,7 @@ export function Dashboard({
       numero_fatura: isEntryMode ? null : movementForm.numero_fatura.trim() || null,
       fatura_com_nif: isEntryMode ? null : optionalBoolean(movementForm.fatura_com_nif),
       tipo_pagamento: isEntryMode ? entryPayment || null : movementForm.tipo_pagamento.trim() || null,
-      pago: isEntryMode ? null : optionalBoolean(movementForm.pago),
+      pago: isEntryMode ? (entrySponsorship ? movementForm.pago !== "nao" : null) : optionalBoolean(movementForm.pago),
       contabilizar_totais: isEntryMode ? true : movementForm.contabilizar_totais,
       origem_tabela: movementToEdit ? movementToEdit.origem_tabela : manualOrigin(tipo),
       origem_linha: movementToEdit ? movementToEdit.origem_linha : 1,
@@ -1353,7 +1364,7 @@ export function Dashboard({
       numero_fatura: isEntryMode ? null : quickMovementForm.numero_fatura.trim() || null,
       fatura_com_nif: isEntryMode ? null : optionalBoolean(quickMovementForm.fatura_com_nif),
       tipo_pagamento: isEntryMode ? entryPayment : quickMovementForm.tipo_pagamento.trim() || null,
-      pago: isEntryMode ? null : optionalBoolean(quickMovementForm.pago),
+      pago: isEntryMode ? (entrySponsorship ? quickMovementForm.pago !== "nao" : null) : optionalBoolean(quickMovementForm.pago),
       contabilizar_totais: isEntryMode ? true : quickMovementForm.contabilizar_totais,
       origem_tabela: manualOrigin(tipo),
       origem_linha: 1,
@@ -1514,7 +1525,7 @@ export function Dashboard({
 
   const movementRowClass = (movimento: MovimentoDetalhe) =>
     [
-      isPendingPayment(movimento) ? "pending-payment-row" : "",
+      isPendingPayment(movimento) || isSponsorAwaitingPayment(movimento) ? "pending-payment-row" : "",
       targetMovementParam === movimento.id ? "target-movement-row" : ""
     ]
       .filter(Boolean)
@@ -1692,8 +1703,10 @@ export function Dashboard({
           ) : (
             <div className="account-menu-summary">
               <span>{selectedSectionLabel}</span>
-              <strong className={(selectedEvent?.saldo ?? 0) >= 0 ? "positive" : "negative"}>
-                {selectedEvent ? formatMoney(selectedEvent.saldo) : "Sem dados"}
+              <strong
+                className={eventFinancialSummary.entradas - eventFinancialSummary.saidas >= 0 ? "positive" : "negative"}
+              >
+                {selectedEvent ? formatMoney(eventFinancialSummary.entradas - eventFinancialSummary.saidas) : "Sem dados"}
               </strong>
             </div>
           )}
@@ -1756,7 +1769,7 @@ export function Dashboard({
             </article>
             <article>
               <span>Movimentos</span>
-              <strong>{eventMovimentos.filter(isMovementCounted).length}</strong>
+              <strong>{eventMovimentos.length}</strong>
             </article>
           </>
         ) : (
@@ -1914,8 +1927,10 @@ export function Dashboard({
                 <div className="event-side">
                   <div className="event-totals">
                     <span>Saldo</span>
-                    <strong className={Number(selectedEvent.saldo) >= 0 ? "positive" : "negative"}>
-                      {formatMoney(selectedEvent.saldo)}
+                    <strong
+                      className={eventFinancialSummary.entradas - eventFinancialSummary.saidas >= 0 ? "positive" : "negative"}
+                    >
+                      {formatMoney(eventFinancialSummary.entradas - eventFinancialSummary.saidas)}
                     </strong>
                   </div>
                   <div className="event-actions">
@@ -2055,6 +2070,10 @@ export function Dashboard({
                         <small>Valor Dinheiro</small>
                         <strong>{formatMoney(tabCounts.totalEntradasDinheiro)}</strong>
                       </span>
+                      <span className="entry-waiting-value">
+                        <small>Valor em espera</small>
+                        <strong>{formatMoney(tabCounts.totalEmEspera)}</strong>
+                      </span>
                       <span>
                         <small>Valor Multibanco</small>
                         <strong>{formatMoney(tabCounts.totalEntradasMultibanco)}</strong>
@@ -2095,6 +2114,7 @@ export function Dashboard({
                         <th>Data</th>
                         <th>Método</th>
                         <th>Tipo</th>
+                        <th>Pago</th>
                         <th>Fatura emitida</th>
                         <th>Montante</th>
                         <th>Valor teórico</th>
@@ -2181,6 +2201,7 @@ export function Dashboard({
                                   tipo_entrada: entryKind,
                                   precisa_fatura: entryKind === "faturacao" ? current.precisa_fatura : false,
                                   patrocinio: isSponsor,
+                                  pago: isSponsor ? current.pago || "sim" : "sim",
                                   fatura_emitida:
                                     isSponsor || (entryKind === "faturacao" && current.precisa_fatura) ? current.fatura_emitida : "nao"
                                 }));
@@ -2192,6 +2213,25 @@ export function Dashboard({
                                 </option>
                               ))}
                             </select>
+                          </td>
+                          <td>
+                            {quickMovementForm.tipo_entrada === "patrocinio" ? (
+                              <select
+                                aria-label="Pagamento do patrocínio"
+                                value={quickMovementForm.pago || "sim"}
+                                onChange={(event) =>
+                                  setQuickMovementForm((current) => ({
+                                    ...current,
+                                    pago: event.target.value as MovementForm["pago"]
+                                  }))
+                                }
+                              >
+                                <option value="sim">Pago</option>
+                                <option value="nao">N. Pago</option>
+                              </select>
+                            ) : (
+                              "—"
+                            )}
                           </td>
                           <td>
                             <div className="invoice-need-cell">
@@ -2419,6 +2459,7 @@ export function Dashboard({
                           <td>{formatDate(movimento.data_pagamento)}</td>
                           <td>{entryPaymentLabel(movimento)}</td>
                           <td>{entryKindLabel(movementEntryKind(movimento))}</td>
+                          <td>{isSponsorEntry(movimento) ? (movimento.pago === false ? "N. Pago" : "Pago") : "—"}</td>
                           <td>{invoiceIssuedLabel(movimento)}</td>
                           <td className="money">{formatMoney(movimento.montante)}</td>
                           <td className="money">{formatMoney(theoreticalEntryAmount(movimento))}</td>
@@ -2832,6 +2873,7 @@ export function Dashboard({
                             tipo_entrada: entryKind,
                             precisa_fatura: entryKind === "faturacao" ? current.precisa_fatura : false,
                             patrocinio: isSponsor,
+                            pago: isSponsor ? current.pago || "sim" : "sim",
                             fatura_emitida:
                               isSponsor || (entryKind === "faturacao" && current.precisa_fatura) ? current.fatura_emitida : "nao"
                           }));
@@ -2877,6 +2919,23 @@ export function Dashboard({
                           {movementForm.tipo_entrada === "patrocinio" ? (
                             <option value="nao_precisa">N. Precisa</option>
                           ) : null}
+                        </select>
+                      </label>
+                    ) : null}
+                    {movementForm.tipo_entrada === "patrocinio" ? (
+                      <label>
+                        Pagamento do patrocínio
+                        <select
+                          value={movementForm.pago || "sim"}
+                          onChange={(event) =>
+                            setMovementForm((current) => ({
+                              ...current,
+                              pago: event.target.value as MovementForm["pago"]
+                            }))
+                          }
+                        >
+                          <option value="sim">Pago</option>
+                          <option value="nao">N. Pago</option>
                         </select>
                       </label>
                     ) : null}

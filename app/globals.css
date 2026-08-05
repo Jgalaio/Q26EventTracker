@@ -3779,6 +3779,15 @@ h2 {
   white-space: nowrap;
 }
 
+.entry-payment-breakdown .entry-waiting-value {
+  background: #fffaf0;
+  border-color: #e9c36a;
+}
+
+.entry-payment-breakdown .entry-waiting-value strong {
+  color: #9a6500;
+}
+
 .inline-add-button {
   align-items: center;
   background: var(--blue);
@@ -3824,7 +3833,7 @@ table {
 }
 
 .entries-table {
-  min-width: 1180px;
+  min-width: 1260px;
 }
 
 .account-entries-table {
