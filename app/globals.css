@@ -3824,15 +3824,55 @@ table {
 }
 
 .entries-table {
-  min-width: 1380px;
+  min-width: 1180px;
 }
 
 .account-entries-table {
-  min-width: 1420px;
+  min-width: 1260px;
 }
 
 .outgoing-table {
-  min-width: 1480px;
+  min-width: 1380px;
+}
+
+.entries-table .treasury-description-cell,
+.outgoing-table .treasury-description-cell {
+  max-width: 68px;
+  min-width: 68px;
+  text-align: center;
+  width: 68px;
+}
+
+.treasury-description-button {
+  align-items: center;
+  background: #edf4ff;
+  border: 1px solid #bad0f7;
+  border-radius: 50%;
+  color: var(--blue);
+  cursor: pointer;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  transition: background 140ms ease, border-color 140ms ease, opacity 140ms ease;
+  width: 28px;
+}
+
+.treasury-description-button.has-description:hover {
+  background: #dceaff;
+  border-color: var(--blue);
+}
+
+.treasury-description-button.is-empty {
+  cursor: default;
+  opacity: 0.28;
+}
+
+.treasury-description-glyph {
+  font-size: 0.82rem;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .entries-table tbody tr:nth-child(odd) td,

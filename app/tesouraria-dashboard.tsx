@@ -1554,14 +1554,21 @@ export function Dashboard({
   };
 
   const renderDescription = (movimento: MovimentoDetalhe) => {
-    if (!movimento.descricao) return "—";
+    const description = movimento.descricao?.trim() ?? "";
+    const hasDescription = description.length > 0;
+
     return (
       <button
-        className="description-button"
+        aria-label={hasDescription ? `Ver descrição de ${movimento.item}` : `${movimento.item} sem descrição`}
+        className={`treasury-description-button ${hasDescription ? "has-description" : "is-empty"}`}
+        disabled={!hasDescription}
+        title={hasDescription ? "Ver descrição" : "Sem descrição"}
         type="button"
-        onClick={() => setDescriptionPopup({ title: movimento.item, text: movimento.descricao ?? "" })}
+        onClick={() => setDescriptionPopup({ title: movimento.item, text: description })}
       >
-        {movimento.descricao}
+        <span aria-hidden="true" className="treasury-description-glyph">
+          i
+        </span>
       </button>
     );
   };
@@ -2084,7 +2091,7 @@ export function Dashboard({
                     {activeTab === "entrada" ? (
                       <tr>
                         <th>Item</th>
-                        <th>Descrição</th>
+                        <th className="treasury-description-cell">Descrição</th>
                         <th>Data</th>
                         <th>Método</th>
                         <th>Tipo</th>
@@ -2097,7 +2104,7 @@ export function Dashboard({
                       <tr>
                         <th>Tipo</th>
                         <th>Item</th>
-                        <th>Descrição</th>
+                        <th className="treasury-description-cell">Descrição</th>
                         <th>Data</th>
                         <th>Montante</th>
                         <th>Pagamento</th>
@@ -2408,7 +2415,7 @@ export function Dashboard({
                       activeTab === "entrada" ? (
                         <tr className={movementRowClass(movimento)} key={movimento.id}>
                           <td className="item-cell">{movimento.item}</td>
-                          <td>{renderDescription(movimento)}</td>
+                          <td className="treasury-description-cell">{renderDescription(movimento)}</td>
                           <td>{formatDate(movimento.data_pagamento)}</td>
                           <td>{entryPaymentLabel(movimento)}</td>
                           <td>{entryKindLabel(movementEntryKind(movimento))}</td>
@@ -2423,7 +2430,7 @@ export function Dashboard({
                             <span className={`pill ${movimento.tipo}`}>{movementLabel(movimento.tipo)}</span>
                           </td>
                           <td className="item-cell">{movimento.item}</td>
-                          <td>{renderDescription(movimento)}</td>
+                          <td className="treasury-description-cell">{renderDescription(movimento)}</td>
                           <td>{formatDate(movimento.data_pagamento)}</td>
                           <td className="money">{formatMoney(movimento.montante)}</td>
                           <td>{movimento.tipo_pagamento ?? "—"}</td>
@@ -2525,7 +2532,7 @@ export function Dashboard({
                   <tr>
                     <th>Evento</th>
                     <th>Item</th>
-                    <th>Descrição</th>
+                    <th className="treasury-description-cell">Descrição</th>
                     <th>Data</th>
                     <th>Método</th>
                     <th>Tipo</th>
@@ -2537,7 +2544,7 @@ export function Dashboard({
                   <tr>
                     <th>Evento</th>
                     <th>Item</th>
-                    <th>Descrição</th>
+                    <th className="treasury-description-cell">Descrição</th>
                     <th>Data</th>
                     <th>Montante</th>
                     <th>Pagamento</th>
@@ -2612,7 +2619,7 @@ export function Dashboard({
                     <tr className={movementRowClass(movimento)} key={movimento.id}>
                       <td>{eventDisplayName({ nome: movimento.evento_nome, slug: movimento.evento_slug })}</td>
                       <td className="item-cell">{movimento.item}</td>
-                      <td>{renderDescription(movimento)}</td>
+                      <td className="treasury-description-cell">{renderDescription(movimento)}</td>
                       <td>{formatDate(movimento.data_pagamento)}</td>
                       <td>{accountEntryLabel(movimento)}</td>
                       <td>{entryKindLabel(movementEntryKind(movimento))}</td>
@@ -2624,7 +2631,7 @@ export function Dashboard({
                     <tr className={movementRowClass(movimento)} key={movimento.id}>
                       <td>{eventDisplayName({ nome: movimento.evento_nome, slug: movimento.evento_slug })}</td>
                       <td className="item-cell">{movimento.item}</td>
-                      <td>{renderDescription(movimento)}</td>
+                      <td className="treasury-description-cell">{renderDescription(movimento)}</td>
                       <td>{formatDate(movimento.data_pagamento)}</td>
                       <td className="money">{formatMoney(movimento.montante)}</td>
                       <td>{paymentDisplayLabel(movimento.tipo_pagamento, "—")}</td>
