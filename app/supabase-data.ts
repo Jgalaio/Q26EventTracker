@@ -405,6 +405,42 @@ export async function getPendingPaymentCount() {
   };
 }
 
+type SponsorInvoiceNotificationRow = {
+  id: string;
+  tipo_entrada?: unknown;
+  patrocinio?: unknown;
+  fatura_emitida?: unknown;
+};
+
+function notificationRawFlag(value: unknown) {
+  return value === true || value === "true" || value === "sim";
+}
+
+function notificationEntryKind(value: unknown) {
+  if (typeof value !== "string") return "";
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+export async function getUnissuedSponsorInvoiceCount() {
+  const movimentos = await fetchSupabase<SponsorInvoiceNotificationRow>(
+    "movimentos",
+    "select=id,tipo_entrada:raw->tipo_entrada,patrocinio:raw->patrocinio,fatura_emitida:raw->fatura_emitida&tipo=eq.entrada&limit=1000"
+  );
+
+  const count = movimentos.data.filter((movimento) => {
+    const isSponsor =
+      notificationEntryKind(movimento.tipo_entrada) === "patrocinio" || notificationRawFlag(movimento.patrocinio);
+    const invoiceNotRequired = movimento.fatura_emitida === "nao_precisa";
+    return isSponsor && !invoiceNotRequired && !notificationRawFlag(movimento.fatura_emitida);
+  }).length;
+
+  return { count, error: movimentos.error };
+}
+
 export async function getClosedEvents() {
   const [eventos, resumo] = await Promise.all([
     fetchSupabase<EventoBaseRow>(

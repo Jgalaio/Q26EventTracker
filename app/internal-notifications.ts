@@ -7,7 +7,12 @@ import {
   type AuthSession
 } from "./auth-types";
 import { getSupportTickets, getVisibleSupportTickets, type SupportTicket } from "./support-tickets";
-import { getNotificationNotas, getPendingPaymentCount, type Nota } from "./supabase-data";
+import {
+  getNotificationNotas,
+  getPendingPaymentCount,
+  getUnissuedSponsorInvoiceCount,
+  type Nota
+} from "./supabase-data";
 
 export type InternalNotificationTone = "info" | "warning" | "danger" | "success";
 
@@ -137,6 +142,24 @@ async function paymentNotifications(session: AuthSession): Promise<InternalNotif
   ];
 }
 
+async function sponsorInvoiceNotifications(session: AuthSession): Promise<InternalNotification[]> {
+  if (!session.permissions.viewSponsorBilling) return [];
+
+  const invoices = await getUnissuedSponsorInvoiceCount();
+  if (invoices.error || !invoices.count) return [];
+
+  return [
+    {
+      id: "unissued-sponsor-invoices",
+      title: "Faturas de patrocínios por emitir",
+      detail: `${invoices.count} fatura${invoices.count === 1 ? "" : "s"} de patrocínio por emitir.`,
+      href: "/fat-patrocinios",
+      count: invoices.count,
+      tone: "warning"
+    }
+  ];
+}
+
 async function backupNotifications(session: AuthSession): Promise<InternalNotification[]> {
   if (session.role !== "admin") return [];
 
@@ -175,6 +198,7 @@ export async function getInternalNotifications(session: AuthSession): Promise<In
     supportNotifications(session).catch(() => []),
     todoNotifications(session).catch(() => []),
     paymentNotifications(session).catch(() => []),
+    sponsorInvoiceNotifications(session).catch(() => []),
     backupNotifications(session).catch(() => [])
   ]);
   const items = groups.flat();
