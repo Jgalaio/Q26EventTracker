@@ -2114,7 +2114,7 @@ export function Dashboard({
                         <th>Data</th>
                         <th>Método</th>
                         <th>Tipo</th>
-                        <th>Pago</th>
+                        {sectionMode === "patrocinios" ? <th>Pago</th> : null}
                         <th>Fatura emitida</th>
                         <th>Montante</th>
                         <th>Valor teórico</th>
@@ -2214,8 +2214,8 @@ export function Dashboard({
                               ))}
                             </select>
                           </td>
-                          <td>
-                            {quickMovementForm.tipo_entrada === "patrocinio" ? (
+                          {sectionMode === "patrocinios" ? (
+                            <td>
                               <select
                                 aria-label="Pagamento do patrocínio"
                                 value={quickMovementForm.pago || "sim"}
@@ -2229,10 +2229,8 @@ export function Dashboard({
                                 <option value="sim">Pago</option>
                                 <option value="nao">N. Pago</option>
                               </select>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
+                            </td>
+                          ) : null}
                           <td>
                             <div className="invoice-need-cell">
                               {quickMovementForm.tipo_entrada === "faturacao" ? (
@@ -2459,7 +2457,9 @@ export function Dashboard({
                           <td>{formatDate(movimento.data_pagamento)}</td>
                           <td>{entryPaymentLabel(movimento)}</td>
                           <td>{entryKindLabel(movementEntryKind(movimento))}</td>
-                          <td>{isSponsorEntry(movimento) ? (movimento.pago === false ? "N. Pago" : "Pago") : "—"}</td>
+                          {sectionMode === "patrocinios" ? (
+                            <td>{movimento.pago === false ? "N. Pago" : "Pago"}</td>
+                          ) : null}
                           <td>{invoiceIssuedLabel(movimento)}</td>
                           <td className="money">{formatMoney(movimento.montante)}</td>
                           <td className="money">{formatMoney(theoreticalEntryAmount(movimento))}</td>
