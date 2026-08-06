@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getAppLogo } from "../app-settings";
 import { getSession } from "../auth";
 import { canWrite } from "../auth-types";
-import { getTesourariaData, type MovimentoDetalhe } from "../supabase-data";
+import { getEntryMovements, type MovimentoDetalhe } from "../supabase-data";
 import { FatPatrociniosClient } from "./fat-patrocinios-client";
 
 function isRawFlagEnabled(value: unknown) {
@@ -42,7 +42,7 @@ export default async function FatPatrociniosPage() {
   if (!session) redirect("/login?next=/fat-patrocinios");
   if (!canWrite(session)) redirect("/overview");
 
-  const [{ movimentos, error }, appLogo] = await Promise.all([getTesourariaData(), getAppLogo()]);
+  const [{ data: movimentos, error }, appLogo] = await Promise.all([getEntryMovements(), getAppLogo()]);
   const invoiceMovements = movimentos
     .filter(isInvoiceEntry)
     .sort(

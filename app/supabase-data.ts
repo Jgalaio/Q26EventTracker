@@ -142,6 +142,8 @@ type EventoBaseRow = {
 
 type RawValue = Record<string, unknown>;
 
+export const TREASURY_CACHE_TAG = "supabase:treasury";
+const SUPABASE_READ_CACHE_SECONDS = 30;
 const FALLBACK_SUPABASE_URL = "https://ushhacwtmpmwmvpaitdx.supabase.co";
 const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_BjmX7OXzNKdHvMRRUiUdDg_pOepdIEB";
 const EVENTO_RESUMO_SELECT =
@@ -332,7 +334,10 @@ async function fetchSupabase<T>(resource: string, query: string): Promise<FetchR
       apikey: publishableKey,
       "Content-Type": "application/json"
     },
-    cache: "no-store"
+    next: {
+      revalidate: SUPABASE_READ_CACHE_SECONDS,
+      tags: [TREASURY_CACHE_TAG, `supabase:${resource}`]
+    }
   });
 
   if (!response.ok) {
@@ -362,6 +367,18 @@ export async function getTesourariaData() {
     })),
     movimentos: movimentos.data.map(compactMovement),
     error: eventos.error ?? movimentos.error ?? eventLocks.error
+  };
+}
+
+export async function getEntryMovements() {
+  const movimentos = await fetchSupabase<MovimentoDetalheRow>(
+    "movimentos_detalhe",
+    `select=${MOVIMENTO_DETALHE_SELECT}&tipo=eq.entrada&order=data_pagamento.desc.nullslast,evento_nome.asc,item.asc&limit=10000`
+  );
+
+  return {
+    data: movimentos.data.map(compactMovement),
+    error: movimentos.error
   };
 }
 

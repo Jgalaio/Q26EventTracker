@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { writeAuditLog } from "../audit-log";
 import { getSession } from "../auth";
 import { canDelete, canWrite, requiresJustification, type AuthSession } from "../auth-types";
+import { TREASURY_CACHE_TAG } from "../supabase-data";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ushhacwtmpmwmvpaitdx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
@@ -326,6 +328,8 @@ export async function supabaseWrite(
       }
     });
   }
+
+  revalidateTag(TREASURY_CACHE_TAG, { expire: 0 });
 
   return NextResponse.json(parsedResponse);
 }
